@@ -3,7 +3,7 @@ const https = require('https');
 // Config
 const FIREBASE_URL = 'orders-app-78c0f-default-rtdb.europe-west1.firebasedatabase.app';
 const ONESIGNAL_APP_ID = '0d7c05f2-fa00-4366-9d13-6799072e739b';
-const ONESIGNAL_API_KEY = 'os_v2_app_bv6al4x2abbwnhitm6mqoltttpnrv4hy5v5uaqnprsvwlkyrcnhbamkrs5hfq7wjwiqrie62arrv6zyvzxf5wptxcykvnidvbluq3ha';
+const ONESIGNAL_API_KEY = 'os_v2_app_bv6al4x2abbwnhitm6mqoltttnayn5ppgiiuax5ywcclctvhd43c6u2qkeophh2rab4zncy6apuhzxzvkust3avm2pmi4flepcgpgua';
 
 let lastProcessed = {};
 
