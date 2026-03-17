@@ -22,7 +22,7 @@ function sendPush(title, body, filters) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Key ' + ONESIGNAL_API_KEY,
+      'Authorization': 'Bearer ' + ONESIGNAL_API_KEY,
       'Content-Length': Buffer.byteLength(payload)
     }
   };
