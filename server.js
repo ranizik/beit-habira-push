@@ -1,46 +1,51 @@
-const https = require('https');
+    const https = require('https');
+const http = require('http');
 
-// Config
-const FIREBASE_URL = 'orders-app-78c0f-default-rtdb.europe-west1.firebasedatabase.app';
+const FIREBASE_HOST = 'orders-app-78c0f-default-rtdb.europe-west1.firebasedatabase.app';
 const ONESIGNAL_APP_ID = '0d7c05f2-fa00-4366-9d13-6799072e739b';
 const ONESIGNAL_API_KEY = 'os_v2_app_bv6al4x2abbwnhitm6mqoltttnayn5ppgiiuax5ywcclctvhd43c6u2qkeophh2rab4zncy6apuhzxzvkust3avm2pmi4flepcgpgua';
 
 let lastProcessed = {};
 
-function sendPush(title, body, filters) {
-  const payload = JSON.stringify({
-    app_id: ONESIGNAL_APP_ID,
-    headings: { en: title, he: title },
-    contents: { en: body, he: body },
-    filters: filters || [],
-    url: 'https://beit-habira.com/tasks'
-  });
+function sendPush(title, body) {
+  return new Promise((resolve) => {
+    const payload = JSON.stringify({
+      app_id: ONESIGNAL_APP_ID,
+      included_segments: ['Total Subscriptions'],
+      headings: { en: title },
+      contents: { en: body },
+      url: 'https://beit-habira.com/tasks'
+    });
 
-  const options = {
-    hostname: 'api.onesignal.com',
-    path: '/notifications',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + ONESIGNAL_API_KEY,
-      'Content-Length': Buffer.byteLength(payload)
-    }
-  };
+    const options = {
+      hostname: 'api.onesignal.com',
+      path: '/notifications',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Key ' + ONESIGNAL_API_KEY,
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
 
-  const req = https.request(options, (res) => {
-    let data = '';
-    res.on('data', (chunk) => data += chunk);
-    res.on('end', () => console.log('Push sent:', data));
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        console.log('OneSignal response:', data);
+        resolve(data);
+      });
+    });
+    req.on('error', (e) => { console.error('Push error:', e.message); resolve(null); });
+    req.write(payload);
+    req.end();
   });
-  req.on('error', (e) => console.error('Push error:', e));
-  req.write(payload);
-  req.end();
 }
 
 function firebaseGet(path) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const options = {
-      hostname: FIREBASE_URL,
+      hostname: FIREBASE_HOST,
       path: path + '.json',
       method: 'GET'
     };
@@ -52,15 +57,15 @@ function firebaseGet(path) {
         catch(e) { resolve(null); }
       });
     });
-    req.on('error', reject);
+    req.on('error', () => resolve(null));
     req.end();
   });
 }
 
 function firebaseDelete(path) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const options = {
-      hostname: FIREBASE_URL,
+      hostname: FIREBASE_HOST,
       path: path + '.json',
       method: 'DELETE'
     };
@@ -68,7 +73,7 @@ function firebaseDelete(path) {
       res.on('data', () => {});
       res.on('end', resolve);
     });
-    req.on('error', reject);
+    req.on('error', () => resolve());
     req.end();
   });
 }
@@ -76,48 +81,34 @@ function firebaseDelete(path) {
 async function checkQueue() {
   try {
     const queue = await firebaseGet('/bb_push_queue');
-    if (!queue) return;
+    if (!queue || typeof queue !== 'object') return;
 
     for (const [key, item] of Object.entries(queue)) {
-      if (lastProcessed[key]) continue;
+      if (!item || lastProcessed[key]) continue;
       lastProcessed[key] = true;
 
-      console.log('Processing:', item.title, item.body);
-
-      // Build filters based on branch
-      let filters = [];
-      if (item.branch === 'telmond') {
-        filters = [{ field: 'tag', key: 'branch', relation: '=', value: 'telmond' }];
-      } else if (item.branch === 'shfayim') {
-        filters = [{ field: 'tag', key: 'branch', relation: '=', value: 'shfayim' }];
-      }
-      // both or all = send to everyone (no filters)
-
-      sendPush(item.title, item.body, filters);
-
-      // Delete from queue
+      console.log('Sending push:', item.title, '-', item.body);
+      await sendPush(item.title || 'בית הבירה', item.body || '');
       await firebaseDelete('/bb_push_queue/' + key);
     }
 
-    // Clean up old processed keys (keep last 100)
+    // Clean old keys
     const keys = Object.keys(lastProcessed);
-    if (keys.length > 100) {
-      keys.slice(0, keys.length - 100).forEach(k => delete lastProcessed[k]);
+    if (keys.length > 200) {
+      keys.slice(0, 100).forEach(k => delete lastProcessed[k]);
     }
   } catch(e) {
-    console.error('Queue check error:', e);
+    console.error('Queue error:', e.message);
   }
 }
 
-// Poll every 5 seconds
-setInterval(checkQueue, 5000);
+// Poll every 4 seconds
+setInterval(checkQueue, 4000);
 checkQueue();
+console.log('Push server started, polling Firebase every 4s');
 
-// Keep-alive HTTP server (required by Render)
-const http = require('http');
+// HTTP server - required by Render
 http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end('Beit Habira Push Server OK');
-}).listen(process.env.PORT || 3000, () => {
-  console.log('Push server running');
-});
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('OK');
+}).listen(process.env.PORT || 3000);
