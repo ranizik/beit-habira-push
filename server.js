@@ -4,8 +4,9 @@ const http = require('http');
 const FIREBASE_HOST = 'orders-app-78c0f-default-rtdb.europe-west1.firebasedatabase.app';
 const ONESIGNAL_APP_ID = '0d7c05f2-fa00-4366-9d13-6799072e739b';
 const ONESIGNAL_API_KEY = 'os_v2_app_bv6al4x2abbwnhitm6mqolttto72mdezl7ruf3vb6g6uh7zljgnsst5mqdilvgk7oglvvgmwyv4zvra6qhxfxbs223vwheqt75pbfqi';
+const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
+const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
 
-let lastProcessed = {};
 
 function sendPush(title, body) {
   return new Promise((resolve) => {
@@ -22,7 +23,7 @@ function sendPush(title, body) {
       path: '/notifications',
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+       'Authorization': 'Bearer ' + ONESIGNAL_API_KEY,
         'Authorization': 'Key ' + ONESIGNAL_API_KEY,
         'Content-Length': Buffer.byteLength(payload)
       }
