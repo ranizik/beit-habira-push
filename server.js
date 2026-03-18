@@ -1,4 +1,4 @@
-    const https = require('https');
+const https = require('https');
 const http = require('http');
 
 const FIREBASE_HOST = 'orders-app-78c0f-default-rtdb.europe-west1.firebasedatabase.app';
@@ -19,11 +19,11 @@ function sendPush(title, body) {
 
     const options = {
       hostname: 'api.onesignal.com',
-      path: '/notifications',
+      path: '/api/v1/notifications',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Key ' + ONESIGNAL_API_KEY,
+        'Authorization': 'Bearer ' + ONESIGNAL_API_KEY,
         'Content-Length': Buffer.byteLength(payload)
       }
     };
@@ -86,29 +86,23 @@ async function checkQueue() {
     for (const [key, item] of Object.entries(queue)) {
       if (!item || lastProcessed[key]) continue;
       lastProcessed[key] = true;
-
       console.log('Sending push:', item.title, '-', item.body);
       await sendPush(item.title || 'בית הבירה', item.body || '');
       await firebaseDelete('/bb_push_queue/' + key);
     }
 
-    // Clean old keys
     const keys = Object.keys(lastProcessed);
-    if (keys.length > 200) {
-      keys.slice(0, 100).forEach(k => delete lastProcessed[k]);
-    }
+    if (keys.length > 200) keys.slice(0, 100).forEach(k => delete lastProcessed[k]);
   } catch(e) {
     console.error('Queue error:', e.message);
   }
 }
 
-// Poll every 4 seconds
 setInterval(checkQueue, 4000);
 checkQueue();
-console.log('Push server started, polling Firebase every 4s');
+console.log('Push server started');
 
-// HTTP server - required by Render
 http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.writeHead(200);
   res.end('OK');
 }).listen(process.env.PORT || 3000);
