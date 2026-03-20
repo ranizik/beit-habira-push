@@ -1,7 +1,7 @@
 const https = require('https');
 const http = require('http');
 
-const FIREBASE_HOST = orders-app-78c0f-default-rtdb.europe-west1.firebasedatabase.app
+const FIREBASE_HOST = const FIREBASE_HOST = 'orders-app-78c0f-default-rtdb.europe-west1.firebasedatabase.app';
 const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
 const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
 console.log('APP_ID:', ONESIGNAL_APP_ID ? 'OK' : 'MISSING');
