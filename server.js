@@ -83,7 +83,8 @@ function firebaseDelete(path) {
 async function checkQueue() {
   try {
     const queue = await firebaseGet('/bb_push_queue');
-    if (!queue || typeof queue !== 'object') return;
+    // תשובת "Permission denied" מ-Firebase היא לא תור - לא שולחים עליה התראה
+    if (!queue || typeof queue !== 'object' || queue.error) return;
 
     for (const [key, item] of Object.entries(queue)) {
       if (!item || lastProcessed[key]) continue;
@@ -101,6 +102,14 @@ async function checkQueue() {
 }
 
 setInterval(checkQueue, 4000);
+
+// השרת הזה נשמר ער ע"י UptimeRobot. הוא מעיר גם את שרת ה-API (שבו רצות תזכורות המשימות),
+// כדי ש-Render לא ירדים אותו ותזכורות לא יפוספסו
+function pingApi() {
+  https.get('https://beit-habira-api.onrender.com/health', (res) => res.resume()).on('error', () => {});
+}
+setInterval(pingApi, 10 * 60 * 1000);
+pingApi();
 checkQueue();
 console.log('Push server started');
 
