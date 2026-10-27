@@ -1066,9 +1066,19 @@ function addTask(auto){
   let autoCat='';
   const fcSel=document.getElementById('f-cat');
   if(!(fcSel&&fcSel.value&&fcSel.value!=='__new')){
-    for(const c of allCats()){
-      const re=new RegExp('\\s+(?:ל|ב)'+c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$');
-      if(re.test(name)&&name.replace(re,'').trim()){ name=name.replace(re,'').trim(); autoCat=c; break; }
+    // סדר עדיפות: "קטגוריה עבודה" בכל מקום ← "...לבית" בסוף ← "לבית ..." בהתחלה ← "...לבית..." באמצע (לא לפני "של")
+    const cats=allCats().slice().sort((a,b)=>b.length-a.length).map(c=>[c,c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')]);
+    const tries=[
+      e=>new RegExp('(^|\\s)(?:ב|ל)?קטגוריי?ה\\s+'+e+'(?=\\s|$)'),
+      e=>new RegExp('(\\s)(?:ל|ב)'+e+'$'),
+      e=>new RegExp('^()(?:ל|ב)'+e+'(?=\\s)'),
+      e=>new RegExp('(\\s)(?:ל|ב)'+e+'(?=\\s)(?!\\s+של(?:\\s|$))')
+    ];
+    outer: for(const mk of tries){
+      for(const [c,e] of cats){
+        const re=mk(e);
+        if(re.test(name)){ const rest=name.replace(re,'$1').replace(/\s+/g,' ').trim(); if(rest){ name=rest; autoCat=c; break outer; } }
+      }
     }
   }
   let autoPri='';
@@ -1315,7 +1325,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27w';
+const APP_VERSION='2026-10-27x';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
