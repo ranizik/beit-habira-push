@@ -787,14 +787,89 @@ async function statsApi(path, body){
     return r.json();
   }catch(e){ return null; }
 }
+
+// ── מנויים: משתמש נעול / שהתקופה שלו נגמרה רואה מסך נעילה (בעל העסק פותח/נועל מ-📊) ──
+async function accessApi(path, body){
+  try{
+    const u=TASKS_APP.auth().currentUser; if(!u) return null;
+    const t=await u.getIdToken();
+    const r=await fetch(STAFF_API+'/tasks/access/'+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(body||{})});
+    return r.json();
+  }catch(e){ return null; }
+}
+let accessInfo=null;
+const escA=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const waLink=(phone,text)=>'https://wa.me/'+String(phone||'').replace(/\D/g,'').replace(/^0/,'972')+'?text='+encodeURIComponent(text);
+async function checkAccess(){
+  if(!curUser) return;
+  const j=await accessApi('me');
+  if(!j||!j.ok){ return; } // תקלה בשרת - לא נועלים
+  accessInfo=j;
+  if(j.allowed) hideLocked(); else showLocked(j);
+  render();
+}
+function showLocked(j){
+  let ov=document.getElementById('locked-ov');
+  if(!ov){ ov=document.createElement('div'); ov.id='locked-ov'; document.body.appendChild(ov); }
+  ov.style.cssText='position:fixed;inset:0;background:#1E1B4B;z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl;font-family:Rubik,Arial,sans-serif';
+  const ended=j.locked?'הגישה לתכל׳ס נעולה כרגע':(j.plan==='paid'?'המנוי לתכל׳ס הסתיים':'תקופת הניסיון של תכל׳ס הסתיימה');
+  ov.innerHTML='<div style="background:#fff;border-radius:24px;padding:26px 22px;width:min(360px,92vw);text-align:center;color:#1A1A2E">'
+    +'<img src="icon-v3-192.png" alt="" style="width:72px;height:72px;border-radius:20px;margin-bottom:10px">'
+    +'<div style="font-size:21px;font-weight:800;margin-bottom:6px">'+ended+'</div>'
+    +'<div style="font-size:15px;color:#5B5B76;line-height:1.6;margin-bottom:16px">המשימות שלך שמורות ומחכות לך.<br>כדי להמשיך: מנוי של <b style="color:#1A1A2E">'+escA(j.price)+' ₪ לחודש</b></div>'
+    +'<a href="'+waLink(j.contact,'היי רני, אשמח להמשיך להשתמש בתכל׳ס 🙂')+'" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:14px;background:#25D366;color:#fff;font-size:17px;font-weight:700;text-decoration:none"><i class="ti ti-brand-whatsapp" style="font-size:22px"></i> לחידוש בוואטסאפ</a>'
+    +'<button id="locked-recheck" style="margin-top:10px;width:100%;height:46px;border-radius:14px;border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B;font-size:15px;font-weight:600;font-family:inherit">כבר חידשתי – בדוק שוב</button>'
+    +'<button id="locked-logout" style="margin-top:6px;background:none;border:0;color:#5B5B76;font-size:13px;padding:8px;font-family:inherit">התנתק</button></div>';
+  document.getElementById('locked-recheck').onclick=async()=>{ const b=document.getElementById('locked-recheck'); b.textContent='בודק...'; await checkAccess(); const still=document.getElementById('locked-recheck'); if(still){ still.textContent='עדיין נעול – נסה שוב בעוד רגע'; } };
+  document.getElementById('locked-logout').onclick=()=>{ hideLocked(); logout(); };
+  if(isRecording&&recognition) try{ recognition.stop(); }catch(e){}
+}
+function hideLocked(){ document.getElementById('locked-ov')?.remove(); }
+
+// מסך ניהול משתמשים (בעל העסק) - בתוך 📊
+const fmtD=ms=>ms?new Date(ms).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'}):'—';
+async function renderAccessAdmin(){
+  const box=document.getElementById('acc-body'); if(!box) return;
+  const j=await accessApi('list');
+  if(!j||!j.ok){ box.textContent='לא ניתן לטעון משתמשים'+(j&&j.error?': '+j.error:''); return; }
+  const C=j.config;
+  const badge=u=>{
+    if(u.locked) return ['🔒 נעול','#FDECEA','#B42318'];
+    if(!u.allowed) return ['⛔ '+(u.plan==='paid'?'המנוי נגמר':'הניסיון נגמר'),'#FDECEA','#B42318'];
+    if(u.until==null) return ['♾ ללא הגבלה','#E7F8EF','#0F6B3E'];
+    if(u.plan==='paid') return ['✅ מנוי עד '+fmtD(u.until),'#E7F8EF','#0F6B3E'];
+    return ['🧪 ניסיון – עוד '+u.daysLeft+' ימים','#FFF4DB','#8A5A00'];
+  };
+  const btn=(uid,act,label,danger)=>'<button data-uid="'+escA(uid)+'" data-act="'+act+'" style="height:32px;padding:0 10px;border-radius:9px;border:1.5px solid '+(danger?'#F3B5B5':'#E2E1F0')+';background:'+(danger?'#FDECEA':'#fff')+';color:'+(danger?'#B42318':'#1E1B4B')+';font-size:12px;font-family:inherit;cursor:pointer">'+label+'</button>';
+  box.innerHTML=(j.users.length?j.users.map(u=>{ const [bt,bg,fg]=badge(u);
+    return '<div style="border:1.5px solid #E2E1F0;border-radius:14px;padding:10px 12px;margin-bottom:8px">'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="font-size:15px">'+escA(u.name||u.email||'משתמש')+'</b>'
+      +'<span style="font-size:12px;padding:3px 8px;border-radius:8px;background:'+bg+';color:'+fg+';font-weight:600">'+bt+'</span></div>'
+      +'<div style="font-size:12px;color:#5B5B76;margin:4px 0 8px">'+escA(u.email)+' · הצטרף/ה '+fmtD(u.joined)+' · פעיל/ה לאחרונה '+fmtD(u.last)+' · '+u.tasks+' משימות</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+btn(u.uid,'month','💳 שילם/ה – פתח לחודש')+btn(u.uid,'trial7','+7 ימי ניסיון')+btn(u.uid,'forever','♾ ללא הגבלה')+(u.locked?'':btn(u.uid,'lock','🔒 נעל',true))+'</div></div>';
+  }).join(''):'<div style="color:#5B5B76">אין עדיין משתמשים</div>')
+    +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:#5B5B76;margin-top:6px">ניסיון למשתמש חדש <input id="acc-days" type="number" min="1" max="365" value="'+escA(C.trialDays)+'" style="width:56px;margin:0;padding:4px 6px"> ימים · מחיר <input id="acc-price" type="number" min="0" value="'+escA(C.price)+'" style="width:60px;margin:0;padding:4px 6px"> ₪ · וואטסאפ <input id="acc-contact" type="tel" value="'+escA(C.contact)+'" style="width:110px;margin:0;padding:4px 6px"> <button id="acc-save" class="bulk-btn">שמור</button></div>';
+  box.querySelectorAll('button[data-act]').forEach(b=>b.onclick=async()=>{
+    const act=b.getAttribute('data-act');
+    if(act==='lock'&&!confirm('לנעול את המשתמש? המשימות שלו נשמרות, והוא יראה מסך "לחידוש".')) return;
+    b.disabled=true; const r=await accessApi('set',{uid:b.getAttribute('data-uid'),action:act});
+    showToast(r&&r.ok?'עודכן ✓':'שגיאה: '+((r&&r.error)||'')); renderAccessAdmin();
+  });
+  document.getElementById('acc-save').onclick=async()=>{
+    const r=await accessApi('config',{trialDays:document.getElementById('acc-days').value,price:document.getElementById('acc-price').value,contact:document.getElementById('acc-contact').value});
+    showToast(r&&r.ok?'ההגדרות נשמרו ✓':'שגיאה בשמירה');
+  };
+}
+
 function statsPing(){ statsApi('ping',{standalone:isStandalone(), platform:statsPlatform()}); }
 window.addEventListener('appinstalled', ()=>statsApi('event',{type:'install'}));
 
 async function showStats(){
   document.getElementById('edit-modal')?.remove();
   const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
-  ov.innerHTML='<div class="modal" style="max-width:600px;max-height:90vh;overflow:auto"><h3>📊 נתוני שימוש</h3><div id="st-body" style="font-size:13px">טוען...</div><div class="modal-btns"><button class="btn-cancel" onclick="document.getElementById(\'edit-modal\').remove()">סגור</button></div></div>';
+  ov.innerHTML='<div class="modal" style="max-width:600px;max-height:90vh;overflow:auto"><h3>👥 משתמשים ומנויים</h3><div id="acc-body" style="font-size:13px;margin-bottom:16px">טוען...</div><h3>📊 נתוני שימוש</h3><div id="st-body" style="font-size:13px">טוען...</div><div class="modal-btns"><button class="btn-cancel" onclick="document.getElementById(\'edit-modal\').remove()">סגור</button></div></div>';
   document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  renderAccessAdmin();
   const j=await statsApi('summary');
   const body=document.getElementById('st-body'); if(!body) return;
   if(!j||!j.ok){ body.textContent='לא ניתן לטעון נתונים'+(j&&j.error?': '+j.error:''); return; }
@@ -835,7 +910,7 @@ function iosInstallHint(){
 
 function startTasks(u){
   if(tasksStarted) return;
-  curUser=u; registerPush(true); watchLists(); gcalServerStatus(); statsPing();
+  curUser=u; registerPush(true); watchLists(); gcalServerStatus(); statsPing(); checkAccess();
   const sb=document.getElementById('stats-btn'); if(sb) sb.style.display = u.uid==='staff-tasks' ? '' : 'none';
   let saved=''; try{ saved=localStorage.getItem('tasks_cur_list')||''; }catch(e){}
   curList=null; tasksRef=listTasksRef(null); tasksStarted=true; subscribeTasks(); renderLists();
@@ -847,7 +922,7 @@ function stopTasks(){
   Object.values(listMetaRefs).forEach(r=>r.off()); listMetaRefs={}; myLists={}; curList=null; curUser=null;
   gcalSrv={configured:false, connected:false, email:''}; updateGcalStatus();
   const sb=document.getElementById('stats-btn'); if(sb) sb.style.display='none';
-  tasks={}; timers.forEach(clearTimeout); timers=[]; render(); renderLists();
+  tasks={}; timers.forEach(clearTimeout); timers=[]; accessInfo=null; hideLocked(); render(); renderLists();
 }
 // דפדפן פנימי של וואטסאפ/פייסבוק/אינסטגרם - גוגל חוסם שם התחברות
 function inAppBrowser(){ return /FBAN|FBAV|FB_IAB|Instagram|Line\/|WhatsApp|TikTok|musical_ly|Snapchat|; wv\)/i.test(navigator.userAgent); }
@@ -1143,7 +1218,8 @@ function render(){
     const h=new Date().getHours(), hi=h<5?'לילה טוב':h<12?'בוקר טוב':h<17?'צהריים טובים':h<21?'ערב טוב':'לילה טוב';
     const nm=curUser?(curUser.uid==='staff-tasks'?'רני':String(curUser.displayName||'').split(' ')[0]):'';
     const all=Object.values(tasks).filter(t=>t&&!t.done), nT=all.filter(t=>t.date===today&&!isLate(t)).length, nL=all.filter(isLate).length;
-    g.innerHTML='<b>'+hi+(nm?', '+esc(nm):'')+'</b><span>'+(nT?nT+' משימות להיום':'אין משימות להיום')+(nL?' · '+nL+' באיחור':'')+'</span>';
+    const A=accessInfo, trialNote=(A&&A.allowed&&A.until!=null&&A.daysLeft<=3)?'<div style="margin-top:8px;display:inline-block;background:rgba(255,90,95,.18);color:#FFD7D8;border-radius:10px;padding:5px 10px;font-size:13px">⏳ '+(A.plan==='paid'?'המנוי נגמר':'הניסיון נגמר')+(A.daysLeft<=1?' מחר':' בעוד '+A.daysLeft+' ימים')+'</div>':'';
+    g.innerHTML='<b>'+hi+(nm?', '+esc(nm):'')+'</b><span>'+(nT?nT+' משימות להיום':'אין משימות להיום')+(nL?' · '+nL+' באיחור':'')+'</span>'+trialNote;
   }
   const total=list.length,done=list.filter(t=>t.done).length,urgent=list.filter(t=>t.pri==='high'&&!t.done).length;
   document.getElementById('stats-bar').innerHTML=
@@ -1213,7 +1289,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27s';
+const APP_VERSION='2026-10-27t';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
@@ -1221,7 +1297,7 @@ async function checkAppUpdate(){
     if(m && m[1]!==APP_VERSION && !isRecording && !document.getElementById('edit-modal') && !document.getElementById('f-name').value) location.reload();
   }catch(e){}
 }
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkAppUpdate(); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ checkAppUpdate(); checkAccess(); } });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/tasks/sw-push.js', {scope: '/tasks/'}).catch(()=>{});
 </script>
 </body>
