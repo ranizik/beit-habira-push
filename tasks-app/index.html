@@ -1082,8 +1082,18 @@ function addTask(auto){
     }
   }
   let autoPri='';
-  if(/(^|\s)לא\s+דחוף(?=\s|$)/.test(name)){ autoPri='low'; name=name.replace(/(^|\s)לא\s+דחוף(?=\s|$)/,' '); }
-  else if(/(^|\s)(דחוף מאוד|דחוף|בדחיפות)(?=\s|$)/.test(name)){ autoPri='high'; name=name.replace(/(^|\s)(דחוף מאוד|דחוף|בדחיפות)(?=\s|$)/,' '); }
+  // דחיפות מהמשפט: "דחוף" / "דחיפות גבוהה|בינונית|נמוכה" / "עדיפות ..." / "לא דחוף" / בסוף המשפט גם "חשוב", "בינוני", "נמוך"
+  const PRI_RULES=[
+    [/(^|\s)(?:ב)?(?:דחיפות|עדיפות)\s+(?:גבוהה|עליונה)(?=\s|$)/,'high'],
+    [/(^|\s)(?:ב)?(?:דחיפות|עדיפות)\s+(?:בינונית|רגילה)(?=\s|$)/,'med'],
+    [/(^|\s)(?:ב)?(?:דחיפות|עדיפות)\s+נמוכה(?=\s|$)/,'low'],
+    [/(^|\s)(?:לא\s+דחוף|לא\s+בוער|לא\s+חשוב|מתי\s+שיש\s+זמן)(?=\s|$)/,'low'],
+    [/(^|\s)(?:דחוף\s+מאוד|דחוף|בדחיפות|בוער)(?=\s|$)/,'high'],
+    [/(\s)(?:חשוב\s+מאוד|חשוב)$/,'high'],
+    [/(\s)(?:בינוני|רגיל)$/,'med'],
+    [/(\s)נמוך$/,'low']
+  ];
+  for(const [re,p] of PRI_RULES){ if(re.test(name)&&name.replace(re,'$1').trim()){ autoPri=p; name=name.replace(re,'$1'); break; } }
   name=name.replace(/\s+/g,' ').trim(); if(!name) return;
   const id='task_'+Date.now();
   const task={id,name,pri:document.getElementById('f-pri').value,date,time,done:false,created:Date.now()};
@@ -1325,7 +1335,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27x';
+const APP_VERSION='2026-10-27y';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
