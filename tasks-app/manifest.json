@@ -1,0 +1,26 @@
+{
+  "name": "בית הבירה – משימות וחוסרים",
+  "short_name": "בית הבירה",
+  "description": "משימות וחוסרים לסניפי בית הבירה",
+  "start_url": "/tasks/",
+  "display": "standalone",
+  "background_color": "#0a0f1e",
+  "theme_color": "#0a0f1e",
+  "orientation": "portrait",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

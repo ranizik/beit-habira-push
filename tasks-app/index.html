@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#E53935"/>
+<title>משימות</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="משימות"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<link rel="apple-touch-icon" href="icon.png"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;background:#f0f0f0;min-height:100vh;}
+.header{background:#E53935;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;}
+.header h1{font-size:18px;font-weight:600;flex:1;}
+.notif-status{font-size:11px;opacity:0.8;cursor:pointer;background:rgba(255,255,255,0.15);padding:4px 8px;border-radius:4px;border:none;color:#fff;}
+.toolbar{background:#fff;padding:10px 12px;border-bottom:1px solid #d0d0d0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.toolbar input[type=text]{flex:1;min-width:120px;padding:8px 10px;border:1px solid #b0b0b0;border-radius:4px;font-size:14px;}
+.remind-cell.overdue{color:#c62828;font-weight:700;}
+.task-notes{font-size:11px;color:#777;white-space:pre-wrap;margin-top:2px;}
+#undo-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 14px;border-radius:10px;z-index:9997;display:flex;gap:14px;align-items:center;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.3);}
+#undo-bar button{background:#ffd54f;color:#333;border:0;border-radius:6px;padding:5px 12px;font-weight:700;font-size:14px;cursor:pointer;}
+.bulk-btn{font-size:12px;padding:4px 10px;border-radius:4px;border:1px solid #ccc;background:#fff;color:#333;cursor:pointer;}
+.bulk-btn.danger{background:#fdecea;color:#A32D2D;border-color:#f3b5b5;}
+.bulk-btn:disabled{opacity:.45;cursor:default;}
+tr.row-selected td{background:#dbe9ff !important;}
+.cat-chip{font-size:12px;padding:4px 10px;border-radius:14px;border:1px solid #c8d6e5;background:#fff;color:#1a73e8;cursor:pointer;}
+.cat-chip.active{background:#1a73e8;color:#fff;border-color:#1a73e8;}
+.cat-badge{font-size:10px;background:#e3f2fd;color:#1a73e8;border-radius:3px;padding:1px 6px;margin-inline-start:4px;white-space:nowrap;}
+.toolbar select{padding:8px 6px;border:1px solid #b0b0b0;border-radius:4px;font-size:13px;background:#fff;}
+.toolbar input[type=date],.toolbar input[type=time]{padding:8px 6px;border:1px solid #b0b0b0;border-radius:4px;font-size:13px;}
+.btn-add{background:#217346;color:#fff;border:none;border-radius:4px;padding:8px 14px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.btn-mic{background:#1a73e8;color:#fff;font-size:20px;padding:9px 14px;border-radius:4px;border:none;cursor:pointer;display:flex;align-items:center;}
+.btn-mic.recording{background:#E24B4A;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
+.mic-row{display:flex;align-items:center;gap:8px;width:100%;padding:2px 0;}
+.mic-status{font-size:13px;color:#555;flex:1;}
+.parsed-hint{font-size:12px;color:#217346;background:#e8f5e9;padding:3px 8px;border-radius:4px;display:none;margin-top:2px;}
+.stats{background:#fff;padding:8px 12px;border-bottom:1px solid #d0d0d0;display:flex;gap:6px;flex-wrap:wrap;}
+.stat{font-size:12px;padding:3px 10px;border-radius:3px;background:#f5f5f5;color:#555;}
+.stat b{color:#222;}
+.table-wrap{overflow-x:auto;padding:12px;}
+table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid #b0b0b0;border-radius:4px;overflow:hidden;min-width:480px;}
+thead tr{background:#217346;color:#fff;}
+thead th{padding:9px 10px;text-align:right;font-weight:600;font-size:12px;border-right:1px solid #1a5c38;}
+thead th:last-child{border-right:none;}
+tbody tr{border-bottom:1px solid #d0d0d0;}
+tbody tr:last-child{border-bottom:none;}
+tbody td{padding:8px 10px;border-right:1px solid #e0e0e0;vertical-align:middle;}
+tbody td:last-child{border-right:none;}
+.row-high{background:#FCEBEB;}
+.row-med{background:#FAEEDA;}
+.row-low{background:#EAF3DE;}
+.row-done{background:#f5f5f5;color:#999;}
+.row-done .task-name{text-decoration:line-through;}
+.pri-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:3px;display:inline-block;}
+.pri-high{background:#F7C1C1;color:#791F1F;}
+.pri-med{background:#FAC775;color:#633806;}
+.pri-low{background:#C0DD97;color:#27500A;}
+.pri-done{background:#e0e0e0;color:#888;}
+.status-wrap{display:flex;align-items:center;gap:5px;}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.dot-open{background:#E24B4A;}
+.dot-done{background:#639922;}
+.cb{width:15px;height:15px;cursor:pointer;}
+.actions-cell{display:flex;align-items:center;gap:2px;}
+.del-btn{background:none;border:none;cursor:pointer;color:#ccc;font-size:15px;padding:2px 4px;}
+.del-btn:hover{color:#A32D2D;}
+.cal-btn{background:none;border:none;cursor:pointer;color:#1a73e8;font-size:15px;padding:2px 4px;}
+.cal-btn:hover{color:#0d47a1;}
+.remind-cell{font-size:11px;color:#666;}
+.row-num{color:#aaa;font-size:11px;text-align:center;}
+.empty{text-align:center;padding:32px;color:#aaa;font-size:14px;}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;}
+.modal{background:#fff;border-radius:8px;padding:20px;width:90%;max-width:380px;direction:rtl;}
+.modal h3{font-size:16px;color:#217346;margin-bottom:14px;}
+.modal input,.modal select{width:100%;padding:8px 10px;border:1px solid #b0b0b0;border-radius:4px;font-size:14px;margin-bottom:10px;}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+.btn-save{background:#217346;color:#fff;border:none;border-radius:4px;padding:8px 18px;font-size:14px;cursor:pointer;}
+.btn-cancel{background:#fff;border:1px solid #b0b0b0;border-radius:4px;padding:8px 18px;font-size:14px;cursor:pointer;color:#555;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:80vw;text-align:center;}
+.toast.show{opacity:1;}
+.lists-bar{background:#fff;border-bottom:1px solid #d0d0d0;padding:8px 12px;display:flex;gap:6px;align-items:center;overflow-x:auto;white-space:nowrap;}
+.list-tab{border:1px solid #b0b0b0;background:#f5f5f5;color:#333;border-radius:16px;padding:5px 12px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.list-tab.active{background:#E53935;border-color:#E53935;color:#fff;font-weight:600;}
+.list-tab.add{background:#fff;color:#217346;border-style:dashed;border-color:#217346;}
+.list-tools{display:flex;gap:6px;margin-inline-start:auto;flex-shrink:0;}
+.list-tool{border:none;background:#e8f5e9;color:#217346;border-radius:4px;padding:5px 9px;font-size:12px;cursor:pointer;}
+.list-tool.leave{background:#fdecea;color:#A32D2D;}
+.list-members{font-size:12px;color:#666;padding:6px 12px;background:#fff;border-bottom:1px solid #d0d0d0;display:none;align-items:center;gap:8px;flex-wrap:wrap;}
+.list-members-names{flex:1;min-width:120px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <i class="ti ti-checkbox" style="font-size:20px"></i>
+  <h1>משימות</h1>
+  <button class="notif-status" id="notif-btn" onclick="requestNotify()">🔔 התראות</button>
+  <button class="notif-status" id="gcal-status" onclick="gcalButton()">📅 התחבר ליומן</button>
+  <button class="notif-status" id="stats-btn" onclick="showStats()" title="נתוני שימוש" style="display:none">📊</button>
+  <button class="notif-status" id="logout-btn" onclick="logout()" title="התנתק" style="display:none"><i class="ti ti-logout"></i></button>
+</div>
+
+<div class="lists-bar" id="lists-bar"></div>
+<div class="list-members" id="list-members"></div>
+
+<div class="toolbar">
+  <div class="mic-row">
+    <button class="btn-mic" id="mic-btn" onclick="toggleMic()">
+      <i class="ti ti-microphone" id="mic-icon"></i>
+    </button>
+    <div style="flex:1">
+      <div class="mic-status" id="mic-status">לחץ על המיקרופון ואמור את המשימה בעברית</div>
+      <div class="parsed-hint" id="parsed-hint"></div>
+    </div>
+  </div>
+  <input type="text" id="f-name" autocomplete="off" name="task-text" placeholder="או כתוב משימה..." onkeydown="if(event.key==='Enter')addTask()"/>
+  <select id="f-pri">
+    <option value="high">🔴 דחוף</option>
+    <option value="med" selected>🟡 בינוני</option>
+    <option value="low">🟢 נמוך</option>
+  </select>
+  <select id="f-cat" onchange="onCatSelect(this)"></select>
+  <input type="date" id="f-date"/>
+  <input type="time" id="f-time"/>
+  <button class="btn-add" onclick="addTask()"><i class="ti ti-plus"></i> הוסף</button>
+</div>
+
+<div class="stats" id="stats-bar"></div>
+<div class="stats" id="cat-bar"></div>
+<div class="stats" id="bulk-bar"></div>
+<div class="stats"><input id="f-search" type="search" autocomplete="off" placeholder="🔍 חיפוש משימה..." oninput="render()" style="flex:1;min-width:120px;padding:6px 10px;border:1px solid #ccc;border-radius:16px;font-size:13px"></div>
+
+<div class="table-wrap">
+  <table>
+    <colgroup>
+      <col style="width:24px"/><col/><col style="width:68px"/>
+      <col style="width:90px"/><col style="width:100px"/><col style="width:84px"/>
+    </colgroup>
+    <thead>
+      <tr><th>#</th><th>משימה</th><th>דחיפות</th><th>סטטוס</th><th>תזכורת</th><th>פעולות</th></tr>
+    </thead>
+    <tbody id="tbl-body"></tbody>
+  </table>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+<script>
+const TASKS_APP = firebase.initializeApp({
+  apiKey:"AIzaSyA1Pq3qi361K9xDwv6v4Q44d_nLgpZBtRs",
+  authDomain:"beit-habira.com", // קבצי ההתחברות מתארחים ב-beit-habira.com/__/auth - בלי זה התחברות Google לא עובדת באייפון (Safari חוסם)
+  databaseURL:"https://orders-app-78c0f-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"orders-app-78c0f",
+  storageBucket:"orders-app-78c0f.firebasestorage.app",
+  messagingSenderId:"1057881600020",
+  appId:"1:1057881600020:web:2deed7103137123f6d7701"
+}, 'staff-tasks'); // אפליקציה נפרדת - כדי שהתחברות המשימות לא תדרוס את ההתחברות של /retail או /orders
+const db = TASKS_APP.database();
+// בעל העסק (קוד מנהל) → todo/tasks כמו קודם. כל משתמש אחר (Google) → todo/users/<uid>/tasks, סביבה נפרדת
+let tasksRef = db.ref('todo/tasks');
+function refForUser(u){ return u.uid==='staff-tasks' ? db.ref('todo/tasks') : db.ref('todo/users/'+u.uid+'/tasks'); }
+let tasks={}, recognition=null, isRecording=false, timers=[];
+const GCAL_CLIENT_ID = '895106923239-7ctgh1gc0je4pah4egj0t8h2ajapo95c.apps.googleusercontent.com';
+const GCAL_SCOPE = 'https://www.googleapis.com/auth/tasks';
+if (localStorage.getItem('gcal_scope') !== GCAL_SCOPE) { localStorage.removeItem('gcal_token'); localStorage.removeItem('gcal_expiry'); }
+let gcalToken = localStorage.getItem('gcal_token') || null;
+let gcalExpiry = parseInt(localStorage.getItem('gcal_expiry') || '0');
+
+let gcalSrv = {configured:false, connected:false, email:''};
+function isGcalConnected() { return gcalSrv.configured ? gcalSrv.connected : (gcalToken && Date.now() < gcalExpiry); }
+async function gcalServerApi(path, body){
+  const idToken = await curUser.getIdToken();
+  const r = await fetch(STAFF_API + '/tasks/gcal/' + path, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer ' + idToken}, body: JSON.stringify(body||{})});
+  return r.json();
+}
+async function gcalServerStatus(){
+  try {
+    const j = await gcalServerApi('status');
+    if (j && j.ok) { gcalSrv = {configured:!!j.configured, connected:!!j.connected, email:j.email||''}; updateGcalStatus(); if (gcalSrv.connected) syncMissingToGcal(); }
+  } catch(e) {}
+}
+// פותח את חלון ההתחברות של גוגל (חייב להיפתח מיד בלחיצה, אחרת הדפדפן חוסם)
+function gcalServerConnect(cb, win){
+  const w = win || window.open('', 'gcal', 'width=520,height=680');
+  gcalServerApi('start').then(j => {
+    if (!j || !j.url) { if (w) w.close(); showToast((j && j.error) || 'החיבור נכשל'); return; }
+    if (!w) { location.href = j.url; return; }
+    w.location.href = j.url;
+    let finished = false;
+    const done = async () => { if (finished) return; await gcalServerStatus(); if (gcalSrv.connected) { finished = true; clearInterval(iv); cb && cb(); } };
+    const iv = setInterval(() => { if (w.closed) { clearInterval(iv); done(); } }, 1000);
+    const onVis = () => { if (document.visibilityState === 'visible') setTimeout(done, 800); };
+    document.addEventListener('visibilitychange', onVis);
+    setTimeout(() => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); }, 10 * 60 * 1000);
+  }).catch(() => { if (w) w.close(); showToast('אין חיבור לשרת'); });
+}
+
+function ensureGcalToken(callback) {
+  if (isGcalConnected()) { callback(); return; }
+  if (gcalSrv.configured) { gcalServerConnect(callback); return; }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GCAL_CLIENT_ID,
+    scope: GCAL_SCOPE,
+    callback: (resp) => {
+      if (resp.access_token) {
+        gcalToken = resp.access_token;
+        gcalExpiry = Date.now() + (resp.expires_in * 1000);
+        localStorage.setItem('gcal_token', gcalToken);
+        localStorage.setItem('gcal_expiry', String(gcalExpiry)); localStorage.setItem('gcal_scope', GCAL_SCOPE);
+        updateGcalStatus();
+        callback();
+      }
+    }
+  });
+  client.requestAccessToken({prompt: gcalToken ? '' : 'consent'});
+}
+
+// לחיצה על כפתור היומן: לא מחובר → חיבור. מחובר → אפשרות להחליף חשבון Google
+function gcalButton() {
+  if (gcalSrv.configured) {
+    if (!gcalSrv.connected) { gcalServerConnect(() => { showToast('היומן מחובר לצמיתות ✓'); syncMissingToGcal(); }); return; }
+    if (!confirm('היומן מחובר' + (gcalSrv.email ? ' (' + gcalSrv.email + ')' : '') + '.\nלהחליף לחשבון Google אחר?')) return;
+    const w = window.open('', 'gcal', 'width=520,height=680');
+    gcalServerApi('disconnect').catch(()=>{}).finally(() => { gcalSrv.connected = false; updateGcalStatus(); gcalServerConnect(() => { showToast('היומן הוחלף ✓'); syncMissingToGcal(); }, w); });
+    return;
+  }
+  if (!isGcalConnected()) { ensureGcalToken(()=>{ showToast('מחובר ליומן!'); syncMissingToGcal(); }); return; }
+  if (!confirm('היומן כבר מחובר. להחליף לחשבון Google אחר?')) return;
+  try { if (gcalToken) google.accounts.oauth2.revoke(gcalToken, ()=>{}); } catch(e) {}
+  gcalToken = null; gcalExpiry = 0;
+  localStorage.removeItem('gcal_token'); localStorage.removeItem('gcal_expiry');
+  updateGcalStatus();
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GCAL_CLIENT_ID,
+    scope: GCAL_SCOPE,
+    callback: (resp) => {
+      if (resp.access_token) {
+        gcalToken = resp.access_token;
+        gcalExpiry = Date.now() + (resp.expires_in * 1000);
+        localStorage.setItem('gcal_token', gcalToken);
+        localStorage.setItem('gcal_expiry', String(gcalExpiry)); localStorage.setItem('gcal_scope', GCAL_SCOPE);
+        updateGcalStatus();
+        showToast('היומן הוחלף בהצלחה!');
+      }
+    }
+  });
+  client.requestAccessToken({prompt: 'select_account consent'});
+}
+
+function updateGcalStatus() {
+  const btn = document.getElementById('gcal-status');
+  if (!btn) return;
+  btn.textContent = isGcalConnected() ? '📅 יומן מחובר ✓' : '📅 התחבר ליומן';
+  btn.title = gcalSrv.email || '';
+  btn.style.background = isGcalConnected() ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.15)';
+}
+
+// ── Google Tasks: כל משימה עם תאריך נכנסת כ"משימה" (עם וי) ביומן גוגל ──
+// הערה: Google שומר למשימות רק תאריך דרך ה-API, לכן השעה נכתבת בתחילת הכותרת
+function gcalClearToken(){
+  gcalToken = null; gcalExpiry = 0;
+  localStorage.removeItem('gcal_token'); localStorage.removeItem('gcal_expiry');
+  updateGcalStatus();
+}
+function gtaskBody(task){
+  return {
+    title: task.name, // השעה לא בשם - היא בפרטי המשימה (Google לא שומר שעה במשימה מ-API)
+    notes: (task.notes ? task.notes + '\n\n' : '') + 'נוסף מאפליקציית המשימות' + (task.time ? ' | שעה: ' + task.time : ''),
+    due: task.date + 'T00:00:00.000Z',
+    status: task.done ? 'completed' : 'needsAction'
+  };
+}
+async function gtaskRequest(method, path, body){
+  const r = await fetch('https://tasks.googleapis.com/tasks/v1/lists/@default/tasks' + (path||''), {
+    method,
+    headers: {'Authorization': 'Bearer ' + gcalToken, 'Content-Type': 'application/json'},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = r.status === 204 ? {} : await r.json().catch(()=>({}));
+  return {r, data};
+}
+function gtaskError(r, data){
+  if (r.status === 401 || (r.status === 403 && /scope|insufficient/i.test(JSON.stringify(data)))) {
+    gcalClearToken();
+    return 'צריך להתחבר ליומן מחדש - לחץ "התחבר ליומן" ונסה שוב';
+  }
+  if (r.status === 403 && /has not been used|disabled|SERVICE_DISABLED/i.test(JSON.stringify(data)))
+    return 'Google Tasks API לא מופעל בפרויקט ב-Google Cloud';
+  return (data.error && data.error.message) || ('שגיאה ' + r.status);
+}
+
+// משימות שלא נכנסו ליומן (למשל כשהחיבור פג) נכנסות אוטומטית - רק פתוחות, מאתמול והלאה
+let gcalSyncing=false;
+function gcalSinceDate(){ const d=new Date(); d.setDate(d.getDate()-1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+async function syncMissingToGcal(){
+  if(gcalSyncing) return; gcalSyncing=true;
+  try{
+    const since=gcalSinceDate();
+    const list=Object.values(tasks).filter(t=>t&&t.date&&!t.done&&!t.gtaskId&&t.date>=since);
+    let n=0;
+    for(const t of list){ if(await addToGcal(t)===true) n++; }
+    if(n) showToast(n+' משימות נוספו ליומן ✓');
+  } finally { gcalSyncing=false; }
+}
+async function addToGcal(task) {
+  if (!task.date) return;
+  if (gcalSrv.configured) {
+    const j = await gcalServerApi('task', {op:'create', task:{name:task.name, date:task.date, time:task.time||'', done:!!task.done, notes:task.notes||''}}).catch(e => ({ok:false, error:'אין חיבור לשרת'}));
+    if (j.ok && j.id) { tasksRef.child(task.id).update(curList ? {gtaskId:j.id, gOwner:curUser.uid} : {gtaskId:j.id}); return true; }
+    if (j.error === 'not_connected') { gcalSrv.connected = false; updateGcalStatus(); return 'צריך לחבר את היומן - לחץ 📅'; }
+    return j.error || 'שגיאה';
+  }
+  try {
+    const {r, data} = await gtaskRequest('POST', '', gtaskBody(task));
+    if (data.id) {
+      tasksRef.child(task.id).update(curList ? {gtaskId: data.id, gOwner: curUser.uid} : {gtaskId: data.id});
+      return true;
+    }
+    return gtaskError(r, data);
+  } catch(e) { console.error(e); return 'אין חיבור ליומן'; }
+}
+
+// עדכון/מחיקה של המשימה ביומן כשמשנים באפליקציה (בשקט, רק אם היומן מחובר)
+async function syncGtask(task, remove){
+  if (!task || !task.gtaskId || !isGcalConnected()) return;
+  if (task.gOwner && curUser && task.gOwner !== curUser.uid) return; // משימה משותפת שנכנסה ליומן של מישהו אחר
+  if (gcalSrv.configured) {
+    gcalServerApi('task', remove ? {op:'delete', gtaskId:task.gtaskId} : {op:'update', gtaskId:task.gtaskId, task:{name:task.name, date:task.date, time:task.time||'', done:!!task.done, notes:task.notes||''}}).catch(()=>{});
+    return;
+  }
+  try {
+    const res = remove
+      ? await gtaskRequest('DELETE', '/' + task.gtaskId)
+      : await gtaskRequest('PATCH', '/' + task.gtaskId, gtaskBody(task));
+    if (!res.r.ok && res.r.status !== 404) console.warn('gtask sync:', gtaskError(res.r, res.data));
+  } catch(e) { console.error(e); }
+}
+
+// ── Notifications ──
+// התראות Push אמיתיות (FCM) - התזכורות נשלחות מהשרת, ומגיעות גם כשהאפליקציה סגורה
+const FCM_VAPID_KEY = 'BPd7aAneIo2LFQQY6yrifMnkRbCels2rBBmHrqbuFzkKz0l5UWmf6a5iSYUjapikd6Ez34FoCnkD8nGPIzCwApM';
+const HAS_NOTIF = typeof Notification !== 'undefined' && 'serviceWorker' in navigator;
+function pushDeviceId(){
+  let id = localStorage.getItem('tasks_device_id');
+  if (!id) { id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem('tasks_device_id', id); }
+  return id;
+}
+async function registerPush(silent){
+  try {
+    const u = TASKS_APP.auth().currentUser;
+    if (!HAS_NOTIF || Notification.permission !== 'granted' || !u) return false;
+    const reg = await navigator.serviceWorker.register('/tasks/sw-push.js', {scope: '/tasks/'});
+    await navigator.serviceWorker.ready;
+    const token = await TASKS_APP.messaging().getToken({vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: reg});
+    if (!token) throw new Error('no token');
+    const idToken = await u.getIdToken();
+    const r = await fetch(STAFF_API + '/tasks/push-register', {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer ' + idToken}, body: JSON.stringify({token, deviceId: pushDeviceId()})}).then(r=>r.json());
+    if (!r || !r.ok) throw new Error((r && r.error) || 'server');
+    return true;
+  } catch(e) { console.error('push register:', e); if (!silent) showToast('ההתראות לא נרשמו: ' + (e.message || e)); return false; }
+}
+function updateNotifBtn() {
+  const btn = document.getElementById('notif-btn');
+  if (!HAS_NOTIF) { btn.textContent = '🔕 התראות'; btn.style.background = 'rgba(255,255,255,0.15)'; return; }
+  if (Notification.permission === 'granted') {
+    btn.textContent = '🔔 התראות פעילות';
+    btn.style.background = 'rgba(255,255,255,0.3)';
+  } else {
+    btn.textContent = '🔕 אפשר התראות';
+    btn.style.background = 'rgba(255,255,255,0.15)';
+  }
+}
+
+function requestNotify() {
+  if (!HAS_NOTIF) {
+    showToast(/iPhone|iPad/.test(navigator.userAgent) ? 'באייפון: שתף ← "הוסף למסך הבית", ופתח את האפליקציה משם' : 'הדפדפן לא תומך בהתראות');
+    return;
+  }
+  Notification.requestPermission().then(async p => {
+    updateNotifBtn();
+    if (p !== 'granted') { showToast('לא אושרו התראות'); return; }
+    if (await registerPush(false)) {
+      showToast('התראות מופעלות במכשיר הזה ✓');
+      const reg = await navigator.serviceWorker.getRegistration('/tasks/');
+      if (reg) reg.showNotification('משימות בית הבירה', {body: 'התראות פעילות! תקבל תזכורת בערב שלפני ובשעת המשימה.', icon: '/TODO/icon-192.png', dir: 'rtl'});
+    }
+  });
+}
+updateNotifBtn();
+
+// ── Hebrew parser ──
+const HEB_NUMS = {'אחת עשרה':11,'אחד עשרה':11,'שתים עשרה':12,'שתיים עשרה':12,'אחת':1,'אחד':1,'שתיים':2,'שתים':2,'שלוש':3,'ארבע':4,'חמש':5,'שש':6,'שבע':7,'שמונה':8,'תשע':9,'עשר':10};
+// מנרמל טקסט מדיבור: מספרים במילים → ספרות, 14.00 → 14:00, סימני כיוון נסתרים
+function normalizeHebrewTime(text) {
+  let s = String(text||'').replace(/[‎‏‪-‮]/g,'').replace(/[–־]/g,'-');
+  const words = Object.keys(HEB_NUMS).sort((a,b)=>b.length-a.length).join('|');
+  s = s.replace(new RegExp('(בשעה|שעה|ב-?)\\s*('+words+')(?:\\s+(וחצי|ורבע))?(?=\\s|$|[,.])','g'), (all,pre,w,frac)=>{
+    const m = frac==='וחצי'?'30':frac==='ורבע'?'15':'00';
+    return 'בשעה '+HEB_NUMS[w]+':'+m;
+  });
+  s = s.replace(/(בשעה|שעה|ב-?)\s*(\d{1,2})\.(\d{2})(?!\d)/g, 'בשעה $2:$3');
+  s = s.replace(/(\d{1,2}):(\d{2})\s+(וחצי|ורבע)/g, '$1:$2');
+  return s;
+}
+
+let pendingRep='';
+function parseHebrewDateTime(text) {
+  text = normalizeHebrewTime(text);
+  let rep='';
+  if (/כל\s+(?:יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)(?=\s|$|[,.])/.test(text)) { rep='weekly'; text=text.replace(/כל\s+(?:יום\s+)?(?=(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת))/,'ביום '); }
+  else if (/כל\s+יום(?=\s|$|[,.])/.test(text)) { rep='daily'; text=text.replace(/כל\s+יום/,' '); }
+  else if (/כל\s+שבוע(?=\s|$|[,.])/.test(text)) { rep='weekly'; text=text.replace(/כל\s+שבוע/,' '); }
+  else if (/כל\s+חודש(?=\s|$|[,.])/.test(text)) { rep='monthly'; text=text.replace(/כל\s+חודש/,' '); }
+  const now = new Date();
+  let date = null, time = null;
+  const days = {ראשון:0,שני:1,שלישי:2,רביעי:3,חמישי:4,שישי:5,שבת:6};
+
+  if (/היום/.test(text)) date = new Date(now);
+  if (/מחרתיים/.test(text)) { date=new Date(now); date.setDate(date.getDate()+2); }
+  else if (/מחר/.test(text)) { date=new Date(now); date.setDate(date.getDate()+1); }
+
+  const dowM = text.match(/(?:ביום|יום)\s+(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)/);
+  if (dowM) {
+    const target=days[dowM[1]], curr=now.getDay();
+    let diff=target-curr; if(diff<=0) diff+=7;
+    date=new Date(now); date.setDate(date.getDate()+diff);
+  }
+
+  const dmatch = text.match(/(\d{1,2})[\/\.](\d{1,2})/);
+  if (dmatch) date=new Date(now.getFullYear(), parseInt(dmatch[2])-1, parseInt(dmatch[1]));
+
+  const tmatch = text.match(/(?:בשעה|שעה|ב-?)\s*(\d{1,2})(?::(\d{2}))?(?:\s*(בבוקר|בצהריים|אחה"צ|אחרי הצהריים|בערב|בלילה))?/);
+  if (tmatch) {
+    let h=parseInt(tmatch[1]), m=tmatch[2]?parseInt(tmatch[2]):0, p=tmatch[3]||'';
+    if(p==='בצהריים'&&h<11) h+=12;
+    if((p==='אחה"צ'||p==='אחרי הצהריים'||p==='בערב')&&h<12) h+=12;
+    if(p==='בלילה'&&h<8) h+=12;
+    // בלי "בבוקר": 1-6 נחשב אחה"צ (שעות עבודה בחנות)
+    if(!p&&h>=1&&h<=6) h+=12;
+    if(h>=0&&h<=23) time=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  }
+
+  let clean = text;
+  clean = clean.replace(/(?:ביום|יום)\s+(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)/g,'');
+  clean = clean.replace(/מחרתיים|מחר|היום/g,'');
+  clean = clean.replace(/(?:בשעה|שעה|ב-?)\s*\d{1,2}(?::\d{2})?(?:\s*(?:בבוקר|בצהריים|אחה"צ|אחרי הצהריים|בערב|בלילה))?/g,'');
+  clean = clean.replace(/\d{1,2}[\/\.]\d{1,2}/g,'');
+  if (rep && !date) date = new Date(now);
+  return {cleanText: clean.trim().replace(/\s+/g,' '), date, time, rep};
+}
+
+function applyParsed(parsed) {
+  document.getElementById('f-name').value = parsed.cleanText;
+  if (parsed.date) {
+    const y=parsed.date.getFullYear(), mo=String(parsed.date.getMonth()+1).padStart(2,'0'), d=String(parsed.date.getDate()).padStart(2,'0');
+    document.getElementById('f-date').value = y+'-'+mo+'-'+d;
+  }
+  if (parsed.time) document.getElementById('f-time').value = parsed.time;
+  const hints=[];
+  if (parsed.date) hints.push(parsed.date.toLocaleDateString('he-IL'));
+  if (parsed.time) hints.push(parsed.time);
+  pendingRep = parsed.rep || '';
+  if (parsed.rep) hints.push({daily:'🔁 כל יום',weekly:'🔁 כל שבוע',monthly:'🔁 כל חודש'}[parsed.rep]);
+  const hint=document.getElementById('parsed-hint');
+  if (hints.length){hint.textContent='זוהה: '+hints.join(' ');hint.style.display='block';}
+  else hint.style.display='none';
+}
+
+// ── Mic ──
+let micGotFinal=false, micLastInterim='', micSilence=null, micMax=null, micErr=false;
+const MIC_SILENCE_MS=2300; // שקט של כ-2 שניות = סיימת לדבר (הפסקה קצרה בין מילים לא עוצרת)
+function setupMic() {
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){document.getElementById('mic-btn').style.opacity='0.4';document.getElementById('mic-status').textContent='הדפדפן לא תומך בהקלטה';return;}
+  recognition=new SR();
+  recognition.lang='he-IL'; recognition.continuous=true; recognition.interimResults=true; // נעצר רק אחרי שקט ממושך (למטה)
+  recognition.onstart=()=>{
+    isRecording=true; micGotFinal=false; micLastInterim=''; micErr=false; pendingRep='';
+    clearTimeout(micSilence); clearTimeout(micMax);
+    micMax=setTimeout(()=>{ if(isRecording) recognition.stop(); }, 15000); // הגנה: עד 15 שניות הקלטה
+    document.getElementById('mic-btn').classList.add('recording');
+    document.getElementById('mic-icon').className='ti ti-microphone-off';
+    document.getElementById('mic-status').textContent='מקשיב... דבר, והמשימה תתווסף לבד כשתסיים';
+    document.getElementById('parsed-hint').style.display='none';
+    document.getElementById('f-name').value='';
+    document.getElementById('f-date').value='';
+    document.getElementById('f-time').value='';
+  };
+  recognition.onresult=(e)=>{
+    clearTimeout(micSilence);
+    micSilence=setTimeout(()=>{ if(isRecording) recognition.stop(); }, MIC_SILENCE_MS);
+    // כל מה שנאמר מתחילת ההקלטה (כמה משפטים/הפסקות) - מצטבר לטקסט אחד, ונקלט כשההקלטה נגמרת
+    let full='';
+    for(let i=0;i<e.results.length;i++) full+=e.results[i][0].transcript+' ';
+    micLastInterim=full.replace(/\s+/g,' ').trim();
+    document.getElementById('mic-status').textContent='מזהה: '+micLastInterim+'...';
+  };
+  recognition.onerror=(e)=>{ if(e.error==='aborted'||e.error==='no-speech') return; micErr=true;stopMic();document.getElementById('mic-status').textContent=e.error==='not-allowed'?'לא אושרה גישה למיקרופון':'שגיאה: '+e.error;};
+  recognition.onend=()=>{
+    clearTimeout(micSilence); clearTimeout(micMax);
+    // בחלק מהטלפונים (במיוחד אייפון) לא מגיעה תוצאה "סופית" - משתמשים בתוצאה האחרונה
+    if(!micGotFinal&&micLastInterim) applyParsed(parseHebrewDateTime(micLastInterim));
+    const heard=(micGotFinal||micLastInterim)&&!micErr;
+    stopMic();
+    // הוספה אוטומטית - בלי ללחוץ "הוסף"
+    if(heard && document.getElementById('f-name').value.trim()) addTask(true);
+    else if(!micErr) document.getElementById('mic-status').textContent='לא נשמע כלום - לחץ על המיקרופון ונסה שוב';
+  };
+}
+function toggleMic(){if(!recognition)setupMic();if(!recognition)return;isRecording?recognition.stop():recognition.start();}
+function stopMic(){isRecording=false;document.getElementById('mic-btn').classList.remove('recording');document.getElementById('mic-icon').className='ti ti-microphone';}
+setupMic();
+
+
+// ── Local notifications: task time + evening before ──
+function scheduleLocal(t) {
+  return; // התזכורות נשלחות עכשיו מהשרת (Push) - גם כשהאפליקציה סגורה. הקוד הישן נשאר למטה ללא שימוש
+  if(!t.date || t.done || Notification.permission !== 'granted') return;
+  const now = Date.now();
+
+  // 1. Evening before (20:00 the day before)
+  const dateParts = t.date.split('-').map(Number);
+  const dayBefore = new Date(dateParts[0], dateParts[1]-1, dateParts[2]-1, 20, 0, 0);
+  const msBefore = dayBefore.getTime() - now;
+  if(msBefore > 0) {
+    timers.push(setTimeout(()=>{
+      new Notification('תזכורת למחר: ' + t.name, {
+        body: 'מחר' + (t.time ? ' בשעה ' + t.time : ''),
+        icon: '/TODO/icon-192.png', dir: 'rtl', requireInteraction: true
+      });
+    }, msBefore));
+  }
+
+  // 2. At task time (if time set)
+  if(t.time) {
+    const taskTime = new Date(t.date + 'T' + t.time).getTime();
+    const msTask = taskTime - now;
+    if(msTask > 0) {
+      timers.push(setTimeout(()=>{
+        new Notification('הגיע הזמן: ' + t.name, {
+          body: 'עכשיו!',
+          icon: '/TODO/icon-192.png', dir: 'rtl', requireInteraction: true
+        });
+      }, msTask));
+    }
+  }
+}
+
+function scheduleAllLocal() {
+  timers.forEach(clearTimeout); timers=[];
+  Object.values(tasks).forEach(scheduleLocal);
+}
+
+// ── Firebase (רק אחרי התחברות - הנתונים כבר לא פתוחים לכולם) ──
+const STAFF_API='https://beit-habira-api.onrender.com';
+let tasksStarted=false;
+// ── רשימות: "שלי" (פרטי) + רשימות משותפות ──
+// todo/shared/<listId>: { name, owner, invite, members:{uid:{name}}, tasks:{...} }  |  todo/userLists/<uid>/<listId>: true
+let curUser=null, curList=null, myLists={}, listsRef=null, listMetaRefs={};
+function listTasksRef(id){ return id ? db.ref('todo/shared/'+id+'/tasks') : refForUser(curUser); }
+function subscribeTasks(){
+  let firstLoad=true;
+  tasksRef.on('value',snap=>{tasks=snap.val()||{};render(); if(firstLoad){ firstLoad=false; if(!curList && isGcalConnected()) syncMissingToGcal(); } }, ()=>{
+    if(curList){ showToast('אין גישה לרשימה הזו'); switchList(null); return; }
+    tasksStarted=false; showToast('אין הרשאה - התחבר מחדש'); showTasksLogin();
+  });
+}
+function switchList(id){
+  if(id && !myLists[id]) id=null;
+  if(tasksStarted) tasksRef.off();
+  curList=id||null; tasks={}; render();
+  try{ localStorage.setItem('tasks_cur_list', curList||''); }catch(e){}
+  tasksRef=listTasksRef(curList); tasksStarted=true; subscribeTasks(); renderLists();
+}
+function watchLists(){
+  listsRef=db.ref('todo/userLists/'+curUser.uid);
+  listsRef.on('value', snap=>{
+    const ids=Object.keys(snap.val()||{});
+    Object.keys(listMetaRefs).forEach(id=>{ if(!ids.includes(id)){ listMetaRefs[id].off(); delete listMetaRefs[id]; delete myLists[id]; } });
+    ids.forEach(id=>{
+      if(listMetaRefs[id]) return;
+      myLists[id]={name:'...'};
+      const r=db.ref('todo/shared/'+id); listMetaRefs[id]=r;
+      // קוראים רק שם/חברים/קוד הזמנה (לא את כל המשימות) לכל רשימה
+      ['name','members','invite'].forEach(k=>r.child(k).on('value', s=>{ if(myLists[id]){ myLists[id][k]=s.val(); renderLists(); } }, ()=>{}));
+    });
+    if(curList && !ids.includes(curList)) switchList(null);
+    renderLists();
+  }, ()=>{});
+}
+function renderLists(){
+  const bar=document.getElementById('lists-bar'); if(!bar) return;
+  if(!curUser){ bar.innerHTML=''; document.getElementById('list-members').style.display='none'; return; }
+  const esc=x=>String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let h='<button class="list-tab'+(!curList?' active':'')+'" onclick="switchList(null)"><i class="ti ti-lock"></i> שלי</button>';
+  Object.entries(myLists).sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name),'he')).forEach(([id,l])=>{
+    h+='<button class="list-tab'+(curList===id?' active':'')+'" onclick="switchList(\''+id+'\')"><i class="ti ti-users"></i> '+esc(l.name)+'</button>';
+  });
+  h+='<button class="list-tab add" onclick="createList()"><i class="ti ti-plus"></i> רשימה משותפת</button>';
+  bar.innerHTML=h;
+  const mb=document.getElementById('list-members'), l=curList&&myLists[curList];
+  if(l){
+    mb.innerHTML='<span class="list-members-names"></span><div class="list-tools"><button class="list-tool" onclick="shareList()"><i class="ti ti-share"></i> הזמן חברים</button><button class="list-tool leave" onclick="leaveList()">צא מהרשימה</button></div>';
+    mb.querySelector('.list-members-names').textContent=l.members?'משותף עם: '+Object.values(l.members).map(m=>m&&m.name).filter(Boolean).join(', '):'';
+    mb.style.display='flex';
+  }
+  else mb.style.display='none';
+}
+async function listsApi(path, body){
+  const idToken=await curUser.getIdToken();
+  const r=await fetch(STAFF_API+'/tasks/lists/'+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+idToken},body:JSON.stringify(body||{})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.ok) throw new Error(j.error||('שגיאה '+r.status));
+  return j;
+}
+async function createList(){
+  const name=(prompt('שם לרשימה המשותפת (למשל: בית, משמרת ערב):')||'').trim();
+  if(!name) return;
+  try{
+    const j=await listsApi('create',{name});
+    myLists[j.listId]=myLists[j.listId]||{name, invite:j.invite};
+    myLists[j.listId].invite=j.invite;
+    switchList(j.listId);
+    showToast('הרשימה נוצרה ✓ - לחץ "הזמן" כדי לשלוח קישור');
+  }catch(e){ showToast('לא נוצרה: '+e.message); }
+}
+async function shareList(){
+  const l=myLists[curList]; if(!l||!l.invite){ showToast('רגע, טוען...'); return; }
+  const link=location.origin+'/tasks/?join='+curList+'.'+l.invite;
+  const text='הצטרף לרשימת המשימות "'+l.name+'":';
+  if(navigator.share){ try{ await navigator.share({title:'משימות - '+l.name, text, url:link}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+  try{ await navigator.clipboard.writeText(text+' '+link); showToast('הקישור הועתק - הדבק בוואטסאפ'); }
+  catch(e){ prompt('העתק את הקישור ושלח:', link); }
+}
+async function leaveList(){
+  const l=myLists[curList]; if(!l) return;
+  if(!confirm('לצאת מהרשימה "'+l.name+'"? המשימות יישארו אצל שאר החברים.')) return;
+  const id=curList;
+  try{ await listsApi('leave',{listId:id}); switchList(null); showToast('יצאת מהרשימה'); }
+  catch(e){ showToast('שגיאה: '+e.message); }
+}
+async function handleJoinLink(){
+  let p=new URLSearchParams(location.search).get('join');
+  if(!p){ try{ p=localStorage.getItem('tasks_pending_join'); }catch(e){} }
+  try{ localStorage.removeItem('tasks_pending_join'); }catch(e){}
+  if(!p) return false;
+  history.replaceState(null,'',location.pathname);
+  const [listId, invite]=p.split('.');
+  try{
+    const j=await listsApi('join',{listId, invite});
+    myLists[listId]=myLists[listId]||{name:j.name};
+    switchList(listId);
+    showToast('הצטרפת לרשימה "'+j.name+'" ✓');
+    return true;
+  }catch(e){ showToast('ההצטרפות נכשלה: '+e.message); return false; }
+}
+function moveTask(id){
+  const t=tasks[id]; if(!t) return;
+  const targets=[[ '', '🔒 שלי (פרטי)' ]].concat(Object.entries(myLists).map(([lid,l])=>[lid,'👥 '+l.name])).filter(([lid])=>(lid||null)!==curList);
+  if(!targets.length){ showToast('אין לאן להעביר - צור קודם רשימה משותפת'); return; }
+  document.getElementById('edit-modal')?.remove();
+  const overlay=document.createElement('div'); overlay.className='modal-overlay'; overlay.id='edit-modal';
+  overlay.innerHTML='<div class="modal"><h3>העבר משימה</h3><div style="font-size:13px;color:#555;margin-bottom:8px"></div><select id="m-target"></select>'
+    +'<div class="modal-btns"><button class="btn-cancel" onclick="document.getElementById(\'edit-modal\').remove()">ביטול</button><button class="btn-save" id="m-go">העבר</button></div></div>';
+  overlay.querySelector('.modal div').textContent=t.name;
+  const sel=overlay.querySelector('#m-target');
+  targets.forEach(([lid,label])=>{ const o=document.createElement('option'); o.value=lid; o.textContent=label; sel.appendChild(o); });
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  overlay.querySelector('#m-go').onclick=async()=>{
+    const to=sel.value||null;
+    const copy={...t}; delete copy.rem;
+    // הקישור ל-Google Tasks נשמר רק אם הוא שלי
+    const mine=!copy.gOwner||copy.gOwner===curUser.uid;
+    if(!mine){ delete copy.gtaskId; delete copy.gOwner; }
+    else if(copy.gtaskId){ if(to) copy.gOwner=curUser.uid; else delete copy.gOwner; }
+    try{
+      await listTasksRef(to).child(id).set(copy);
+      await tasksRef.child(id).remove();
+      overlay.remove();
+      showToast('הועבר ל'+(to?'"'+myLists[to].name+'"':'רשימה הפרטית')+' ✓');
+    }catch(e){ showToast('ההעברה נכשלה'); console.error(e); }
+  };
+}
+// ── נתוני שימוש (ספירות בלבד) ──
+function statsPlatform(){ const ua=navigator.userAgent; return /iPhone|iPad|iPod/.test(ua)?'iphone':/Android/.test(ua)?'android':'desktop'; }
+function isStandalone(){ return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true; }
+async function statsApi(path, body){
+  try{
+    const u=TASKS_APP.auth().currentUser; if(!u) return null;
+    const t=await u.getIdToken();
+    const r=await fetch(STAFF_API+'/tasks/stats/'+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(body||{})});
+    return r.json();
+  }catch(e){ return null; }
+}
+function statsPing(){ statsApi('ping',{standalone:isStandalone(), platform:statsPlatform()}); }
+window.addEventListener('appinstalled', ()=>statsApi('event',{type:'install'}));
+
+async function showStats(){
+  document.getElementById('edit-modal')?.remove();
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
+  ov.innerHTML='<div class="modal" style="max-width:600px;max-height:90vh;overflow:auto"><h3>📊 נתוני שימוש</h3><div id="st-body" style="font-size:13px">טוען...</div><div class="modal-btns"><button class="btn-cancel" onclick="document.getElementById(\'edit-modal\').remove()">סגור</button></div></div>';
+  document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  const j=await statsApi('summary');
+  const body=document.getElementById('st-body'); if(!body) return;
+  if(!j||!j.ok){ body.textContent='לא ניתן לטעון נתונים'+(j&&j.error?': '+j.error:''); return; }
+  const card=(label,val,sub)=>'<div style="background:#f5f5f5;border-radius:8px;padding:8px 10px"><div style="font-size:11px;color:#666">'+label+'</div><div style="font-size:22px;font-weight:700;color:#222">'+val+'</div>'+(sub?'<div style="font-size:11px;color:#888">'+sub+'</div>':'')+'</div>';
+  const grid=a=>'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px">'+a.join('')+'</div>';
+  const chart=(title,key,color)=>{
+    const max=Math.max(1,...j.days.map(d=>d[key])); const total=j.days.reduce((a,d)=>a+d[key],0);
+    return '<div style="margin:10px 0 4px;font-weight:600">'+title+' <span style="color:#888;font-weight:400">('+total+' ב-30 יום)</span></div>'
+      +'<div style="display:flex;align-items:flex-end;gap:2px;height:70px;border-bottom:1px solid #ccc;direction:ltr">'
+      +j.days.map(d=>'<div title="'+d.day.split('-').reverse().join('/')+': '+d[key]+'" style="flex:1;background:'+color+';height:'+Math.round(d[key]/max*100)+'%;min-height:'+(d[key]?2:0)+'px;border-radius:2px 2px 0 0"></div>').join('')+'</div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:#999;direction:ltr"><span>'+j.days[0].day.slice(5).split('-').reverse().join('/')+'</span><span>היום</span></div>';
+  };
+  const U=j.users, I=j.installs, S=j.usage;
+  const plat={iphone:'אייפון',android:'אנדרואיד',desktop:'מחשב'};
+  const since=j.trackingSince?j.trackingSince.split('-').reverse().join('/'):'היום';
+  body.innerHTML=
+    '<div style="font-weight:600;margin-bottom:6px">משתמשים (כניסה עם Google, בלי כניסת המנהל)</div>'
+    +grid([card('רשומים',U.total), card('חדשים',U.new7,'ב-7 ימים · '+U.new30+' ב-30'), card('פעילים היום',U.active1), card('פעילים',U.active7,'ב-7 ימים · '+U.active30+' ב-30')])
+    +'<div style="font-weight:600;margin-bottom:6px">התקנות ושימוש</div>'
+    +grid([card('התקינו למסך הבית',I.installed,'פתחו משם ב-7 ימים: '+I.openFromHome7), card('התראות מופעלות',S.pushUsers), card('יומן מחובר',S.gcalUsers), card('רשימות משותפות',S.sharedLists),
+      card('משימות',S.tasksTotal,S.tasksOpen+' פתוחות · '+S.tasks30+' ב-30 יום'), card('בקול / בהקלדה',S.voice+' / '+S.typed,'מאז '+since)])
+    +'<div style="font-size:12px;color:#666;margin-bottom:6px">מכשירים: '+(Object.entries(I.platforms).map(([k,v])=>(plat[k]||k)+' '+v).join(' · ')||'—')+'</div>'
+    +chart('משתמשים פעילים ביום','active','#1a73e8')+chart('משתמשים חדשים','newUsers','#217346')+chart('משימות שנוצרו','tasks','#E53935')
+    +'<div style="font-size:11px;color:#999;margin-top:10px">משתמשים חדשים ומשימות – כולל נתונים מלפני המדידה. פעילים, התקנות וקול/הקלדה – נאספים מ-'+since+'.</div>';
+}
+
+function iosInstallHint(){
+  try{
+    if(!/iPhone|iPad|iPod/.test(navigator.userAgent) || isStandalone() || localStorage.getItem('ios_hint_off')) return;
+    const b=document.createElement('div'); b.id='ios-hint';
+    b.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;background:#fff;border:2px solid #E53935;border-radius:12px;padding:12px 14px;z-index:10000;box-shadow:0 4px 18px rgba(0,0,0,.25);font-size:14px;line-height:1.7;direction:rtl;color:#222';
+    b.innerHTML='<b>📲 להתקנה באייפון (ב-Safari):</b><br>1. לחץ על כפתור השיתוף <i class="ti ti-share-2"></i> (ריבוע עם חץ למעלה) בתחתית המסך<br>2. גלול ובחר <b>"הוסף למסך הבית"</b> ← <b>"הוסף"</b><br>3. פתח מהאייקון ולחץ "אפשר התראות"'
+      +'<div style="text-align:left;margin-top:6px"><button id="ios-hint-ok" style="border:0;background:#E53935;color:#fff;border-radius:6px;padding:6px 14px;font-size:14px">הבנתי</button></div>';
+    document.body.appendChild(b);
+    document.getElementById('ios-hint-ok').onclick=()=>{ try{ localStorage.setItem('ios_hint_off','1'); }catch(e){} b.remove(); };
+  }catch(e){}
+}
+
+function startTasks(u){
+  if(tasksStarted) return;
+  curUser=u; registerPush(true); watchLists(); gcalServerStatus(); statsPing();
+  const sb=document.getElementById('stats-btn'); if(sb) sb.style.display = u.uid==='staff-tasks' ? '' : 'none';
+  let saved=''; try{ saved=localStorage.getItem('tasks_cur_list')||''; }catch(e){}
+  curList=null; tasksRef=listTasksRef(null); tasksStarted=true; subscribeTasks(); renderLists();
+  handleJoinLink().then(joined=>{ if(!joined && saved){ db.ref('todo/userLists/'+u.uid+'/'+saved).once('value').then(s=>{ if(s.val()&&!curList){ myLists[saved]=myLists[saved]||{name:'...'}; switchList(saved); } }).catch(()=>{}); } });
+}
+function stopTasks(){
+  if(tasksStarted){ tasksRef.off(); tasksStarted=false; }
+  if(listsRef){ listsRef.off(); listsRef=null; }
+  Object.values(listMetaRefs).forEach(r=>r.off()); listMetaRefs={}; myLists={}; curList=null; curUser=null;
+  gcalSrv={configured:false, connected:false, email:''}; updateGcalStatus();
+  const sb=document.getElementById('stats-btn'); if(sb) sb.style.display='none';
+  tasks={}; timers.forEach(clearTimeout); timers=[]; render(); renderLists();
+}
+// דפדפן פנימי של וואטסאפ/פייסבוק/אינסטגרם - גוגל חוסם שם התחברות
+function inAppBrowser(){ return /FBAN|FBAV|FB_IAB|Instagram|Line\/|WhatsApp|TikTok|musical_ly|Snapchat|; wv\)/i.test(navigator.userAgent); }
+function loginNote(msg){
+  const box=document.querySelector('#tasks-login > div'); if(!box){ showToast(msg); return; }
+  let n=document.getElementById('login-note');
+  if(!n){ n=document.createElement('div'); n.id='login-note'; n.style.cssText='margin-top:12px;font-size:13px;color:#A32D2D;background:#fdecea;border-radius:8px;padding:8px;line-height:1.5'; box.appendChild(n); }
+  n.textContent=msg;
+}
+async function googleLogin(){
+  if(inAppBrowser()){ loginNote('גוגל לא מאפשר להתחבר מתוך וואטסאפ/פייסבוק. לחץ על ⋯ או על סמל המצפן ובחר "פתח ב-Safari" (או Chrome), ונסה שוב.'); return; }
+  const provider=new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({prompt:'select_account'});
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
+  try{
+    // באייפון ובאפליקציה שמותקנת במסך הבית - מעבר לדף של גוגל וחזרה (חלון קופץ לא עובד שם)
+    if(ios||isStandalone()){ loginNote('מעביר לגוגל...'); await TASKS_APP.auth().signInWithRedirect(provider); return; }
+    await TASKS_APP.auth().signInWithPopup(provider);
+  }catch(e){
+    if(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'){
+      try{ await TASKS_APP.auth().signInWithRedirect(provider); }catch(e2){ loginNote('ההתחברות נכשלה ('+(e2.code||e2.message)+')'); }
+    } else if(e.code!=='auth/popup-closed-by-user'&&e.code!=='auth/cancelled-popup-request'){
+      loginNote('ההתחברות נכשלה ('+(e.code||e.message)+')'); console.error(e);
+    }
+  }
+}
+// חזרה מדף ההתחברות של גוגל - אם נכשל, מציגים למה (קודם זה נכשל בשקט)
+TASKS_APP.auth().getRedirectResult().catch(e=>{ console.error(e); setTimeout(()=>loginNote('ההתחברות נכשלה ('+(e.code||e.message)+')'),500); });
+
+// ── כניסה עם Google דרך השרת (ב-Firebase כבויה יצירת משתמשים מהדפדפן - הקשחת אבטחה) ──
+// כפתור Google הרשמי: מחשב/אנדרואיד - חלון קופץ. אייפון/אפליקציה מהמסך הבית - מעבר לגוגל וחזרה
+function setupGoogleButton(tries){
+  tries=tries||0;
+  const host=document.getElementById('tasks-google-btn'); if(!host || inAppBrowser()) return;
+  if(!(window.google&&google.accounts&&google.accounts.id)){ if(tries<40) setTimeout(()=>setupGoogleButton(tries+1),250); return; }
+  try{
+    const redirect=/iPhone|iPad|iPod/.test(navigator.userAgent)||isStandalone();
+    // קוד חד-פעמי: גוגל חותם אותו בתוך האישור, וכשחוזרים לאפליקציה בודקים שהוא זהה - הגנה מפני כניסה שלא יצאה מכאן
+    let nonce=''; try{ nonce=crypto.getRandomValues(new Uint32Array(4)).join('-'); localStorage.setItem('tasks_gsi_nonce',nonce); }catch(e){}
+    google.accounts.id.initialize({client_id:GCAL_CLIENT_ID, callback:onGoogleCredential, ux_mode:redirect?'redirect':'popup', login_uri:STAFF_API+'/tasks/google-login-redirect', auto_select:false, cancel_on_tap_outside:true, nonce});
+    const box=document.createElement('div'); box.id='gsi-btn'; box.style.cssText='display:flex;justify-content:center;min-height:44px';
+    host.replaceWith(box);
+    google.accounts.id.renderButton(box,{theme:'outline',size:'large',text:'signin_with',shape:'rectangular',locale:'he',width:276});
+  }catch(e){ console.error('gsi', e); }
+}
+async function onGoogleCredential(resp){
+  loginNote('מתחבר...');
+  try{
+    const r=await fetch(STAFF_API+'/tasks/google-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:resp&&resp.credential})}).then(r=>r.json());
+    if(!r||!r.ok) throw new Error((r&&r.error)||'שגיאה');
+    await TASKS_APP.auth().signInWithCustomToken(r.token);
+  }catch(e){ loginNote('ההתחברות נכשלה ('+(e.code||e.message)+')'); }
+}
+// חזרה מגוגל (אייפון): #ct=טוקן כניסה, או #lerr=הודעת שגיאה
+(function(){
+  const h=location.hash;
+  const ct=(h.match(/[#&]ct=([^&]+)/)||[])[1], le=(h.match(/[#&]lerr=([^&]+)/)||[])[1], nn=(h.match(/[#&]n=([^&]*)/)||[])[1];
+  if(ct||le) history.replaceState(null,'',location.pathname+location.search);
+  let saved=''; try{ saved=localStorage.getItem('tasks_gsi_nonce')||''; }catch(e){}
+  if(ct && (!saved || decodeURIComponent(nn||'')!==saved)) setTimeout(()=>loginNote('ההתחברות נכשלה (בדיקת אבטחה) - לחץ שוב על כניסה עם Google'),600);
+  else if(ct){ try{ localStorage.removeItem('tasks_gsi_nonce'); }catch(e){} TASKS_APP.auth().signInWithCustomToken(decodeURIComponent(ct)).catch(e=>setTimeout(()=>loginNote('ההתחברות נכשלה ('+(e.code||e.message)+')'),600)); }
+  if(le) setTimeout(()=>loginNote('ההתחברות נכשלה ('+decodeURIComponent(le)+')'),600);
+  // קישור הזמנה לרשימה משותפת נשמר, כדי שלא ילך לאיבוד במעבר לגוגל וחזרה
+  const j=new URLSearchParams(location.search).get('join'); if(j) try{ localStorage.setItem('tasks_pending_join',j); }catch(e){}
+})();
+function logout(){
+  if(!confirm('להתנתק?')) return;
+  stopTasks(); TASKS_APP.auth().signOut();
+}
+function showTasksLogin(){
+  if(document.getElementById('tasks-login')) return;
+  const ov=document.createElement('div'); ov.id='tasks-login';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999';
+  ov.innerHTML='<div style="background:#fff;border-radius:14px;padding:22px;width:min(320px,90vw);text-align:center;direction:rtl">'
+    +'<div style="font-weight:700;margin-bottom:12px">כניסה למשימות</div>'
+    +'<button id="tasks-google-btn" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#333;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-brand-google"></i> כניסה עם Google</button>'
+    +'<div style="font-size:12px;color:#999;margin:14px 0 8px">או כניסת מנהל</div>'
+    +'<input type="text" name="username" autocomplete="username" value="מנהל" style="display:none" tabindex="-1" aria-hidden="true">' // שהדפדפן ימלא כאן ולא בשדה המשימה
+    +'<input id="tasks-pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="קוד מנהל" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box">'
+    +'<button id="tasks-login-btn" style="margin-top:12px;width:100%;padding:10px;font-size:16px;border:0;border-radius:8px;background:#333;color:#fff">כניסה</button></div>';
+  document.body.appendChild(ov);
+  document.getElementById('tasks-login-btn').onclick=tasksLogin;
+  document.getElementById('tasks-google-btn').onclick=googleLogin;
+  setupGoogleButton();
+  document.getElementById('tasks-pin').addEventListener('keydown',e=>{ if(e.key==='Enter') tasksLogin(); });
+}
+async function tasksLogin(){
+  const pin=document.getElementById('tasks-pin').value; if(!pin) return;
+  try{
+    const res=await fetch(STAFF_API+'/staff/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({app:'tasks',secret:pin})}).then(r=>r.json());
+    if(!res||!res.ok){ showToast(res&&res.error||'קוד שגוי'); return; }
+    await TASKS_APP.auth().signInWithCustomToken(res.token);
+  }catch(e){ showToast('אין חיבור לשרת'); }
+}
+TASKS_APP.auth().onAuthStateChanged(u=>{
+  const lb=document.getElementById('logout-btn');
+  if(u){ const ov=document.getElementById('tasks-login'); if(ov) ov.remove(); if(lb) lb.style.display=''; startTasks(u); }
+  else { if(lb) lb.style.display='none'; stopTasks(); showTasksLogin(); }
+});
+
+function addTask(auto){
+  let name=document.getElementById('f-name').value.trim();
+  if(!name)return;
+  // מזהה תאריך/שעה גם בטקסט שהוקלד או הוכתב דרך המקלדת, ומוציא אותם משם המשימה
+  let date=document.getElementById('f-date').value, time=document.getElementById('f-time').value;
+  const parsed=parseHebrewDateTime(name);
+  const repParsed=parsed.rep||pendingRep||''; pendingRep='';
+  if((parsed.date||parsed.time)&&parsed.cleanText){
+    name=parsed.cleanText;
+    if(!date&&parsed.date){const d=parsed.date;date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+    if(!time&&parsed.time) time=parsed.time;
+  }
+  if(time&&!date){const d=new Date();date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  // קטגוריה מתוך המשפט: "לקנות ביצים לבית" → משימה "לקנות ביצים" בקטגוריה בית (רק בסוף המשפט, עם ל/ב)
+  let autoCat='';
+  const fcSel=document.getElementById('f-cat');
+  if(!(fcSel&&fcSel.value&&fcSel.value!=='__new')){
+    for(const c of allCats()){
+      const re=new RegExp('\\s+(?:ל|ב)'+c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$');
+      if(re.test(name)&&name.replace(re,'').trim()){ name=name.replace(re,'').trim(); autoCat=c; break; }
+    }
+  }
+  let autoPri='';
+  if(/(^|\s)לא\s+דחוף(?=\s|$)/.test(name)){ autoPri='low'; name=name.replace(/(^|\s)לא\s+דחוף(?=\s|$)/,' '); }
+  else if(/(^|\s)(דחוף מאוד|דחוף|בדחיפות)(?=\s|$)/.test(name)){ autoPri='high'; name=name.replace(/(^|\s)(דחוף מאוד|דחוף|בדחיפות)(?=\s|$)/,' '); }
+  name=name.replace(/\s+/g,' ').trim(); if(!name) return;
+  const id='task_'+Date.now();
+  const task={id,name,pri:document.getElementById('f-pri').value,date,time,done:false,created:Date.now()};
+  const fc=document.getElementById('f-cat'); if(fc&&fc.value&&fc.value!=='__new') task.cat=fc.value; else if(autoCat) task.cat=autoCat;
+  if(curList && curUser) task.by=(myLists[curList]&&myLists[curList].members&&myLists[curList].members[curUser.uid]&&myLists[curList].members[curUser.uid].name)||'';
+  if(autoPri && document.getElementById('f-pri').value==='med') task.pri=autoPri;
+  if(repParsed){ task.rep=repParsed; if(!task.date){ const d=new Date(); task.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } }
+  tasksRef.child(id).set(task);
+  if(curList) listsApi('notify',{listId:curList,name:task.name}).catch(()=>{}); // התראה לשאר חברי הרשימה
+  statsApi('event',{type: auto===true ? 'task_voice' : 'task_typed'});
+  document.getElementById('f-name').value='';
+  document.getElementById('f-date').value='';
+  document.getElementById('f-time').value='';
+  document.getElementById('parsed-hint').style.display='none';
+  document.getElementById('mic-status').textContent=auto===true?'נוסף: '+name+' — לחץ שוב למשימה נוספת':'לחץ על המיקרופון ואמור את המשימה בעברית';
+  if(auto!==true) document.getElementById('f-name').focus();
+  if (task.date && auto===true && !isGcalConnected()) {
+    showToast('המשימה נוספה ✓ — לחץ 📅 כדי להכניס אותה ליומן');
+  } else if (task.date) {
+    ensureGcalToken(async () => {
+      const added = await addToGcal(task);
+      showToast(added === true ? 'נוסף כמשימה ביומן גוגל! ✓' : 'המשימה נוספה, אבל לא ליומן: ' + added);
+    });
+  } else {
+    showToast('משימה נוספה!');
+  }
+  scheduleLocal(task);
+}
+
+function toggle(id){const t0=tasks[id];if(t0){
+  const t={...t0}; const needNext=!t.done&&t.rep&&!t.nextMade; // נבדק לפני העדכון
+  const upd={done:!t.done}; if(needNext) upd.nextMade=true;
+  tasksRef.child(id).update(upd);syncGtask({...t,done:!t.done});
+  if(needNext) createNextRepeat(t);
+}}
+function nextRepeatDate(t){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const d=t.date?new Date(t.date+'T00:00'):new Date(today);
+  const step=()=>{ if(t.rep==='daily') d.setDate(d.getDate()+1); else if(t.rep==='weekly') d.setDate(d.getDate()+7); else d.setMonth(d.getMonth()+1); };
+  step(); let guard=0; while(d<today && guard++<400) step();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function createNextRepeat(t){
+  const nid='task_'+Date.now();
+  const n={id:nid,name:t.name,pri:t.pri||'med',date:nextRepeatDate(t),time:t.time||'',done:false,created:Date.now(),rep:t.rep};
+  if(t.cat) n.cat=t.cat; if(t.notes) n.notes=t.notes; if(t.by) n.by=t.by;
+  tasksRef.child(nid).set(n);
+  if(isGcalConnected()) addToGcal(n);
+  showToast('🔁 נוצרה המשימה הבאה: '+n.date.split('-').reverse().join('/'));
+}
+function del(id){ deleteWithUndo([id]); }
+let undoTimer=null, undoData=null;
+function deleteWithUndo(ids){
+  ids=ids.filter(id=>tasks[id]); if(!ids.length) return;
+  finalizeUndo();
+  const removed={}; ids.forEach(id=>{ removed[id]={...tasks[id]}; });
+  const upd={}; ids.forEach(id=>{ upd[id]=null; });
+  const ref=tasksRef;
+  ref.update(upd).then(()=>{
+    undoData={ref, removed};
+    showUndo(ids.length===1?'המשימה נמחקה':ids.length+' משימות נמחקו');
+    undoTimer=setTimeout(finalizeUndo, 7000);
+  }).catch(e=>{ showToast('המחיקה נכשלה'); console.error(e); });
+}
+// אחרי 7 שניות בלי "בטל" - נמחקת סופית גם מ-Google Tasks
+function finalizeUndo(){ clearTimeout(undoTimer); undoTimer=null; if(undoData){ Object.values(undoData.removed).forEach(t=>syncGtask(t,true)); undoData=null; } hideUndo(); }
+function undoDelete(){ clearTimeout(undoTimer); undoTimer=null; if(!undoData) return; const d=undoData; undoData=null; hideUndo(); d.ref.update(d.removed).then(()=>showToast('שוחזר ✓')).catch(()=>showToast('השחזור נכשל')); }
+function showUndo(msg){ hideUndo(); const b=document.createElement('div'); b.id='undo-bar'; b.innerHTML='<span></span><button>בטל</button>'; b.querySelector('span').textContent=msg; b.querySelector('button').onclick=undoDelete; document.body.appendChild(b); }
+function hideUndo(){ document.getElementById('undo-bar')?.remove(); }
+
+const priLabel={high:'דחוף',med:'בינוני',low:'נמוך'};
+
+// ── קטגוריות (בית / עבודה / מכירות + קטגוריות שהמשתמש מוסיף) ──
+const DEFAULT_CATS=['בית','עבודה','מכירות'];
+let curCat=''; try{ curCat=localStorage.getItem('tasks_cur_cat')||''; }catch(e){}
+const escCat=x=>String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let extraCats=[]; try{ extraCats=JSON.parse(localStorage.getItem('tasks_extra_cats')||'[]'); }catch(e){}
+function allCats(){ const s=new Set(DEFAULT_CATS); extraCats.forEach(c=>s.add(c)); Object.values(tasks).forEach(t=>t&&t.cat&&s.add(t.cat)); return [...s]; }
+function catOptions(sel){ return '<option value="">📂 ללא קטגוריה</option>'+allCats().map(c=>'<option value="'+escCat(c)+'"'+(c===sel?' selected':'')+'>'+escCat(c)+'</option>').join('')+'<option value="__new">➕ קטגוריה חדשה...</option>'; }
+function onCatSelect(sel){
+  if(sel.value!=='__new') return;
+  const n=(prompt('שם הקטגוריה החדשה:')||'').trim().slice(0,20);
+  if(!n){ sel.value=''; return; }
+  if(!extraCats.includes(n)){ extraCats.push(n); try{ localStorage.setItem('tasks_extra_cats',JSON.stringify(extraCats)); }catch(e){} }
+  sel.innerHTML=catOptions(n); sel.value=n; renderCats();
+}
+function setCat(c){ curCat=c; try{ localStorage.setItem('tasks_cur_cat',c); }catch(e){} const fc=document.getElementById('f-cat'); if(fc) fc.value=c; render(); }
+function renderCats(){
+  const fc=document.getElementById('f-cat');
+  if(fc){ const v=fc.value||curCat; fc.innerHTML=catOptions(v); fc.value=allCats().includes(v)?v:''; }
+  const bar=document.getElementById('cat-bar'); if(!bar) return;
+  const open=c=>Object.values(tasks).filter(t=>t&&!t.done&&(c===null||(t.cat||'')===c)).length;
+  bar.innerHTML='<button class="cat-chip'+(!curCat?' active':'')+'" onclick="setCat(\'\')">הכל ('+open(null)+')</button>'
+    +allCats().map(c=>'<button class="cat-chip'+(curCat===c?' active':'')+'" data-c="'+escCat(c)+'">'+escCat(c)+' ('+open(c)+')</button>').join('');
+  bar.querySelectorAll('button[data-c]').forEach(b=>b.onclick=()=>setCat(b.getAttribute('data-c')));
+}
+// ── מחיקה של כמה משימות יחד ──
+let selectMode=false; const selected=new Set();
+function rowClick(id){ if(selectMode) toggleSel(id); else editTask(id); }
+function toggleSel(id){ selected.has(id)?selected.delete(id):selected.add(id); render(); }
+function setSelectMode(on){ selectMode=on; selected.clear(); render(); }
+function selectAllVisible(){ const vis=Object.values(tasks).filter(t=>t&&(!curCat||(t.cat||'')===curCat)); const all=vis.every(t=>selected.has(t.id)); vis.forEach(t=>all?selected.delete(t.id):selected.add(t.id)); render(); }
+async function bulkDelete(ids){
+  ids=ids.filter(id=>tasks[id]); if(!ids.length) return;
+  if(ids.length>1 && !confirm('למחוק '+ids.length+' משימות?')) return;
+  selected.clear(); selectMode=false;
+  deleteWithUndo(ids); render();
+}
+function renderBulk(){
+  const bar=document.getElementById('bulk-bar'); if(!bar) return;
+  const vis=Object.values(tasks).filter(t=>t&&(!curCat||(t.cat||'')===curCat));
+  const doneIds=vis.filter(t=>t.done).map(t=>t.id);
+  if(!vis.length){ bar.style.display='none'; return; } bar.style.display='';
+  if(!selectMode){
+    bar.innerHTML='<button class="bulk-btn" onclick="setSelectMode(true)">☑ בחירה מרובה</button>'
+      +(doneIds.length?'<button class="bulk-btn danger" id="del-done">🗑 מחק בוצעו ('+doneIds.length+')</button>':'');
+    const dd=document.getElementById('del-done'); if(dd) dd.onclick=()=>bulkDelete(doneIds);
+  } else {
+    bar.innerHTML='<span class="stat">נבחרו: <b>'+selected.size+'</b></span>'
+      +'<button class="bulk-btn" onclick="selectAllVisible()">בחר הכל</button>'
+      +'<button class="bulk-btn danger" '+(selected.size?'':'disabled')+' onclick="bulkDelete([...selected])">🗑 מחק נבחרות</button>'
+      +'<button class="bulk-btn" onclick="setSelectMode(false)">ביטול</button>';
+  }
+}
+function render(){
+  renderCats(); renderBulk();
+  const q=((document.getElementById('f-search')||{}).value||'').trim().toLowerCase();
+  const due=t=>t.date?new Date(t.date+'T'+(t.time||'23:59')).getTime():Infinity;
+  const nowMs=Date.now();
+  // פתוחות קודם; בתוכן - לפי תאריך ושעה (הקרובה ראשונה, בלי תאריך בסוף); אחר כך לפי דחיפות
+  const list=Object.values(tasks).filter(t=>t&&(!curCat||(t.cat||'')===curCat)&&(!q||(String(t.name||'')+' '+String(t.notes||'')).toLowerCase().includes(q))).sort((a,b)=>{
+    if(a.done!==b.done)return a.done?1:-1;
+    const da=due(a), db=due(b); if(da!==db) return da-db;
+    const p={high:0,med:1,low:2};return (p[a.pri]??1)-(p[b.pri]??1);
+  });
+  if(!list.length){
+    document.getElementById('tbl-body').innerHTML='<tr><td colspan="6" class="empty">אין משימות — הוסף את הראשונה!</td></tr>';
+  } else {
+    document.getElementById('tbl-body').innerHTML=list.map((t,i)=>{
+      const rc=t.done?'row-done':t.pri==='high'?'row-high':t.pri==='med'?'row-med':'row-low';
+      const pc=t.done?'pri-done':'pri-'+t.pri;
+      let remind='—';
+      if(t.date){const d=new Date(t.date+(t.time?'T'+t.time:''));remind=d.toLocaleDateString('he-IL')+(t.time?' '+t.time:'');}
+      return '<tr class="'+rc+(selectMode&&selected.has(t.id)?' row-selected':'')+'">'+
+        (selectMode?'<td class="row-num"><input type="checkbox" class="cb" '+(selected.has(t.id)?'checked':'')+' onclick="event.stopPropagation();toggleSel(\''+t.id+'\')"></td>':'<td class="row-num">'+(i+1)+'</td>')+
+        '<td class="task-name" onclick="rowClick(\''+t.id+'\')" style="cursor:pointer" title="לחץ לעריכה">'+String(t.name||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))+(t.cat&&!curCat?'<span class="cat-badge">'+String(t.cat).replace(/[&<>"']/g,'')+'</span>':'')+(curList&&t.by?'<div style="font-size:10px;color:#999">'+String(t.by).replace(/[&<>"']/g,'')+'</div>':'')+(t.notes?'<div class="task-notes">📝 '+String(t.notes).slice(0,80).replace(/[&<>"']/g,'')+(String(t.notes).length>80?'…':'')+'</div>':'')+'</td>'+
+        '<td><span class="pri-badge '+pc+'">'+(t.done?'בוצע':priLabel[t.pri])+'</span></td>'+
+        '<td><div class="status-wrap"><span class="dot '+(t.done?'dot-done':'dot-open')+'"></span>'+(t.done?'בוצע':'פתוח')+'<input type="checkbox" class="cb" '+(t.done?'checked':'')+'  onchange="toggle(\''+t.id+'\')"/></div></td>'+
+        '<td class="remind-cell'+(!t.done&&t.date&&due(t)<nowMs?' overdue':'')+'">'+(!t.done&&t.date&&due(t)<nowMs?'⚠️ ':'')+remind+(t.rep?' 🔁':'')+'</td>'+
+        '<td><div class="actions-cell">'+'<button class="cal-btn" onclick="editTask(\''+t.id+'\')" title="ערוך"><i class="ti ti-edit"></i></button>'+
+          '<button class="cal-btn" onclick="moveTask(\''+t.id+'\')" title="העבר לרשימה אחרת"><i class="ti ti-arrows-exchange"></i></button>'+
+          '<button class="del-btn" onclick="del(\''+t.id+'\')" title="מחק"><i class="ti ti-trash"></i></button>'+
+        '</div></td>'+
+        '</tr>';
+    }).join('');
+  }
+  const total=list.length,done=list.filter(t=>t.done).length,urgent=list.filter(t=>t.pri==='high'&&!t.done).length;
+  document.getElementById('stats-bar').innerHTML=
+    '<span class="stat">סה"כ: <b>'+total+'</b></span>'+
+    '<span class="stat">בוצעו: <b>'+done+'</b></span>'+
+    '<span class="stat">פתוחות: <b>'+(total-done)+'</b></span>'+
+    '<span class="stat" style="color:#A32D2D">דחופות: <b>'+urgent+'</b></span>'+
+    '<span class="stat">התקדמות: <b>'+(total?Math.round(done/total*100):0)+'%</b></span>';
+  scheduleAllLocal();
+}
+
+function editTask(id) {
+  const t = tasks[id];
+  if(!t) return;
+  // Remove existing modal
+  document.getElementById('edit-modal')?.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'edit-modal';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>ערוך משימה</h3>
+      <input type="text" id="e-name" value="${t.name}" placeholder="שם המשימה"/>
+      <select id="e-pri">
+        <option value="high" ${t.pri==='high'?'selected':''}>🔴 דחוף</option>
+        <option value="med" ${t.pri==='med'?'selected':''}>🟡 בינוני</option>
+        <option value="low" ${t.pri==='low'?'selected':''}>🟢 נמוך</option>
+      </select>
+      <select id="e-cat" onchange="onCatSelect(this)">${catOptions(t.cat||'')}</select>
+      <input type="date" id="e-date" value="${t.date||''}"/>
+      <input type="time" id="e-time" value="${t.time||''}"/>
+      <select id="e-rep"><option value="">🔁 לא חוזרת</option><option value="daily">🔁 כל יום</option><option value="weekly">🔁 כל שבוע</option><option value="monthly">🔁 כל חודש</option></select>
+      <textarea id="e-notes" rows="4" placeholder="📝 פרטים נוספים (כתובת, טלפון, מה להביא...)" style="width:100%;padding:8px 10px;border:1px solid #b0b0b0;border-radius:4px;font-size:14px;margin-bottom:10px;font-family:inherit;resize:vertical"></textarea>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="document.getElementById('edit-modal').remove()">ביטול</button>
+        <button class="btn-save" onclick="saveEdit('${id}')">שמור</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+  document.getElementById('e-name').value = t.name || '';
+  document.getElementById('e-notes').value = t.notes || '';
+  document.getElementById('e-rep').value = t.rep || '';
+  document.getElementById('e-name').focus();
+}
+
+function saveEdit(id) {
+  const name = document.getElementById('e-name').value.trim();
+  if(!name) return;
+  const upd = {
+    name, pri: document.getElementById('e-pri').value,
+    date: document.getElementById('e-date').value,
+    time: document.getElementById('e-time').value,
+    cat: (document.getElementById('e-cat').value==='__new'?'':document.getElementById('e-cat').value),
+    notes: document.getElementById('e-notes').value.trim().slice(0,2000),
+    rep: document.getElementById('e-rep').value
+  };
+  if (upd.rep && !upd.date) { const d=new Date(); upd.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  tasksRef.child(id).update(upd);
+  if (tasks[id] && tasks[id].gtaskId && upd.date) syncGtask({...tasks[id], ...upd});
+  document.getElementById('edit-modal').remove();
+  showToast('משימה עודכנה!');
+  scheduleAllLocal();
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+updateGcalStatus();
+iosInstallHint();
+// עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
+const APP_VERSION='2026-10-27k';
+async function checkAppUpdate(){
+  try{
+    const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
+    const m=t.match(/const APP_VERSION='([^']+)'/);
+    if(m && m[1]!==APP_VERSION && !isRecording && !document.getElementById('edit-modal') && !document.getElementById('f-name').value) location.reload();
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkAppUpdate(); });
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/tasks/sw-push.js', {scope: '/tasks/'}).catch(()=>{});
+</script>
+</body>
+</html>
