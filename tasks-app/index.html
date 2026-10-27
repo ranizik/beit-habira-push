@@ -4,13 +4,14 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="theme-color" content="#E53935"/>
-<title>משימות</title>
+<title>תכל׳ס – משימות בקול</title>
 <link rel="manifest" href="manifest.json"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-title" content="משימות"/>
+<meta name="apple-mobile-web-app-title" content="תכל׳ס"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-<link rel="apple-touch-icon" href="icon.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon-v2.png"/>
+<link rel="icon" type="image/png" href="icon-v2-192.png"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -98,8 +99,8 @@ tbody td:last-child{border-right:none;}
 <body>
 
 <div class="header">
-  <i class="ti ti-checkbox" style="font-size:20px"></i>
-  <h1>משימות</h1>
+  <img src="icon-v2-192.png" alt="" style="width:28px;height:28px;border-radius:7px;box-shadow:0 1px 3px rgba(0,0,0,.25)"/>
+  <h1>תכל׳ס</h1>
   <button class="notif-status" id="notif-btn" onclick="requestNotify()">🔔 התראות</button>
   <button class="notif-status" id="gcal-status" onclick="gcalButton()">📅 התחבר ליומן</button>
   <button class="notif-status" id="stats-btn" onclick="showStats()" title="נתוני שימוש" style="display:none">📊</button>
@@ -393,7 +394,7 @@ function requestNotify() {
     if (await registerPush(false)) {
       showToast('התראות מופעלות במכשיר הזה ✓');
       const reg = await navigator.serviceWorker.getRegistration('/tasks/');
-      if (reg) reg.showNotification('משימות בית הבירה', {body: 'התראות פעילות! תקבל תזכורת בערב שלפני ובשעת המשימה.', icon: '/TODO/icon-192.png', dir: 'rtl'});
+      if (reg) reg.showNotification('תכל׳ס', {body: 'התראות פעילות! תקבל תזכורת בערב שלפני ובשעת המשימה.', icon: '/tasks/icon-v2-192.png', dir: 'rtl'});
     }
   });
 }
@@ -551,7 +552,7 @@ function scheduleLocal(t) {
     timers.push(setTimeout(()=>{
       new Notification('תזכורת למחר: ' + t.name, {
         body: 'מחר' + (t.time ? ' בשעה ' + t.time : ''),
-        icon: '/TODO/icon-192.png', dir: 'rtl', requireInteraction: true
+        icon: '/tasks/icon-v2-192.png', dir: 'rtl', requireInteraction: true
       });
     }, msBefore));
   }
@@ -564,7 +565,7 @@ function scheduleLocal(t) {
       timers.push(setTimeout(()=>{
         new Notification('הגיע הזמן: ' + t.name, {
           body: 'עכשיו!',
-          icon: '/TODO/icon-192.png', dir: 'rtl', requireInteraction: true
+          icon: '/tasks/icon-v2-192.png', dir: 'rtl', requireInteraction: true
         });
       }, msTask));
     }
@@ -1128,7 +1129,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27n';
+const APP_VERSION='2026-10-27p';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());

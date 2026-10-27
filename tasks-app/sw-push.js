@@ -10,10 +10,10 @@ self.addEventListener('push', (event) => {
   }
   const n = payload.notification || {};
   const data = payload.data || {};
-  event.waitUntil(self.registration.showNotification(n.title || data.title || 'משימות בית הבירה', {
+  event.waitUntil(self.registration.showNotification(n.title || data.title || 'תכל׳ס', {
     body: n.body || data.body || '',
-    icon: '/TODO/icon-192.png',
-    badge: '/TODO/icon-192.png',
+    icon: '/tasks/icon-v2-192.png',
+    badge: '/tasks/icon-v2-192.png',
     dir: 'rtl',
     lang: 'he',
     tag: data.taskId ? 'task-' + data.taskId : undefined,
