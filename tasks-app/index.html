@@ -3,16 +3,18 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="theme-color" content="#E53935"/>
+<meta name="theme-color" content="#1E1B4B"/>
 <title>תכל׳ס – משימות בקול</title>
 <link rel="manifest" href="manifest.json"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-title" content="תכל׳ס"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-<link rel="apple-touch-icon" href="apple-touch-icon-v2.png"/>
-<link rel="icon" type="image/png" href="icon-v2-192.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon-v3.png"/>
+<link rel="icon" type="image/png" href="icon-v3-192.png"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:Arial,sans-serif;background:#f0f0f0;min-height:100vh;}
@@ -94,60 +96,126 @@ tbody td:last-child{border-right:none;}
 .list-tool.leave{background:#fdecea;color:#A32D2D;}
 .list-members{font-size:12px;color:#666;padding:6px 12px;background:#fff;border-bottom:1px solid #d0d0d0;display:none;align-items:center;gap:8px;flex-wrap:wrap;}
 .list-members-names{flex:1;min-width:120px;}
+
+/* ══ עיצוב "תכל׳ס" – כחול לילה + קורל ══ */
+:root{--navy:#1E1B4B;--coral:#FF5A5F;--bg:#F4F3FB;--ink:#1A1A2E;--muted:#5B5B76;--line:#E2E1F0;--soft:#C7C5F0;}
+body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+.app{max-width:640px;margin:0 auto;padding-bottom:40px;}
+.hero{background:var(--navy);color:#fff;padding:16px 16px 58px;border-radius:0 0 28px 28px;}
+.header{background:none;padding:0;gap:10px;}
+.header .logo{width:40px;height:40px;border-radius:12px;flex-shrink:0;}
+.brand{display:flex;flex-direction:column;flex:1;min-width:0;}
+.header h1{font-size:23px;font-weight:800;letter-spacing:-.3px;line-height:1.1;flex:none;}
+.brand small{font-size:12px;color:var(--soft);white-space:nowrap;}
+.header{flex-wrap:wrap;row-gap:8px;}
+.brand{flex:1 0 auto;}
+.notif-status{font-size:12px;opacity:1;background:rgba(255,255,255,.12);padding:0 9px;height:40px;min-width:40px;border-radius:12px;color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;font-family:inherit;}
+.greet{margin-top:16px;}
+.greet b{display:block;font-size:22px;font-weight:700;}
+.greet span{font-size:14px;color:var(--soft);}
+.toolbar{margin:-42px 12px 0;background:#fff;border:0;border-radius:22px;padding:16px;box-shadow:0 12px 30px rgba(30,27,75,.12);gap:10px;position:relative;}
+.mic-row{gap:14px;}
+.btn-mic{width:68px;height:68px;border-radius:50%;padding:0;justify-content:center;background:var(--coral);font-size:30px;box-shadow:0 0 0 7px #FFE4E5;flex-shrink:0;}
+.btn-mic.recording{background:#E11D48;box-shadow:0 0 0 7px #FECDD3;}
+.mic-status{font-size:14px;color:var(--muted);line-height:1.4;}
+.mic-status::before{content:"לחץ ודבר";display:block;font-size:17px;font-weight:700;color:var(--ink);margin-bottom:2px;}
+.toolbar input[type=text]{height:46px;border:1.5px solid var(--line);border-radius:14px;background:#F8F8FD;font-size:16px;font-family:inherit;padding:0 14px;}
+.toolbar select,.toolbar input[type=date],.toolbar input[type=time]{height:38px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-size:14px;font-family:inherit;color:var(--ink);flex:1;min-width:0;}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;}
+.btn-add{height:46px;border-radius:14px;background:var(--navy);font-family:inherit;font-size:15px;font-weight:600;padding:0 16px;}
+.toolbar:has(.btn-mic.recording) .mic-status::before{content:"מקשיב…";color:#E11D48;}
+.parsed-hint{background:#E7F8EF;color:#0F6B3E;border-radius:8px;}
+.lists-bar,.list-members{background:transparent;border:0;padding:12px 12px 0;}
+.list-tab{border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:18px;height:36px;padding:0 14px;font-family:inherit;}
+.list-tab.active{background:var(--navy);border-color:var(--navy);}
+.list-tab.add{color:var(--navy);border-color:var(--navy);}
+.list-tool{background:#ECEBFA;color:var(--navy);border-radius:10px;height:32px;font-family:inherit;}
+.stats{background:transparent;border:0;padding:10px 12px 0;gap:8px;}
+.stat{background:#fff;border-radius:10px;font-size:13px;padding:6px 10px;color:var(--muted);}
+#cat-bar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
+#cat-bar .cat-chip{flex-shrink:0;}
+.cat-chip{height:36px;padding:0 15px;border-radius:18px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font-size:14px;font-family:inherit;}
+.cat-chip.active{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:600;}
+.bulk-btn{height:34px;border-radius:10px;border:1.5px solid var(--line);font-family:inherit;font-size:13px;}
+#f-search{height:42px;border:1.5px solid var(--line)!important;border-radius:14px!important;font-size:15px!important;font-family:inherit;background:#fff;}
+.task-list{padding:6px 12px 12px;display:flex;flex-direction:column;gap:8px;}
+.sec{font-size:13px;font-weight:700;color:var(--muted);margin:10px 4px 0;letter-spacing:.2px;}
+.sec.late{color:#B42318;}
+.card{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:12px 12px 12px 6px;border:1.5px solid transparent;}
+.card.late{border-color:#FDD3D0;}
+.card.sel{border-color:#6366F1;background:#EEF0FF;}
+.card.done{opacity:.6;}
+.card.done .cname{text-decoration:line-through;}
+.tick{width:28px;height:28px;border-radius:9px;border:2px solid #D0CFE3;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;cursor:pointer;padding:0;}
+.tick.on{background:#10B981;border-color:#10B981;}
+.cbody{flex:1;min-width:0;cursor:pointer;}
+.cname{font-size:16px;font-weight:600;line-height:1.35;word-break:break-word;}
+.cmeta{font-size:13px;color:var(--muted);margin-top:3px;}
+.card.late .cmeta{color:#B42318;}
+.pdot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.p-high{background:#EF4444;}.p-med{background:#F59E0B;}.p-low{background:#A3A3C2;}
+.cact{display:flex;flex-shrink:0;}
+.cact button{background:none;border:0;color:#A3A3C2;font-size:18px;width:34px;height:40px;cursor:pointer;}
+.cact button:hover{color:var(--navy);}
+.cact button.del:hover{color:#B42318;}
+.task-notes{color:var(--muted);}
+.more-done{background:none;border:0;color:#4338CA;font-weight:600;font-size:14px;padding:8px 4px;cursor:pointer;font-family:inherit;text-align:start;}
+.empty{background:#fff;border-radius:18px;}
+.modal{border-radius:20px;}
+.modal h3{color:var(--navy);}
+.modal input,.modal select,.modal textarea{border-radius:12px!important;border:1.5px solid var(--line)!important;font-family:inherit;}
+.btn-save{background:var(--navy);border-radius:12px;font-family:inherit;}
+.btn-cancel{border-radius:12px;font-family:inherit;}
 </style>
 </head>
 <body>
 
+<div class="app">
+<div class="hero">
 <div class="header">
-  <img src="icon-v2-192.png" alt="" style="width:28px;height:28px;border-radius:7px;box-shadow:0 1px 3px rgba(0,0,0,.25)"/>
-  <h1>תכל׳ס</h1>
+  <img class="logo" src="icon-v3-192.png" alt=""/>
+  <div class="brand"><h1>תכל׳ס</h1><small>אמרת – זה נרשם</small></div>
   <button class="notif-status" id="notif-btn" onclick="requestNotify()">🔔 התראות</button>
-  <button class="notif-status" id="gcal-status" onclick="gcalButton()">📅 התחבר ליומן</button>
+  <button class="notif-status" id="gcal-status" onclick="gcalButton()">📅 חבר יומן</button>
   <button class="notif-status" id="stats-btn" onclick="showStats()" title="נתוני שימוש" style="display:none">📊</button>
-  <button class="notif-status" id="logout-btn" onclick="logout()" title="התנתק" style="display:none"><i class="ti ti-logout"></i></button>
+  <button class="notif-status" id="logout-btn" onclick="logout()" title="התנתק" aria-label="התנתק" style="display:none"><i class="ti ti-logout"></i></button>
+</div>
+<div class="greet" id="greet"></div>
+</div>
+
+<div class="toolbar">
+  <div class="mic-row">
+    <button class="btn-mic" id="mic-btn" onclick="toggleMic()" aria-label="לחץ ודבר">
+      <i class="ti ti-microphone" id="mic-icon"></i>
+    </button>
+    <div style="flex:1">
+      <div class="mic-status" id="mic-status">"לקנות ביצים מחר ב-10 לבית" – והמשימה נרשמת לבד</div>
+      <div class="parsed-hint" id="parsed-hint"></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;width:100%">
+    <input type="text" id="f-name" autocomplete="off" name="task-text" placeholder="או כתוב משימה..." onkeydown="if(event.key==='Enter')addTask()" style="flex:1"/>
+    <button class="btn-add" onclick="addTask()" aria-label="הוסף"><i class="ti ti-plus"></i></button>
+  </div>
+  <div class="opts">
+    <select id="f-pri">
+      <option value="high">🔴 דחוף</option>
+      <option value="med" selected>🟡 בינוני</option>
+      <option value="low">🟢 נמוך</option>
+    </select>
+    <select id="f-cat" onchange="onCatSelect(this)"></select>
+    <input type="date" id="f-date"/>
+    <input type="time" id="f-time"/>
+  </div>
 </div>
 
 <div class="lists-bar" id="lists-bar"></div>
 <div class="list-members" id="list-members"></div>
-
-<div class="toolbar">
-  <div class="mic-row">
-    <button class="btn-mic" id="mic-btn" onclick="toggleMic()">
-      <i class="ti ti-microphone" id="mic-icon"></i>
-    </button>
-    <div style="flex:1">
-      <div class="mic-status" id="mic-status">לחץ על המיקרופון ואמור את המשימה בעברית</div>
-      <div class="parsed-hint" id="parsed-hint"></div>
-    </div>
-  </div>
-  <input type="text" id="f-name" autocomplete="off" name="task-text" placeholder="או כתוב משימה..." onkeydown="if(event.key==='Enter')addTask()"/>
-  <select id="f-pri">
-    <option value="high">🔴 דחוף</option>
-    <option value="med" selected>🟡 בינוני</option>
-    <option value="low">🟢 נמוך</option>
-  </select>
-  <select id="f-cat" onchange="onCatSelect(this)"></select>
-  <input type="date" id="f-date"/>
-  <input type="time" id="f-time"/>
-  <button class="btn-add" onclick="addTask()"><i class="ti ti-plus"></i> הוסף</button>
-</div>
-
-<div class="stats" id="stats-bar"></div>
 <div class="stats" id="cat-bar"></div>
+<div class="stats"><input id="f-search" type="search" autocomplete="off" placeholder="🔍 חיפוש משימה..." oninput="render()" style="flex:1;min-width:120px;padding:6px 12px"></div>
 <div class="stats" id="bulk-bar"></div>
-<div class="stats"><input id="f-search" type="search" autocomplete="off" placeholder="🔍 חיפוש משימה..." oninput="render()" style="flex:1;min-width:120px;padding:6px 10px;border:1px solid #ccc;border-radius:16px;font-size:13px"></div>
-
-<div class="table-wrap">
-  <table>
-    <colgroup>
-      <col style="width:24px"/><col/><col style="width:68px"/>
-      <col style="width:90px"/><col style="width:100px"/><col style="width:84px"/>
-    </colgroup>
-    <thead>
-      <tr><th>#</th><th>משימה</th><th>דחיפות</th><th>סטטוס</th><th>תזכורת</th><th>פעולות</th></tr>
-    </thead>
-    <tbody id="tbl-body"></tbody>
-  </table>
+<div class="task-list" id="tbl-body"></div>
+<div class="stats" id="stats-bar"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -262,7 +330,7 @@ function gcalButton() {
 function updateGcalStatus() {
   const btn = document.getElementById('gcal-status');
   if (!btn) return;
-  btn.textContent = isGcalConnected() ? '📅 יומן מחובר ✓' : '📅 התחבר ליומן';
+  btn.textContent = isGcalConnected() ? '📅 ✓' : '📅 חבר יומן'; btn.setAttribute('aria-label', isGcalConnected() ? 'יומן Google מחובר' : 'חבר ליומן Google');
   btn.title = gcalSrv.email || '';
   btn.style.background = isGcalConnected() ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.15)';
 }
@@ -375,10 +443,10 @@ function updateNotifBtn() {
   const btn = document.getElementById('notif-btn');
   if (!HAS_NOTIF) { btn.textContent = '🔕 התראות'; btn.style.background = 'rgba(255,255,255,0.15)'; return; }
   if (Notification.permission === 'granted') {
-    btn.textContent = '🔔 התראות פעילות';
+    btn.textContent = '🔔 ✓'; btn.setAttribute('aria-label','התראות פעילות');
     btn.style.background = 'rgba(255,255,255,0.3)';
   } else {
-    btn.textContent = '🔕 אפשר התראות';
+    btn.textContent = '🔕 התראות'; btn.setAttribute('aria-label','אפשר התראות');
     btn.style.background = 'rgba(255,255,255,0.15)';
   }
 }
@@ -394,7 +462,7 @@ function requestNotify() {
     if (await registerPush(false)) {
       showToast('התראות מופעלות במכשיר הזה ✓');
       const reg = await navigator.serviceWorker.getRegistration('/tasks/');
-      if (reg) reg.showNotification('תכל׳ס', {body: 'התראות פעילות! תקבל תזכורת בערב שלפני ובשעת המשימה.', icon: '/tasks/icon-v2-192.png', dir: 'rtl'});
+      if (reg) reg.showNotification('תכל׳ס', {body: 'התראות פעילות! תקבל תזכורת בערב שלפני ובשעת המשימה.', icon: '/tasks/icon-v3-192.png', dir: 'rtl'});
     }
   });
 }
@@ -552,7 +620,7 @@ function scheduleLocal(t) {
     timers.push(setTimeout(()=>{
       new Notification('תזכורת למחר: ' + t.name, {
         body: 'מחר' + (t.time ? ' בשעה ' + t.time : ''),
-        icon: '/tasks/icon-v2-192.png', dir: 'rtl', requireInteraction: true
+        icon: '/tasks/icon-v3-192.png', dir: 'rtl', requireInteraction: true
       });
     }, msBefore));
   }
@@ -565,7 +633,7 @@ function scheduleLocal(t) {
       timers.push(setTimeout(()=>{
         new Notification('הגיע הזמן: ' + t.name, {
           body: 'עכשיו!',
-          icon: '/tasks/icon-v2-192.png', dir: 'rtl', requireInteraction: true
+          icon: '/tasks/icon-v3-192.png', dir: 'rtl', requireInteraction: true
         });
       }, msTask));
     }
@@ -757,9 +825,9 @@ function iosInstallHint(){
   try{
     if(!/iPhone|iPad|iPod/.test(navigator.userAgent) || isStandalone() || localStorage.getItem('ios_hint_off')) return;
     const b=document.createElement('div'); b.id='ios-hint';
-    b.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;background:#fff;border:2px solid #E53935;border-radius:12px;padding:12px 14px;z-index:10000;box-shadow:0 4px 18px rgba(0,0,0,.25);font-size:14px;line-height:1.7;direction:rtl;color:#222';
+    b.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;background:#fff;border:2px solid #1E1B4B;border-radius:12px;padding:12px 14px;z-index:10000;box-shadow:0 4px 18px rgba(0,0,0,.25);font-size:14px;line-height:1.7;direction:rtl;color:#222';
     b.innerHTML='<b>📲 להתקנה באייפון (ב-Safari):</b><br>1. לחץ על כפתור השיתוף <i class="ti ti-share-2"></i> (ריבוע עם חץ למעלה) בתחתית המסך<br>2. גלול ובחר <b>"הוסף למסך הבית"</b> ← <b>"הוסף"</b><br>3. פתח מהאייקון ולחץ "אפשר התראות"'
-      +'<div style="text-align:left;margin-top:6px"><button id="ios-hint-ok" style="border:0;background:#E53935;color:#fff;border-radius:6px;padding:6px 14px;font-size:14px">הבנתי</button></div>';
+      +'<div style="text-align:left;margin-top:6px"><button id="ios-hint-ok" style="border:0;background:#1E1B4B;color:#fff;border-radius:6px;padding:6px 14px;font-size:14px">הבנתי</button></div>';
     document.body.appendChild(b);
     document.getElementById('ios-hint-ok').onclick=()=>{ try{ localStorage.setItem('ios_hint_off','1'); }catch(e){} b.remove(); };
   }catch(e){}
@@ -854,12 +922,12 @@ function showTasksLogin(){
   const ov=document.createElement('div'); ov.id='tasks-login';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999';
   ov.innerHTML='<div style="background:#fff;border-radius:14px;padding:22px;width:min(320px,90vw);text-align:center;direction:rtl">'
-    +'<div style="font-weight:700;margin-bottom:12px">כניסה למשימות</div>'
+    +'<img src="icon-v3-192.png" alt="" style="width:64px;height:64px;border-radius:18px;margin-bottom:8px"><div style="font-weight:800;font-size:22px;color:#1E1B4B">תכל׳ס</div><div style="font-size:13px;color:#5B5B76;margin-bottom:14px">אמרת – זה נרשם</div>'
     +'<button id="tasks-google-btn" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#333;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-brand-google"></i> כניסה עם Google</button>'
     +'<div style="font-size:12px;color:#999;margin:14px 0 8px">או כניסת מנהל</div>'
     +'<input type="text" name="username" autocomplete="username" value="מנהל" style="display:none" tabindex="-1" aria-hidden="true">' // שהדפדפן ימלא כאן ולא בשדה המשימה
     +'<input id="tasks-pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="קוד מנהל" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box">'
-    +'<button id="tasks-login-btn" style="margin-top:12px;width:100%;padding:10px;font-size:16px;border:0;border-radius:8px;background:#333;color:#fff">כניסה</button></div>';
+    +'<button id="tasks-login-btn" style="margin-top:12px;width:100%;padding:10px;font-size:16px;border:0;border-radius:8px;background:#1E1B4B;color:#fff">כניסה</button></div>';
   document.body.appendChild(ov);
   document.getElementById('tasks-login-btn').onclick=tasksLogin;
   document.getElementById('tasks-google-btn').onclick=googleLogin;
@@ -919,7 +987,7 @@ function addTask(auto){
   document.getElementById('f-date').value='';
   document.getElementById('f-time').value='';
   document.getElementById('parsed-hint').style.display='none';
-  document.getElementById('mic-status').textContent=auto===true?'נוסף: '+name+' — לחץ שוב למשימה נוספת':'לחץ על המיקרופון ואמור את המשימה בעברית';
+  document.getElementById('mic-status').textContent=auto===true?'נוסף: '+name+' — לחץ שוב למשימה נוספת':'"לקנות ביצים מחר ב-10 לבית" – והמשימה נרשמת לבד';
   if(auto!==true) document.getElementById('f-name').focus();
   if (task.date && auto===true && !isGcalConnected()) {
     showToast('המשימה נוספה ✓ — לחץ 📅 כדי להכניס אותה ליומן');
@@ -1002,7 +1070,7 @@ function renderCats(){
   bar.querySelectorAll('button[data-c]').forEach(b=>b.onclick=()=>setCat(b.getAttribute('data-c')));
 }
 // ── מחיקה של כמה משימות יחד ──
-let selectMode=false; const selected=new Set();
+let selectMode=false, showDone=false; const selected=new Set();
 function rowClick(id){ if(selectMode) toggleSel(id); else editTask(id); }
 function toggleSel(id){ selected.has(id)?selected.delete(id):selected.add(id); render(); }
 function setSelectMode(on){ selectMode=on; selected.clear(); render(); }
@@ -1040,26 +1108,42 @@ function render(){
     const da=due(a), db=due(b); if(da!==db) return da-db;
     const p={high:0,med:1,low:2};return (p[a.pri]??1)-(p[b.pri]??1);
   });
-  if(!list.length){
-    document.getElementById('tbl-body').innerHTML='<tr><td colspan="6" class="empty">אין משימות — הוסף את הראשונה!</td></tr>';
-  } else {
-    document.getElementById('tbl-body').innerHTML=list.map((t,i)=>{
-      const rc=t.done?'row-done':t.pri==='high'?'row-high':t.pri==='med'?'row-med':'row-low';
-      const pc=t.done?'pri-done':'pri-'+t.pri;
-      let remind='—';
-      if(t.date){const d=new Date(t.date+(t.time?'T'+t.time:''));remind=d.toLocaleDateString('he-IL')+(t.time?' '+t.time:'');}
-      return '<tr class="'+rc+(selectMode&&selected.has(t.id)?' row-selected':'')+'">'+
-        (selectMode?'<td class="row-num"><input type="checkbox" class="cb" '+(selected.has(t.id)?'checked':'')+' onclick="event.stopPropagation();toggleSel(\''+t.id+'\')"></td>':'<td class="row-num">'+(i+1)+'</td>')+
-        '<td class="task-name" onclick="rowClick(\''+t.id+'\')" style="cursor:pointer" title="לחץ לעריכה">'+String(t.name||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))+(t.cat&&!curCat?'<span class="cat-badge">'+String(t.cat).replace(/[&<>"']/g,'')+'</span>':'')+(curList&&t.by?'<div style="font-size:10px;color:#999">'+String(t.by).replace(/[&<>"']/g,'')+'</div>':'')+(t.notes?'<div class="task-notes">📝 '+String(t.notes).slice(0,80).replace(/[&<>"']/g,'')+(String(t.notes).length>80?'…':'')+'</div>':'')+'</td>'+
-        '<td><span class="pri-badge '+pc+'">'+(t.done?'בוצע':priLabel[t.pri])+'</span></td>'+
-        '<td><div class="status-wrap"><span class="dot '+(t.done?'dot-done':'dot-open')+'"></span>'+(t.done?'בוצע':'פתוח')+'<input type="checkbox" class="cb" '+(t.done?'checked':'')+'  onchange="toggle(\''+t.id+'\')"/></div></td>'+
-        '<td class="remind-cell'+(!t.done&&t.date&&due(t)<nowMs?' overdue':'')+'">'+(!t.done&&t.date&&due(t)<nowMs?'⚠️ ':'')+remind+(t.rep?' 🔁':'')+'</td>'+
-        '<td><div class="actions-cell">'+'<button class="cal-btn" onclick="editTask(\''+t.id+'\')" title="ערוך"><i class="ti ti-edit"></i></button>'+
-          '<button class="cal-btn" onclick="moveTask(\''+t.id+'\')" title="העבר לרשימה אחרת"><i class="ti ti-arrows-exchange"></i></button>'+
-          '<button class="del-btn" onclick="del(\''+t.id+'\')" title="מחק"><i class="ti ti-trash"></i></button>'+
-        '</div></td>'+
-        '</tr>';
-    }).join('');
+  const esc=x=>String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const dk=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const today=dk(new Date()), tmr=dk(new Date(Date.now()+864e5)), yst=dk(new Date(Date.now()-864e5));
+  const isLate=t=>!t.done&&t.date&&due(t)<nowMs;
+  const dayTxt=t=>!t.date?'':t.date===today?'היום':t.date===tmr?'מחר':t.date===yst?'אתמול':new Date(t.date+'T12:00').toLocaleDateString('he-IL',{weekday:'short',day:'numeric',month:'numeric'});
+  const repTxt={daily:'כל יום',weekly:'כל שבוע',monthly:'כל חודש'};
+  const card=t=>{
+    const late=isLate(t);
+    const meta=[late?'באיחור':'', [t.date&&t.date!==today?dayTxt(t):'', t.time||''].filter(Boolean).join(' '), (t.cat&&!curCat)?esc(t.cat):'', t.rep?'🔁 '+(repTxt[t.rep]||''):'', (curList&&t.by)?esc(t.by):''].filter(Boolean).join(' · ');
+    const sel=selectMode&&selected.has(t.id);
+    return '<div class="card'+(t.done?' done':'')+(late?' late':'')+(sel?' sel':'')+'">'
+      +(selectMode
+        ?'<button class="tick'+(sel?' on':'')+'" aria-label="בחר" onclick="toggleSel(\''+t.id+'\')">'+(sel?'✓':'')+'</button>'
+        :'<button class="tick'+(t.done?' on':'')+'" aria-label="'+(t.done?'סמן כפתוחה':'סמן כבוצעה')+'" onclick="toggle(\''+t.id+'\')">'+(t.done?'✓':'')+'</button>')
+      +'<div class="cbody" onclick="rowClick(\''+t.id+'\')" title="לחץ לעריכה"><div class="cname">'+esc(t.name)+'</div>'
+      +(meta?'<div class="cmeta">'+meta+'</div>':'')
+      +(t.notes?'<div class="task-notes">📝 '+esc(String(t.notes).slice(0,80))+(String(t.notes).length>80?'…':'')+'</div>':'')+'</div>'
+      +(t.done?'':'<span class="pdot p-'+(t.pri||'med')+'" title="'+(priLabel[t.pri]||'')+'"></span>')
+      +(selectMode?'':'<div class="cact"><button onclick="moveTask(\''+t.id+'\')" title="העבר לרשימה אחרת" aria-label="העבר לרשימה אחרת"><i class="ti ti-arrows-exchange"></i></button><button class="del" onclick="del(\''+t.id+'\')" title="מחק" aria-label="מחק"><i class="ti ti-trash"></i></button></div>')
+      +'</div>';
+  };
+  const open=list.filter(t=>!t.done), doneL=list.filter(t=>t.done);
+  const groups=[['באיחור',open.filter(isLate),'late'],['היום',open.filter(t=>!isLate(t)&&t.date===today),''],['מחר',open.filter(t=>t.date===tmr),''],['בהמשך',open.filter(t=>t.date&&t.date>tmr),''],['בלי תאריך',open.filter(t=>!t.date),'']];
+  let html='';
+  groups.forEach(([title,arr,cls])=>{ if(arr.length) html+='<div class="sec '+cls+'">'+title+'</div>'+arr.map(card).join(''); });
+  if(doneL.length){
+    if(showDone||q||selectMode) html+='<div class="sec">בוצעו</div>'+doneL.map(card).join('')+(q||selectMode?'':'<button class="more-done" onclick="showDone=false;render()">הסתר משימות שבוצעו</button>');
+    else html+='<button class="more-done" onclick="showDone=true;render()">'+doneL.length+' משימות שבוצעו ←</button>';
+  }
+  document.getElementById('tbl-body').innerHTML = list.length ? html : '<div class="empty">אין משימות — לחץ על המיקרופון ותגיד את הראשונה!</div>';
+  const g=document.getElementById('greet');
+  if(g){
+    const h=new Date().getHours(), hi=h<5?'לילה טוב':h<12?'בוקר טוב':h<17?'צהריים טובים':h<21?'ערב טוב':'לילה טוב';
+    const nm=curUser?(curUser.uid==='staff-tasks'?'רני':String(curUser.displayName||'').split(' ')[0]):'';
+    const all=Object.values(tasks).filter(t=>t&&!t.done), nT=all.filter(t=>t.date===today&&!isLate(t)).length, nL=all.filter(isLate).length;
+    g.innerHTML='<b>'+hi+(nm?', '+esc(nm):'')+'</b><span>'+(nT?nT+' משימות להיום':'אין משימות להיום')+(nL?' · '+nL+' באיחור':'')+'</span>';
   }
   const total=list.length,done=list.filter(t=>t.done).length,urgent=list.filter(t=>t.pri==='high'&&!t.done).length;
   document.getElementById('stats-bar').innerHTML=
@@ -1129,7 +1213,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27p';
+const APP_VERSION='2026-10-27r';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
