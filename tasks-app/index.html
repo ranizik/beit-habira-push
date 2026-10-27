@@ -553,14 +553,34 @@ let micGotFinal=false, micLastInterim='', micSilence=null, micMax=null, micErr=f
 const MIC_SILENCE_MS=2300; // שקט של כ-2 שניות = סיימת לדבר (הפסקה קצרה בין מילים לא עוצרת)
 function micMerge(a,b){
   const A=(a||'').replace(/\s+/g,' ').trim(), B=(b||'').replace(/\s+/g,' ').trim();
-  if(!A) return B; if(!B) return A;
-  if(B.startsWith(A)) return B;          // תוצאה מצטברת - מחליפה
-  if(A.endsWith(B)||A.includes(B)) return A; // כבר נאמר
-  const aw=A.split(' '), bw=B.split(' ');
+  if(!A) return micDedupe(B); if(!B) return micDedupe(A);
+  // השוואה בלי סימני פיסוק/מקפים (אנדרואיד שולח לפעמים "פינג-פונג" ואחר כך "פינג פונג")
+  const N=x=>x.replace(/[-־.,!?״"'׳:;]/g,' ').replace(/\s+/g,' ').trim();
+  const nA=N(A), nB=N(B);
+  if(nB.startsWith(nA)) return micDedupe(B);           // תוצאה מצטברת - מחליפה
+  if(nA===nB||nA.endsWith(nB)||nA.includes(nB)) return micDedupe(A); // כבר נאמר
+  const aw=nA.split(' '), bw=nB.split(' '), bo=B.split(' ');
+  let lcp=0; while(lcp<aw.length&&lcp<bw.length&&aw[lcp]===bw[lcp]) lcp++;
+  if(lcp>=Math.max(1,Math.ceil(aw.length*0.6))) return micDedupe(bw.length>=aw.length?B:A); // אותו משפט שנשלח שוב (עם תיקון)
   for(let k=Math.min(aw.length,bw.length);k>0;k--){ // חפיפה בין סוף הקודם לתחילת החדש
-    if(aw.slice(-k).join(' ')===bw.slice(0,k).join(' ')) return aw.concat(bw.slice(k)).join(' ');
+    if(aw.slice(-k).join(' ')===bw.slice(0,k).join(' ')) return micDedupe(A+' '+bo.slice(k).join(' '));
   }
-  return A+' '+B;
+  return micDedupe(A+' '+B);
+}
+// "להכין תיק להכין תיק" -> "להכין תיק": מסיר רצף מילים שחוזר מיד פעמיים
+function micDedupe(t){
+  let w=String(t||'').replace(/\s+/g,' ').trim().split(' ');
+  const N=x=>x.replace(/[-־.,!?״"'׳:;]/g,'');
+  let changed=true;
+  while(changed){ changed=false;
+    for(let len=Math.floor(w.length/2);len>=2&&!changed;len--){
+      for(let i=0;i+2*len<=w.length;i++){
+        let same=true; for(let j=0;j<len;j++) if(N(w[i+j])!==N(w[i+len+j])){ same=false; break; }
+        if(same){ w.splice(i+len,len); changed=true; break; }
+      }
+    }
+  }
+  return w.join(' ').trim();
 }
 function setupMic() {
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -1295,7 +1315,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27v';
+const APP_VERSION='2026-10-27w';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
