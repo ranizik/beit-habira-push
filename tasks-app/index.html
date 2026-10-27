@@ -812,13 +812,15 @@ function showLocked(j){
   let ov=document.getElementById('locked-ov');
   if(!ov){ ov=document.createElement('div'); ov.id='locked-ov'; document.body.appendChild(ov); }
   ov.style.cssText='position:fixed;inset:0;background:#1E1B4B;z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl;font-family:Rubik,Arial,sans-serif';
-  const ended=j.locked?'הגישה לתכל׳ס נעולה כרגע':(j.plan==='paid'?'המנוי לתכל׳ס הסתיים':'תקופת הניסיון של תכל׳ס הסתיימה');
+  const ended=j.pending?'⏳ הבקשה שלך נשלחה לאישור':j.locked?'הגישה לתכל׳ס נעולה כרגע':(j.plan==='paid'?'המנוי לתכל׳ס הסתיים':'תקופת הניסיון של תכל׳ס הסתיימה');
+  const sub=j.pending?'רני יאשר אותך בקרוב, ואז אפשר להתחיל.<br>רוצה לזרז? שלח/י לו הודעה':'המשימות שלך שמורות ומחכות לך.<br>כדי להמשיך: מנוי של <b style="color:#1A1A2E">'+escA(j.price)+' ₪ לחודש</b>';
+  const waTxt=j.pending?'היי רני, נרשמתי לתכל׳ס – אשמח לאישור 🙂':'היי רני, אשמח להמשיך להשתמש בתכל׳ס 🙂';
   ov.innerHTML='<div style="background:#fff;border-radius:24px;padding:26px 22px;width:min(360px,92vw);text-align:center;color:#1A1A2E">'
     +'<img src="icon-v3-192.png" alt="" style="width:72px;height:72px;border-radius:20px;margin-bottom:10px">'
     +'<div style="font-size:21px;font-weight:800;margin-bottom:6px">'+ended+'</div>'
-    +'<div style="font-size:15px;color:#5B5B76;line-height:1.6;margin-bottom:16px">המשימות שלך שמורות ומחכות לך.<br>כדי להמשיך: מנוי של <b style="color:#1A1A2E">'+escA(j.price)+' ₪ לחודש</b></div>'
-    +'<a href="'+waLink(j.contact,'היי רני, אשמח להמשיך להשתמש בתכל׳ס 🙂')+'" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:14px;background:#25D366;color:#fff;font-size:17px;font-weight:700;text-decoration:none"><i class="ti ti-brand-whatsapp" style="font-size:22px"></i> לחידוש בוואטסאפ</a>'
-    +'<button id="locked-recheck" style="margin-top:10px;width:100%;height:46px;border-radius:14px;border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B;font-size:15px;font-weight:600;font-family:inherit">כבר חידשתי – בדוק שוב</button>'
+    +'<div style="font-size:15px;color:#5B5B76;line-height:1.6;margin-bottom:16px">'+sub+'</div>'
+    +'<a href="'+waLink(j.contact,waTxt)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:14px;background:#25D366;color:#fff;font-size:17px;font-weight:700;text-decoration:none"><i class="ti ti-brand-whatsapp" style="font-size:22px"></i> '+(j.pending?'שלח/י לרני בוואטסאפ':'לחידוש בוואטסאפ')+'</a>'
+    +'<button id="locked-recheck" style="margin-top:10px;width:100%;height:46px;border-radius:14px;border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B;font-size:15px;font-weight:600;font-family:inherit">'+(j.pending?'בדוק אם אושרתי':'כבר חידשתי – בדוק שוב')+'</button>'
     +'<button id="locked-logout" style="margin-top:6px;background:none;border:0;color:#5B5B76;font-size:13px;padding:8px;font-family:inherit">התנתק</button></div>';
   document.getElementById('locked-recheck').onclick=async()=>{ const b=document.getElementById('locked-recheck'); b.textContent='בודק...'; await checkAccess(); const still=document.getElementById('locked-recheck'); if(still){ still.textContent='עדיין נעול – נסה שוב בעוד רגע'; } };
   document.getElementById('locked-logout').onclick=()=>{ hideLocked(); logout(); };
@@ -834,6 +836,7 @@ async function renderAccessAdmin(){
   if(!j||!j.ok){ box.textContent='לא ניתן לטעון משתמשים'+(j&&j.error?': '+j.error:''); return; }
   const C=j.config;
   const badge=u=>{
+    if(u.pending) return ['🙋 ממתין לאישור','#EEF0FF','#3730A3'];
     if(u.locked) return ['🔒 נעול','#FDECEA','#B42318'];
     if(!u.allowed) return ['⛔ '+(u.plan==='paid'?'המנוי נגמר':'הניסיון נגמר'),'#FDECEA','#B42318'];
     if(u.until==null) return ['♾ ללא הגבלה','#E7F8EF','#0F6B3E'];
@@ -846,17 +849,18 @@ async function renderAccessAdmin(){
       +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="font-size:15px">'+escA(u.name||u.email||'משתמש')+'</b>'
       +'<span style="font-size:12px;padding:3px 8px;border-radius:8px;background:'+bg+';color:'+fg+';font-weight:600">'+bt+'</span></div>'
       +'<div style="font-size:12px;color:#5B5B76;margin:4px 0 8px">'+escA(u.email)+' · הצטרף/ה '+fmtD(u.joined)+' · פעיל/ה לאחרונה '+fmtD(u.last)+' · '+u.tasks+' משימות</div>'
-      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+btn(u.uid,'month','💳 שילם/ה – פתח לחודש')+btn(u.uid,'trial7','+7 ימי ניסיון')+btn(u.uid,'forever','♾ ללא הגבלה')+(u.locked?'':btn(u.uid,'lock','🔒 נעל',true))+'</div></div>';
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+(u.pending?btn(u.uid,'approve','✅ אשר – '+C.trialDays+' ימי ניסיון')+btn(u.uid,'forever','♾ אשר ללא הגבלה')+btn(u.uid,'lock','❌ דחה',true)+'</div></div>':'')+(u.pending?'':btn(u.uid,'month','💳 שילם/ה – פתח לחודש')+btn(u.uid,'trial7','+7 ימי ניסיון')+btn(u.uid,'forever','♾ ללא הגבלה')+(u.locked?'':btn(u.uid,'lock','🔒 נעל',true))+'</div></div>');
   }).join(''):'<div style="color:#5B5B76">אין עדיין משתמשים</div>')
+    +'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:10px 0 4px;cursor:pointer"><input id="acc-approval" type="checkbox" style="width:auto;margin:0" '+(C.approval?'checked':'')+'> <b>כל משתמש חדש צריך את האישור שלי</b> (מי שקיבל את הקישור ממישהו אחר יחכה לאישור)</label>'
     +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:#5B5B76;margin-top:6px">ניסיון למשתמש חדש <input id="acc-days" type="number" min="1" max="365" value="'+escA(C.trialDays)+'" style="width:56px;margin:0;padding:4px 6px"> ימים · מחיר <input id="acc-price" type="number" min="0" value="'+escA(C.price)+'" style="width:60px;margin:0;padding:4px 6px"> ₪ · וואטסאפ <input id="acc-contact" type="tel" value="'+escA(C.contact)+'" style="width:110px;margin:0;padding:4px 6px"> <button id="acc-save" class="bulk-btn">שמור</button></div>';
   box.querySelectorAll('button[data-act]').forEach(b=>b.onclick=async()=>{
     const act=b.getAttribute('data-act');
-    if(act==='lock'&&!confirm('לנעול את המשתמש? המשימות שלו נשמרות, והוא יראה מסך "לחידוש".')) return;
+    if(act==='lock'&&!confirm(b.textContent.includes('דחה')?'לדחות את הבקשה? המשתמש לא יוכל להשתמש באפליקציה.':'לנעול את המשתמש? המשימות שלו נשמרות, והוא יראה מסך "לחידוש".')) return;
     b.disabled=true; const r=await accessApi('set',{uid:b.getAttribute('data-uid'),action:act});
     showToast(r&&r.ok?'עודכן ✓':'שגיאה: '+((r&&r.error)||'')); renderAccessAdmin();
   });
   document.getElementById('acc-save').onclick=async()=>{
-    const r=await accessApi('config',{trialDays:document.getElementById('acc-days').value,price:document.getElementById('acc-price').value,contact:document.getElementById('acc-contact').value});
+    const r=await accessApi('config',{trialDays:document.getElementById('acc-days').value,price:document.getElementById('acc-price').value,contact:document.getElementById('acc-contact').value,approval:document.getElementById('acc-approval').checked});
     showToast(r&&r.ok?'ההגדרות נשמרו ✓':'שגיאה בשמירה');
   };
 }
@@ -1289,7 +1293,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27t';
+const APP_VERSION='2026-10-27u';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
