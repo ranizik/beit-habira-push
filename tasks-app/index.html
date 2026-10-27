@@ -199,9 +199,8 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
   </div>
   <div class="opts">
     <select id="f-pri">
+      <option value="low" selected>⚪ לא דחוף</option>
       <option value="high">🔴 דחוף</option>
-      <option value="med" selected>🟡 בינוני</option>
-      <option value="low">🟢 נמוך</option>
     </select>
     <select id="f-cat" onchange="onCatSelect(this)"></select>
     <input type="date" id="f-date"/>
@@ -1085,12 +1084,12 @@ function addTask(auto){
   // דחיפות מהמשפט: "דחוף" / "דחיפות גבוהה|בינונית|נמוכה" / "עדיפות ..." / "לא דחוף" / בסוף המשפט גם "חשוב", "בינוני", "נמוך"
   const PRI_RULES=[
     [/(^|\s)(?:ב)?(?:דחיפות|עדיפות)\s+(?:גבוהה|עליונה)(?=\s|$)/,'high'],
-    [/(^|\s)(?:ב)?(?:דחיפות|עדיפות)\s+(?:בינונית|רגילה)(?=\s|$)/,'med'],
+    [/(^|\s)(?:ב)?(?:דחיפות|עדיפות)\s+(?:בינונית|רגילה)(?=\s|$)/,'low'],
     [/(^|\s)(?:ב)?(?:דחיפות|עדיפות)\s+נמוכה(?=\s|$)/,'low'],
     [/(^|\s)(?:לא\s+דחוף|לא\s+בוער|לא\s+חשוב|מתי\s+שיש\s+זמן)(?=\s|$)/,'low'],
     [/(^|\s)(?:דחוף\s+מאוד|דחוף|בדחיפות|בוער)(?=\s|$)/,'high'],
     [/(\s)(?:חשוב\s+מאוד|חשוב)$/,'high'],
-    [/(\s)(?:בינוני|רגיל)$/,'med'],
+    [/(\s)(?:בינוני|רגיל)$/,'low'],
     [/(\s)נמוך$/,'low']
   ];
   for(const [re,p] of PRI_RULES){ if(re.test(name)&&name.replace(re,'$1').trim()){ autoPri=p; name=name.replace(re,'$1'); break; } }
@@ -1099,7 +1098,7 @@ function addTask(auto){
   const task={id,name,pri:document.getElementById('f-pri').value,date,time,done:false,created:Date.now()};
   const fc=document.getElementById('f-cat'); if(fc&&fc.value&&fc.value!=='__new') task.cat=fc.value; else if(autoCat) task.cat=autoCat;
   if(curList && curUser) task.by=(myLists[curList]&&myLists[curList].members&&myLists[curList].members[curUser.uid]&&myLists[curList].members[curUser.uid].name)||'';
-  if(autoPri && document.getElementById('f-pri').value==='med') task.pri=autoPri;
+  if(autoPri && document.getElementById('f-pri').value!=='high') task.pri=autoPri; // בחירה ידנית של "דחוף" גוברת
   if(repParsed){ task.rep=repParsed; if(!task.date){ const d=new Date(); task.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } }
   tasksRef.child(id).set(task);
   if(curList) listsApi('notify',{listId:curList,name:task.name}).catch(()=>{}); // התראה לשאר חברי הרשימה
@@ -1138,7 +1137,7 @@ function nextRepeatDate(t){
 }
 function createNextRepeat(t){
   const nid='task_'+Date.now();
-  const n={id:nid,name:t.name,pri:t.pri||'med',date:nextRepeatDate(t),time:t.time||'',done:false,created:Date.now(),rep:t.rep};
+  const n={id:nid,name:t.name,pri:t.pri==='high'?'high':'low',date:nextRepeatDate(t),time:t.time||'',done:false,created:Date.now(),rep:t.rep};
   if(t.cat) n.cat=t.cat; if(t.notes) n.notes=t.notes; if(t.by) n.by=t.by;
   tasksRef.child(nid).set(n);
   if(isGcalConnected()) addToGcal(n);
@@ -1164,7 +1163,7 @@ function undoDelete(){ clearTimeout(undoTimer); undoTimer=null; if(!undoData) re
 function showUndo(msg){ hideUndo(); const b=document.createElement('div'); b.id='undo-bar'; b.innerHTML='<span></span><button>בטל</button>'; b.querySelector('span').textContent=msg; b.querySelector('button').onclick=undoDelete; document.body.appendChild(b); }
 function hideUndo(){ document.getElementById('undo-bar')?.remove(); }
 
-const priLabel={high:'דחוף',med:'בינוני',low:'נמוך'};
+const priLabel={high:'דחוף',med:'לא דחוף',low:'לא דחוף'}; // שתי רמות: דחוף / לא דחוף (משימות ישנות 'בינוני' = לא דחוף)
 
 // ── קטגוריות (בית / עבודה / מכירות + קטגוריות שהמשתמש מוסיף) ──
 const DEFAULT_CATS=['בית','עבודה','מכירות'];
@@ -1227,7 +1226,7 @@ function render(){
   const list=Object.values(tasks).filter(t=>t&&(!curCat||(t.cat||'')===curCat)&&(!q||(String(t.name||'')+' '+String(t.notes||'')).toLowerCase().includes(q))).sort((a,b)=>{
     if(a.done!==b.done)return a.done?1:-1;
     const da=due(a), db=due(b); if(da!==db) return da-db;
-    const p={high:0,med:1,low:2};return (p[a.pri]??1)-(p[b.pri]??1);
+    const p={high:0,med:1,low:1};return (p[a.pri]??1)-(p[b.pri]??1);
   });
   const esc=x=>String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const dk=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -1237,7 +1236,7 @@ function render(){
   const repTxt={daily:'כל יום',weekly:'כל שבוע',monthly:'כל חודש'};
   const card=t=>{
     const late=isLate(t);
-    const meta=[late?'באיחור':'', [t.date&&t.date!==today?dayTxt(t):'', t.time||''].filter(Boolean).join(' '), (t.cat&&!curCat)?esc(t.cat):'', t.rep?'🔁 '+(repTxt[t.rep]||''):'', (curList&&t.by)?esc(t.by):''].filter(Boolean).join(' · ');
+    const meta=[(!t.done&&t.pri==='high')?'<b style="color:#DC2626">דחוף</b>':'', late?'באיחור':'', [t.date&&t.date!==today?dayTxt(t):'', t.time||''].filter(Boolean).join(' '), (t.cat&&!curCat)?esc(t.cat):'', t.rep?'🔁 '+(repTxt[t.rep]||''):'', (curList&&t.by)?esc(t.by):''].filter(Boolean).join(' · ');
     const sel=selectMode&&selected.has(t.id);
     return '<div class="card'+(t.done?' done':'')+(late?' late':'')+(sel?' sel':'')+'">'
       +(selectMode
@@ -1246,7 +1245,7 @@ function render(){
       +'<div class="cbody" onclick="rowClick(\''+t.id+'\')" title="לחץ לעריכה"><div class="cname">'+esc(t.name)+'</div>'
       +(meta?'<div class="cmeta">'+meta+'</div>':'')
       +(t.notes?'<div class="task-notes">📝 '+esc(String(t.notes).slice(0,80))+(String(t.notes).length>80?'…':'')+'</div>':'')+'</div>'
-      +(t.done?'':'<span class="pdot p-'+(t.pri||'med')+'" title="'+(priLabel[t.pri]||'')+'"></span>')
+      +(!t.done&&t.pri==='high'?'<span class="pdot p-high" title="דחוף"></span>':'')
       +(selectMode?'':'<div class="cact"><button onclick="moveTask(\''+t.id+'\')" title="העבר לרשימה אחרת" aria-label="העבר לרשימה אחרת"><i class="ti ti-arrows-exchange"></i></button><button class="del" onclick="del(\''+t.id+'\')" title="מחק" aria-label="מחק"><i class="ti ti-trash"></i></button></div>')
       +'</div>';
   };
@@ -1290,9 +1289,8 @@ function editTask(id) {
       <h3>ערוך משימה</h3>
       <input type="text" id="e-name" value="${t.name}" placeholder="שם המשימה"/>
       <select id="e-pri">
+        <option value="low" ${t.pri!=='high'?'selected':''}>⚪ לא דחוף</option>
         <option value="high" ${t.pri==='high'?'selected':''}>🔴 דחוף</option>
-        <option value="med" ${t.pri==='med'?'selected':''}>🟡 בינוני</option>
-        <option value="low" ${t.pri==='low'?'selected':''}>🟢 נמוך</option>
       </select>
       <select id="e-cat" onchange="onCatSelect(this)">${catOptions(t.cat||'')}</select>
       <input type="date" id="e-date" value="${t.date||''}"/>
@@ -1335,7 +1333,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27y';
+const APP_VERSION='2026-10-27z';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
