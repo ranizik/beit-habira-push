@@ -839,7 +839,7 @@ async function renderAccessAdmin(){
     if(u.pending) return ['🙋 ממתין לאישור','#EEF0FF','#3730A3'];
     if(u.locked) return ['🔒 נעול','#FDECEA','#B42318'];
     if(!u.allowed) return ['⛔ '+(u.plan==='paid'?'המנוי נגמר':'הניסיון נגמר'),'#FDECEA','#B42318'];
-    if(u.until==null) return ['♾ ללא הגבלה','#E7F8EF','#0F6B3E'];
+    if(u.until==null||C.freeMode) return [C.freeMode&&u.until!=null?'🎁 חינם – תקופת הרצה':'♾ ללא הגבלה','#E7F8EF','#0F6B3E'];
     if(u.plan==='paid') return ['✅ מנוי עד '+fmtD(u.until),'#E7F8EF','#0F6B3E'];
     return ['🧪 ניסיון – עוד '+u.daysLeft+' ימים','#FFF4DB','#8A5A00'];
   };
@@ -849,9 +849,10 @@ async function renderAccessAdmin(){
       +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="font-size:15px">'+escA(u.name||u.email||'משתמש')+'</b>'
       +'<span style="font-size:12px;padding:3px 8px;border-radius:8px;background:'+bg+';color:'+fg+';font-weight:600">'+bt+'</span></div>'
       +'<div style="font-size:12px;color:#5B5B76;margin:4px 0 8px">'+escA(u.email)+' · הצטרף/ה '+fmtD(u.joined)+' · פעיל/ה לאחרונה '+fmtD(u.last)+' · '+u.tasks+' משימות</div>'
-      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+(u.pending?btn(u.uid,'approve','✅ אשר – '+C.trialDays+' ימי ניסיון')+btn(u.uid,'forever','♾ אשר ללא הגבלה')+btn(u.uid,'lock','❌ דחה',true)+'</div></div>':'')+(u.pending?'':btn(u.uid,'month','💳 שילם/ה – פתח לחודש')+btn(u.uid,'trial7','+7 ימי ניסיון')+btn(u.uid,'forever','♾ ללא הגבלה')+(u.locked?'':btn(u.uid,'lock','🔒 נעל',true))+'</div></div>');
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+(u.pending?btn(u.uid,'approve',C.freeMode?'✅ אשר':'✅ אשר – '+C.trialDays+' ימי ניסיון')+btn(u.uid,'forever','♾ אשר ללא הגבלה')+btn(u.uid,'lock','❌ דחה',true)+'</div></div>':'')+(u.pending?'':btn(u.uid,'month','💳 שילם/ה – פתח לחודש')+btn(u.uid,'trial7','+7 ימי ניסיון')+btn(u.uid,'forever','♾ ללא הגבלה')+(u.locked?'':btn(u.uid,'lock','🔒 נעל',true))+'</div></div>');
   }).join(''):'<div style="color:#5B5B76">אין עדיין משתמשים</div>')
-    +'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:10px 0 4px;cursor:pointer"><input id="acc-approval" type="checkbox" style="width:auto;margin:0" '+(C.approval?'checked':'')+'> <b>כל משתמש חדש צריך את האישור שלי</b> (מי שקיבל את הקישור ממישהו אחר יחכה לאישור)</label>'
+    +'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:10px 0 4px;cursor:pointer"><input id="acc-free" type="checkbox" style="width:auto;margin:0" '+(C.freeMode?'checked':'')+'> <b>🎁 תקופת הרצה – כל מי שאושר משתמש בחינם, בלי הגבלת זמן</b></label>'
+    +'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:4px 0 4px;cursor:pointer"><input id="acc-approval" type="checkbox" style="width:auto;margin:0" '+(C.approval?'checked':'')+'> <b>כל משתמש חדש צריך את האישור שלי</b> (מי שקיבל את הקישור ממישהו אחר יחכה לאישור)</label>'
     +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:#5B5B76;margin-top:6px">ניסיון למשתמש חדש <input id="acc-days" type="number" min="1" max="365" value="'+escA(C.trialDays)+'" style="width:56px;margin:0;padding:4px 6px"> ימים · מחיר <input id="acc-price" type="number" min="0" value="'+escA(C.price)+'" style="width:60px;margin:0;padding:4px 6px"> ₪ · וואטסאפ <input id="acc-contact" type="tel" value="'+escA(C.contact)+'" style="width:110px;margin:0;padding:4px 6px"> <button id="acc-save" class="bulk-btn">שמור</button></div>';
   box.querySelectorAll('button[data-act]').forEach(b=>b.onclick=async()=>{
     const act=b.getAttribute('data-act');
@@ -860,7 +861,8 @@ async function renderAccessAdmin(){
     showToast(r&&r.ok?'עודכן ✓':'שגיאה: '+((r&&r.error)||'')); renderAccessAdmin();
   });
   document.getElementById('acc-save').onclick=async()=>{
-    const r=await accessApi('config',{trialDays:document.getElementById('acc-days').value,price:document.getElementById('acc-price').value,contact:document.getElementById('acc-contact').value,approval:document.getElementById('acc-approval').checked});
+    const r=await accessApi('config',{trialDays:document.getElementById('acc-days').value,price:document.getElementById('acc-price').value,contact:document.getElementById('acc-contact').value,approval:document.getElementById('acc-approval').checked,freeMode:document.getElementById('acc-free').checked});
+    renderAccessAdmin();
     showToast(r&&r.ok?'ההגדרות נשמרו ✓':'שגיאה בשמירה');
   };
 }
@@ -1293,7 +1295,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27u';
+const APP_VERSION='2026-10-27v';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
