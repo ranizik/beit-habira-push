@@ -480,6 +480,17 @@ function applyParsed(parsed) {
 // ── Mic ──
 let micGotFinal=false, micLastInterim='', micSilence=null, micMax=null, micErr=false;
 const MIC_SILENCE_MS=2300; // שקט של כ-2 שניות = סיימת לדבר (הפסקה קצרה בין מילים לא עוצרת)
+function micMerge(a,b){
+  const A=(a||'').replace(/\s+/g,' ').trim(), B=(b||'').replace(/\s+/g,' ').trim();
+  if(!A) return B; if(!B) return A;
+  if(B.startsWith(A)) return B;          // תוצאה מצטברת - מחליפה
+  if(A.endsWith(B)||A.includes(B)) return A; // כבר נאמר
+  const aw=A.split(' '), bw=B.split(' ');
+  for(let k=Math.min(aw.length,bw.length);k>0;k--){ // חפיפה בין סוף הקודם לתחילת החדש
+    if(aw.slice(-k).join(' ')===bw.slice(0,k).join(' ')) return aw.concat(bw.slice(k)).join(' ');
+  }
+  return A+' '+B;
+}
 function setupMic() {
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){document.getElementById('mic-btn').style.opacity='0.4';document.getElementById('mic-status').textContent='הדפדפן לא תומך בהקלטה';return;}
@@ -501,9 +512,10 @@ function setupMic() {
     clearTimeout(micSilence);
     micSilence=setTimeout(()=>{ if(isRecording) recognition.stop(); }, MIC_SILENCE_MS);
     // כל מה שנאמר מתחילת ההקלטה (כמה משפטים/הפסקות) - מצטבר לטקסט אחד, ונקלט כשההקלטה נגמרת
+    // באנדרואיד כל תוצאה מכילה לפעמים את כל מה שנאמר עד עכשיו - מאחדים חפיפות כדי לא לשכפל מילים
     let full='';
-    for(let i=0;i<e.results.length;i++) full+=e.results[i][0].transcript+' ';
-    micLastInterim=full.replace(/\s+/g,' ').trim();
+    for(let i=0;i<e.results.length;i++) full=micMerge(full,e.results[i][0].transcript);
+    micLastInterim=full;
     document.getElementById('mic-status').textContent='מזהה: '+micLastInterim+'...';
   };
   recognition.onerror=(e)=>{ if(e.error==='aborted'||e.error==='no-speech') return; micErr=true;stopMic();document.getElementById('mic-status').textContent=e.error==='not-allowed'?'לא אושרה גישה למיקרופון':'שגיאה: '+e.error;};
@@ -1114,7 +1126,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27k';
+const APP_VERSION='2026-10-27m';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
