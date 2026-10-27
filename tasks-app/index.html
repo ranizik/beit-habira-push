@@ -411,6 +411,8 @@ function normalizeHebrewTime(text) {
   });
   s = s.replace(/(בשעה|שעה|ב-?)\s*(\d{1,2})\.(\d{2})(?!\d)/g, 'בשעה $2:$3');
   s = s.replace(/(\d{1,2}):(\d{2})\s+(וחצי|ורבע)/g, '$1:$2');
+  // שעה בלי "בשעה" לפניה (למשל "משימת בדיקה 3:42") - גם היא שעה ולא חלק מהשם
+  s = s.replace(/(\d{1,2}):(\d{2})(?!\d)/g, (all,h,m,off,str)=> (/(בשעה|שעה|ב-?)\s*$/.test(str.slice(0,off)) || +h>23 || +m>59) ? all : 'בשעה '+h+':'+m);
   return s;
 }
 
@@ -1126,7 +1128,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27m';
+const APP_VERSION='2026-10-27n';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
