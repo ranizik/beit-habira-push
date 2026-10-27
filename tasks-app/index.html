@@ -25,6 +25,14 @@ body{font-family:Arial,sans-serif;background:#f0f0f0;min-height:100vh;}
 .toolbar input[type=text]{flex:1;min-width:120px;padding:8px 10px;border:1px solid #b0b0b0;border-radius:4px;font-size:14px;}
 .remind-cell.overdue{color:#c62828;font-weight:700;}
 .task-notes{font-size:11px;color:#777;white-space:pre-wrap;margin-top:2px;}
+#pri-ask{position:fixed;left:12px;right:12px;bottom:16px;max-width:520px;margin:0 auto;background:#1E1B4B;color:#fff;border-radius:18px;padding:14px 14px 0;z-index:9996;box-shadow:0 10px 30px rgba(30,27,75,.35);overflow:hidden;font-family:inherit;}
+#pri-ask .pa-t{font-size:15px;font-weight:600;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#pri-ask .pa-b{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+#pri-ask button{height:48px;border-radius:12px;border:0;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;}
+#pri-ask .pa-h{background:#EF4444;color:#fff;}
+#pri-ask .pa-l{background:rgba(255,255,255,.14);color:#fff;}
+#pri-ask .pa-bar{height:4px;background:#FF5A5F;margin:0 -14px;transform-origin:right;animation:paShrink 8s linear forwards;}
+@keyframes paShrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 #undo-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 14px;border-radius:10px;z-index:9997;display:flex;gap:14px;align-items:center;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.3);}
 #undo-bar button{background:#ffd54f;color:#333;border:0;border-radius:6px;padding:5px 12px;font-weight:700;font-size:14px;cursor:pointer;}
 .bulk-btn{font-size:12px;padding:4px 10px;border-radius:4px;border:1px solid #ccc;background:#fff;color:#333;cursor:pointer;}
@@ -1048,6 +1056,18 @@ TASKS_APP.auth().onAuthStateChanged(u=>{
   else { if(lb) lb.style.display='none'; stopTasks(); showTasksLogin(); }
 });
 
+let priAskTimer=null;
+function askPriority(id, name){
+  hidePriAsk();
+  const b=document.createElement('div'); b.id='pri-ask';
+  b.innerHTML='<div class="pa-t"></div><div class="pa-b"><button class="pa-h">🔴 דחוף</button><button class="pa-l">לא דחוף</button></div><div class="pa-bar"></div>';
+  b.querySelector('.pa-t').textContent='"'+name+'" – דחוף?';
+  b.querySelector('.pa-h').onclick=()=>{ const r=tasksRef; r.child(id).update({pri:'high'}).then(()=>showToast('סומן כדחוף 🔴')); hidePriAsk(); };
+  b.querySelector('.pa-l').onclick=hidePriAsk;
+  document.body.appendChild(b);
+  priAskTimer=setTimeout(hidePriAsk, 8000);
+}
+function hidePriAsk(){ clearTimeout(priAskTimer); priAskTimer=null; document.getElementById('pri-ask')?.remove(); }
 function addTask(auto){
   let name=document.getElementById('f-name').value.trim();
   if(!name)return;
@@ -1101,6 +1121,9 @@ function addTask(auto){
   if(autoPri && document.getElementById('f-pri').value!=='high') task.pri=autoPri; // בחירה ידנית של "דחוף" גוברת
   if(repParsed){ task.rep=repParsed; if(!task.date){ const d=new Date(); task.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } }
   tasksRef.child(id).set(task);
+  // אחרי הקלטה בקול בלי שנאמרה דחיפות - שאלה קצרה: דחוף / לא דחוף (בלי תשובה תוך 8 שניות = לא דחוף)
+  hidePriAsk();
+  if(auto===true && !autoPri && task.pri!=='high') askPriority(id, task.name);
   if(curList) listsApi('notify',{listId:curList,name:task.name}).catch(()=>{}); // התראה לשאר חברי הרשימה
   statsApi('event',{type: auto===true ? 'task_voice' : 'task_typed'});
   document.getElementById('f-name').value='';
@@ -1333,7 +1356,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27z';
+const APP_VERSION='2026-10-27za';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
