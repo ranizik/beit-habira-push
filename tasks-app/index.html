@@ -587,13 +587,13 @@ function normalizeHebrewTime(text) {
   // דקות: "וחצי", "ורבע", "ו-9 דקות", "ותשע", "ועשרים וחמש", "4 09"
   const TENS={'עשרים':20,'שלושים':30,'ארבעים':40,'חמישים':50};
   const UNITS=Object.keys(HEB_NUMS).filter(w=>HEB_NUMS[w]<10).join('|'), tens=Object.keys(TENS).join('|');
-  const MIN='(?:\\s+(וחצי|ורבע)|\\s+ו-?\\s*(\\d{2}|\\d(?=\\s+דקות))(?:\\s+דקות)?|\\s+ו('+tens+')(?:\\s+ו('+UNITS+'))?(?:\\s+דקות)?|\\s+ו(עשר|עשרה|'+UNITS+')(?:\\s+דקות)?|\\s+(\\d{2}))?(?=\\s|$|[,.])';
-  const toMin=(frac,dig,t,tu,u,d2)=> frac==='וחצי'?30 : frac==='ורבע'?15 : dig?+dig : t?TENS[t]+(tu?HEB_NUMS[tu]:0) : u?(u==='עשרה'?10:HEB_NUMS[u]) : d2?+d2 : 0;
-  s = s.replace(new RegExp('(בשעה|שעה|ב-?)\\s*('+words+'|\\d{1,2})(?![\\d:./])'+MIN,'g'), (all,pre,h,frac,dig,t,tu,u,d2)=>{
+  const MIN='(?:\\s+(וחצי|ורבע)|\\s+ו-?\\s*(\\d{2}|\\d(?=\\s+דקות))(?:\\s+דקות)?|\\s+ו('+tens+')(?:\\s+ו('+UNITS+'))?(?:\\s+דקות)?|\\s+ו('+UNITS+'|שתים|שתיים)\\s+עשרה(?:\\s+דקות)?|\\s+ו(עשר|עשרה|'+UNITS+')(?:\\s+דקות)?|\\s+(\\d{2}))?(?=\\s|$|[,.])';
+  const toMin=(frac,dig,t,tu,te,u,d2)=> frac==='וחצי'?30 : frac==='ורבע'?15 : dig?+dig : t?TENS[t]+(tu?HEB_NUMS[tu]:0) : te?10+HEB_NUMS[te] : u?(u==='עשרה'?10:HEB_NUMS[u]) : d2?+d2 : 0;
+  s = s.replace(new RegExp('(בשעה|שעה|ב-?)\\s*('+words+'|\\d{1,2})(?![\\d:./])'+MIN,'g'), (all,pre,h,frac,dig,t,tu,te,u,d2)=>{
     const H = /^\d+$/.test(h) ? +h : HEB_NUMS[h];
     if (d2 && !/^\d+$/.test(h)) return all;
-    if (/^\d+$/.test(h) && !(frac||dig||t||u||d2)) return all; // "ב-15" לבד - מטופל בהמשך (אולי תאריך)              // "בארבע 09" - לא סביר, לא נוגעים
-    const M = toMin(frac,dig,t,tu,u,d2);
+    if (/^\d+$/.test(h) && !(frac||dig||t||te||u||d2)) return all; // "ב-15" לבד - מטופל בהמשך (אולי תאריך)              // "בארבע 09" - לא סביר, לא נוגעים
+    const M = toMin(frac,dig,t,tu,te,u,d2);
     if (H>23 || M>59) return all;
     return 'בשעה '+H+':'+String(M).padStart(2,'0');
   });
@@ -601,6 +601,7 @@ function normalizeHebrewTime(text) {
   s = s.replace(/(בשעה|שעה)\s*(\d{1,2})(\d{2})(?!\d)/g, (all,pre,h,m)=> (+h<=23 && +m<=59) ? 'בשעה '+(+h)+':'+m : all);
   s = s.replace(/(בשעה|שעה|ב-?)\s*(\d{1,2})\.(\d{2})(?!\d)/g, 'בשעה $2:$3');
   s = s.replace(/(\d{1,2}):(\d{2})\s+(וחצי|ורבע)/g, '$1:$2');
+  s = s.replace(/(\d{1,2}:\d{2})\s+דקות(?=\s|$|[,.])/g, '$1'); // "4:14 דקות" מהמיקרופון
   // שעה בלי "בשעה" לפניה (למשל "משימת בדיקה 3:42") - גם היא שעה ולא חלק מהשם
   s = s.replace(/(\d{1,2}):(\d{2})(?!\d)/g, (all,h,m,off,str)=> (/(בשעה|שעה|ב-?)\s*$/.test(str.slice(0,off)) || +h>23 || +m>59) ? all : 'בשעה '+h+':'+m);
   return s;
@@ -1670,7 +1671,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-28o';
+const APP_VERSION='2026-10-28p';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
