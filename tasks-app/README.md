@@ -1,4 +1,6 @@
-# אפליקציית המשימות – beit-habira.com/tasks
+# תכל׳ס – beit-habira.com/tasks
+
+> 📘 **מסמך טכני מלא: [`../TECHNICAL.md`](../TECHNICAL.md)** – לקרוא לפני כל שינוי.
 
 עותק של קבצי האפליקציה כפי שהם עולים לאתר (Hostinger → `public_html/tasks/`).
 כל שינוי באפליקציה נשמר כאן כ-commit, כך שאפשר לראות היסטוריה ולחזור לכל גרסה.
