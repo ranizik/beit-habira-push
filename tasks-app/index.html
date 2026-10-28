@@ -584,10 +584,21 @@ const HEB_NUMS = {'אחת עשרה':11,'אחד עשרה':11,'שתים עשרה':
 function normalizeHebrewTime(text) {
   let s = String(text||'').replace(/[‎‏‪-‮]/g,'').replace(/[–־]/g,'-');
   const words = Object.keys(HEB_NUMS).sort((a,b)=>b.length-a.length).join('|');
-  s = s.replace(new RegExp('(בשעה|שעה|ב-?)\\s*('+words+')(?:\\s+(וחצי|ורבע))?(?=\\s|$|[,.])','g'), (all,pre,w,frac)=>{
-    const m = frac==='וחצי'?'30':frac==='ורבע'?'15':'00';
-    return 'בשעה '+HEB_NUMS[w]+':'+m;
+  // דקות: "וחצי", "ורבע", "ו-9 דקות", "ותשע", "ועשרים וחמש", "4 09"
+  const TENS={'עשרים':20,'שלושים':30,'ארבעים':40,'חמישים':50};
+  const UNITS=Object.keys(HEB_NUMS).filter(w=>HEB_NUMS[w]<10).join('|'), tens=Object.keys(TENS).join('|');
+  const MIN='(?:\\s+(וחצי|ורבע)|\\s+ו-?\\s*(\\d{2}|\\d(?=\\s+דקות))(?:\\s+דקות)?|\\s+ו('+tens+')(?:\\s+ו('+UNITS+'))?(?:\\s+דקות)?|\\s+ו(עשר|עשרה|'+UNITS+')(?:\\s+דקות)?|\\s+(\\d{2}))?(?=\\s|$|[,.])';
+  const toMin=(frac,dig,t,tu,u,d2)=> frac==='וחצי'?30 : frac==='ורבע'?15 : dig?+dig : t?TENS[t]+(tu?HEB_NUMS[tu]:0) : u?(u==='עשרה'?10:HEB_NUMS[u]) : d2?+d2 : 0;
+  s = s.replace(new RegExp('(בשעה|שעה|ב-?)\\s*('+words+'|\\d{1,2})(?![\\d:./])'+MIN,'g'), (all,pre,h,frac,dig,t,tu,u,d2)=>{
+    const H = /^\d+$/.test(h) ? +h : HEB_NUMS[h];
+    if (d2 && !/^\d+$/.test(h)) return all;
+    if (/^\d+$/.test(h) && !(frac||dig||t||u||d2)) return all; // "ב-15" לבד - מטופל בהמשך (אולי תאריך)              // "בארבע 09" - לא סביר, לא נוגעים
+    const M = toMin(frac,dig,t,tu,u,d2);
+    if (H>23 || M>59) return all;
+    return 'בשעה '+H+':'+String(M).padStart(2,'0');
   });
+  // "בשעה 409" / "בשעה 1609" (המיקרופון השמיט את הנקודתיים) - רק אחרי "בשעה"
+  s = s.replace(/(בשעה|שעה)\s*(\d{1,2})(\d{2})(?!\d)/g, (all,pre,h,m)=> (+h<=23 && +m<=59) ? 'בשעה '+(+h)+':'+m : all);
   s = s.replace(/(בשעה|שעה|ב-?)\s*(\d{1,2})\.(\d{2})(?!\d)/g, 'בשעה $2:$3');
   s = s.replace(/(\d{1,2}):(\d{2})\s+(וחצי|ורבע)/g, '$1:$2');
   // שעה בלי "בשעה" לפניה (למשל "משימת בדיקה 3:42") - גם היא שעה ולא חלק מהשם
@@ -1659,7 +1670,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-28n';
+const APP_VERSION='2026-10-28o';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
