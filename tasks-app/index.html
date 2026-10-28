@@ -528,6 +528,8 @@ function updateNotifBtn() {
 }
 
 function requestNotify() {
+  // התראות כבר פעילות → הגדרות (נודניק)
+  if (HAS_NOTIF && Notification.permission === 'granted' && curUser) { notifSettings(); return; }
   if (!HAS_NOTIF) {
     showToast(/iPhone|iPad/.test(navigator.userAgent) ? 'באייפון: שתף ← "הוסף למסך הבית", ופתח את האפליקציה משם' : 'הדפדפן לא תומך בהתראות');
     return;
@@ -543,6 +545,25 @@ function requestNotify() {
   });
 }
 updateNotifBtn();
+
+// ── הגדרות התראות + נודניק (תזכורת חוזרת עד שמסמנים בוצע) ──
+async function nagApi(body){ const t=await curUser.getIdToken(); const r=await fetch(STAFF_API+'/tasks/nag/settings',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(body||{})}); return r.json(); }
+async function notifSettings(){
+  document.getElementById('edit-modal')?.remove();
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
+  ov.innerHTML='<div class="modal"><h3>🔔 התראות</h3>'
+    +'<div style="font-size:13px;color:#5B5B76;margin-bottom:12px">תזכורת בערב שלפני ב-20:00, ובשעת המשימה.</div>'
+    +'<div style="font-weight:700;margin-bottom:4px">🔁 נודניק</div>'
+    +'<div style="font-size:13px;color:#5B5B76;margin-bottom:8px">משימה עם שעה שלא סימנת "בוצע" – תצפצף שוב ושוב עד שתסמן. בהתראה יש כפתורים "✅ בוצע" ו"⏰ עוד 30 דק׳". בלילה (22:00–07:00) הנודניק שקט.</div>'
+    +'<select id="n-mode"><option value="all">לכל המשימות עם שעה</option><option value="urgent">רק למשימות דחופות 🔴</option><option value="off">כבוי</option></select>'
+    +'<select id="n-every"><option value="5">כל 5 דקות</option><option value="10">כל 10 דקות</option><option value="15">כל 15 דקות</option><option value="30">כל 30 דקות</option></select>'
+    +'<div class="modal-btns"><button class="btn-cancel" id="n-test">שלח התראת בדיקה</button><button class="btn-save" id="n-save">שמור</button></div></div>';
+  document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  const j=await nagApi().catch(()=>null);
+  if(j&&j.ok){ document.getElementById('n-mode').value=j.mode; document.getElementById('n-every').value=String(j.every); }
+  document.getElementById('n-save').onclick=async()=>{ const r=await nagApi({mode:document.getElementById('n-mode').value,every:Number(document.getElementById('n-every').value)}).catch(()=>null); showToast(r&&r.ok?(r.mode==='off'?'הנודניק כבוי':'✓ הנודניק פעיל – כל '+r.every+' דקות'):'השמירה נכשלה'); if(r&&r.ok) ov.remove(); };
+  document.getElementById('n-test').onclick=async()=>{ const ok=await registerPush(false); const reg=await navigator.serviceWorker.getRegistration('/tasks/'); if(reg) reg.showNotification('תכל׳ס',{body:'בדיקה – ההתראות עובדות ✓',icon:'/tasks/icon-v3-192.png',dir:'rtl'}); if(!ok) showToast('ההתראות לא נרשמו'); };
+}
 
 // ── Hebrew parser ──
 const HEB_NUMS = {'אחת עשרה':11,'אחד עשרה':11,'שתים עשרה':12,'שתיים עשרה':12,'אחת':1,'אחד':1,'שתיים':2,'שתים':2,'שלוש':3,'ארבע':4,'חמש':5,'שש':6,'שבע':7,'שמונה':8,'תשע':9,'עשר':10};
@@ -652,7 +673,7 @@ const HELP_SECTIONS=[
   • <b>קטגוריה</b> – לחיצה על בית / עבודה / מכירות. "➕ קטגוריה חדשה" ברשימת הקטגוריות<br>
   • <b>העברה לרשימה אחרת</b> – ⇄ ליד המשימה<br>
   • <b>משימה חוזרת</b> – כשמסמנים שבוצעה, הפעם הבאה נוצרת לבד</div>`],
- ['🔔 תזכורות',`<div>לוחצים <b>🔔</b> למעלה ומאשרים. כל משימה עם תאריך מקבלת תזכורת <b>בערב שלפני ב-20:00</b>, ואם יש שעה – גם <b>בשעת המשימה</b>, גם כשהאפליקציה סגורה.<br>באייפון התראות עובדות רק אחרי התקנה במסך הבית.</div>`],
+ ['🔔 תזכורות',`<div>לוחצים <b>🔔</b> למעלה ומאשרים. כל משימה עם תאריך מקבלת תזכורת <b>בערב שלפני ב-20:00</b>, ואם יש שעה – גם <b>בשעת המשימה</b>, גם כשהאפליקציה סגורה.<br><b>🔁 נודניק:</b> משימה עם שעה שלא סימנת "בוצע" מצפצפת שוב כל 5 דקות עד שמסמנים. בהתראה עצמה יש כפתורים <b>✅ בוצע</b> ו<b>⏰ עוד 30 דק׳</b>. מגדירים בלחיצה על 🔔 (כל המשימות / רק דחופות / כבוי, וכל כמה דקות). בלילה (22:00–07:00) שקט.<br>באייפון התראות עובדות רק אחרי התקנה במסך הבית.</div>`],
  ['📅 יומן Google וסמסונג',`<div>לוחצים <b>📅</b> ובוחרים חשבון Google (אם מופיע "לא מאומת": מתקדם ← המשך). מעכשיו כל משימה עם תאריך נכנסת ל-Google Tasks.<br>
   <b>יומן של סמסונג:</b> 📅 ← מסמנים "גם כאירוע ביומן" ← מאשרים. המשימות יופיעו ביומן עם צלצול בשעת המשימה.</div>`],
  ['👨‍👩‍👧 רשימות משותפות',`<div>רשימה משותפת מתעדכנת אצל כולם בזמן אמת. "שלי" נשארת פרטית.<br>
@@ -1615,7 +1636,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-28i';
+const APP_VERSION='2026-10-28j';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
