@@ -153,15 +153,20 @@
 
 **שרת:** כל `git push` ל-`main` ב-`ranizik/beit-habira-api` עולה אוטומטית ב-Render (בערך 2 דקות). בודקים ב-Render → Events שכתוב "Deploy live".
 
-**אפליקציה (כרגע ידני):**
-1. שינוי ב-`tasks-app/index.html` (ו-`sw-push.js` לפי הצורך) + העלאת `APP_VERSION`.
-2. בדיקה מקומית (סעיף 6).
-3. `git commit` + `git push` ל-`ranizik/beit-habira-push`.
-4. העלאה ל-Hostinger → File Manager (File Browser) → `public_html/tasks/`:
-   - **לגבות קודם:** `index-before-<מה>-<תאריך>.html`.
-   - להעלות, ולוודא שהקובץ באתר זהה לקובץ בגיטהאב.
-   - (אוטומטית מהדפדפן: `POST <base>/api/resources/public_html/tasks/<file>?override=true` עם כותרת `X-Auth` = ה-jwt מ-localStorage. קריאה: `GET <base>/api/raw/...`.)
-5. בדיקה באתר: `APP_VERSION` החדש מופיע ב-`https://beit-habira.com/tasks/`.
+**אפליקציה – אוטומטי (GitHub Actions, `.github/workflows/deploy-tasks.yml`):**
+1. משנים קבצים ב-`tasks-app/` + מעלים `APP_VERSION` + `git push` ל-`main`.
+2. ה-workflow מריץ אוטומטית:
+   - **בדיקות:** `node --test tests/tasks-app.test.js`. אם נכשלות – לא מעלים.
+   - **בדיקת גרסה:** אם `index.html` השתנה בלי ש-`APP_VERSION` עלה – נכשל.
+   - **העלאה ב-FTP:** משתמש `u589313841.tasksci`, שמוגבל לתיקייה `public_html/tasks` בלבד. הסיסמה נשמרת ב-Secret `FTP_PASSWORD`.
+   - **בדיקה שהאתר מגיש את הגרסה החדשה.**
+3. מצב ההרצה: GitHub → Actions. אפשר גם להריץ ידנית: Run workflow.
+4. ההעלאה מעדכנת רק קבצים שהשתנו (קובץ מעקב `.ftp-deploy-sync-state.json`, חסום לגישה מהאינטרנט ב-`.htaccess`), ולא מוחקת קבצים אחרים בתיקייה, כמו הגיבויים.
+
+**גיבוי ידני (אם ה-CI לא זמין):** Hostinger → File Manager → `public_html/tasks/`.
+- **לגבות קודם:** `index-before-<מה>-<תאריך>.html`.
+- להעלות, ולוודא שהקובץ באתר זהה לקובץ בגיטהאב.
+- (מהדפדפן: `POST <base>/api/resources/public_html/tasks/<file>?override=true` עם כותרת `X-Auth` = ה-jwt מ-localStorage.)
 
 **חשוב:**
 - **סדר העלאה:** אם שינוי באפליקציה תלוי בנתיב חדש בשרת, מעלים קודם את השרת ומחכים ל-"Deploy live".
@@ -174,7 +179,9 @@
 
 ## 6. בדיקות
 
-עד שיהיו בדיקות אוטומטיות:
+**אוטומטיות:** `tests/tasks-app.test.js` – רצות ב-CI לפני כל העלאה, ומקומית עם `node --test tests/tasks-app.test.js`. **כל באג שמתקנים – להוסיף לו בדיקה.**
+
+בדיקות ידניות נוספות:
 - **תחביר:** `node -e` שמריץ `new Function()` על כל `<script>` בקובץ.
 - **פענוח עברית:** לחלץ את `HEB_NUMS` + `normalizeHebrewTime` + `parseHebrewDateTime` ולהריץ על משפטים לדוגמה. יש דוגמאות בהיסטוריית ה-commits.
 - **ממשק:** Playwright עם Firebase מדומה (Proxy שמחזיר את עצמו), הזרקת `tasks` ו-`curUser`, קריאה ל-`render()` וצילום מסך ב-390×844.
