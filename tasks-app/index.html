@@ -1064,6 +1064,19 @@ async function renderAccessAdmin(){
   };
 }
 
+// כניסה לקישור - נספרת פעם ביום לכל מכשיר, גם בלי התחברות (כדי לדעת כמה פתחו את הקישור)
+function trackVisit(){
+  try{
+    const day=new Date().toLocaleDateString('en-CA');
+    let vid=localStorage.getItem('tk_vid'); if(!vid){ vid=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>(b%36).toString(36)).join(''); localStorage.setItem('tk_vid',vid); }
+    if(localStorage.getItem('tk_visit_day')===day) return;
+    const qs=new URLSearchParams(location.search), ref=document.referrer?new URL(document.referrer).hostname:'';
+    const src=qs.get('src')||qs.get('utm_source')||(/whatsapp|wa\.me/i.test(ref)?'whatsapp':/facebook|fb\./i.test(ref)?'facebook':ref)||'';
+    fetch(STAFF_API+'/tasks/stats/visit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vid,standalone:isStandalone(),platform:statsPlatform(),src})})
+      .then(r=>{ if(r.ok) localStorage.setItem('tk_visit_day',day); }).catch(()=>{});
+  }catch(e){}
+}
+setTimeout(trackVisit,800);
 function statsPing(){ statsApi('ping',{standalone:isStandalone(), platform:statsPlatform()}); }
 window.addEventListener('appinstalled', ()=>statsApi('event',{type:'install'}));
 
@@ -1088,14 +1101,18 @@ async function showStats(){
   const U=j.users, I=j.installs, S=j.usage;
   const plat={iphone:'אייפון',android:'אנדרואיד',desktop:'מחשב'};
   const since=j.trackingSince?j.trackingSince.split('-').reverse().join('/'):'היום';
+  const V=j.visits||{total:0,today:0,d7:0,d30:0,todayNew:0,fromHome:0}, td=j.days[j.days.length-1]||{};
   body.innerHTML=
-    '<div style="font-weight:600;margin-bottom:6px">משתמשים (כניסה עם Google, בלי כניסת המנהל)</div>'
+    '<div style="font-weight:600;margin-bottom:6px">🔗 כניסות לקישור (גם בלי הרשמה)</div>'
+    +grid([card('היום',V.today,'פעם ראשונה: '+V.todayNew), card('7 ימים',V.d7), card('30 ימים',V.d30), card('סה"כ מכשירים',V.total)])
+    +'<div style="background:#F4F3FB;border-radius:10px;padding:8px 10px;margin-bottom:12px;font-size:13px"><b>היום:</b> פתחו '+(td.visitors||0)+' → נרשמו '+(td.newUsers||0)+' → התקינו '+(td.installs||0)+'</div>'
+    +'<div style="font-weight:600;margin-bottom:6px">משתמשים (כניסה עם Google, בלי כניסת המנהל)</div>'
     +grid([card('רשומים',U.total), card('חדשים',U.new7,'ב-7 ימים · '+U.new30+' ב-30'), card('פעילים היום',U.active1), card('פעילים',U.active7,'ב-7 ימים · '+U.active30+' ב-30')])
     +'<div style="font-weight:600;margin-bottom:6px">התקנות ושימוש</div>'
     +grid([card('התקינו למסך הבית',I.installed,'פתחו משם ב-7 ימים: '+I.openFromHome7), card('התראות מופעלות',S.pushUsers), card('יומן מחובר',S.gcalUsers), card('רשימות משותפות',S.sharedLists),
       card('משימות',S.tasksTotal,S.tasksOpen+' פתוחות · '+S.tasks30+' ב-30 יום'), card('בקול / בהקלדה',S.voice+' / '+S.typed,'מאז '+since)])
     +'<div style="font-size:12px;color:#666;margin-bottom:6px">מכשירים: '+(Object.entries(I.platforms).map(([k,v])=>(plat[k]||k)+' '+v).join(' · ')||'—')+'</div>'
-    +chart('משתמשים פעילים ביום','active','#1a73e8')+chart('משתמשים חדשים','newUsers','#217346')+chart('משימות שנוצרו','tasks','#E53935')
+    +chart('כניסות לקישור ביום','visitors','#FF5A5F')+chart('משתמשים פעילים ביום','active','#1a73e8')+chart('משתמשים חדשים','newUsers','#217346')+chart('משימות שנוצרו','tasks','#E53935')
     +'<div style="font-size:11px;color:#999;margin-top:10px">משתמשים חדשים ומשימות – כולל נתונים מלפני המדידה. פעילים, התקנות וקול/הקלדה – נאספים מ-'+since+'.</div>';
 }
 
@@ -1541,7 +1558,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-28g';
+const APP_VERSION='2026-10-28h';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
