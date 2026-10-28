@@ -725,7 +725,10 @@ let curUser=null, curList=null, myLists={}, listsRef=null, listMetaRefs={};
 function listTasksRef(id){ return id ? db.ref('todo/shared/'+id+'/tasks') : refForUser(curUser); }
 function subscribeTasks(){
   let firstLoad=true;
-  tasksRef.on('value',snap=>{tasks=snap.val()||{};render(); if(firstLoad){ firstLoad=false; if(!curList && isGcalConnected()) syncMissingToGcal(); } }, ()=>{
+  tasksRef.on('value',snap=>{tasks=snap.val()||{};
+    // המזהה של כל משימה = המפתח שלה ב-Firebase (משימות ישנות/שהועברו שבהן id שונה או חסר - אחרת אי אפשר למחוק/לערוך אותן)
+    Object.keys(tasks).forEach(k=>{ const t=tasks[k]; if(t&&typeof t==='object'){ if(t.id!==k) t.id=k; } else delete tasks[k]; });
+    render(); if(firstLoad){ firstLoad=false; if(!curList && isGcalConnected()) syncMissingToGcal(); } }, ()=>{
     if(curList){ showToast('אין גישה לרשימה הזו'); switchList(null); return; }
     tasksStarted=false; showToast('אין הרשאה - התחבר מחדש'); showTasksLogin();
   });
@@ -1279,7 +1282,7 @@ function createNextRepeat(t){
 function del(id){ deleteWithUndo([id]); }
 let undoTimer=null, undoData=null;
 function deleteWithUndo(ids){
-  ids=ids.filter(id=>tasks[id]); if(!ids.length) return;
+  ids=ids.filter(id=>tasks[id]); if(!ids.length){ showToast('המשימה לא נמצאה – רענן את האפליקציה'); return; }
   finalizeUndo();
   const removed={}; ids.forEach(id=>{ removed[id]={...tasks[id]}; });
   const upd={}; ids.forEach(id=>{ upd[id]=null; });
@@ -1292,7 +1295,7 @@ function deleteWithUndo(ids){
     undoData={ref, removed};
     showUndo(ids.length===1?'המשימה נמחקה':ids.length+' משימות נמחקו');
     undoTimer=setTimeout(finalizeUndo, 7000);
-  }).catch(e=>{ showToast('המחיקה נכשלה'); console.error(e); });
+  }).catch(e=>{ showToast('המחיקה נכשלה: '+((e&&e.message)||'')); console.error(e); });
 }
 // אחרי 7 שניות בלי "בטל" - נמחקת סופית גם מ-Google Tasks
 function finalizeUndo(){ clearTimeout(undoTimer); undoTimer=null; if(undoData){ Object.values(undoData.removed).forEach(t=>syncGtask(t,true)); undoData=null; } hideUndo(); }
@@ -1475,7 +1478,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-28d';
+const APP_VERSION='2026-10-28e';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
