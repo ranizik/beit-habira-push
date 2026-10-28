@@ -774,6 +774,43 @@ function parseWho(name){
   }
   return {name,who:null};
 }
+
+// ── פרטי רשימה משותפת: משתתפים, מי פעיל, היסטוריית הצטרפות/יציאה, צירוף ישיר בלי קישור ──
+function agoTxt(ms){ if(!ms) return 'עוד לא נכנס/ה'; const m=Math.round((Date.now()-ms)/60000); if(m<5) return 'פעיל/ה עכשיו'; if(m<60) return 'לפני '+m+' דק׳'; const h=Math.round(m/60); if(h<24) return 'לפני '+h+' שע׳'; const d=Math.round(h/24); return d===1?'אתמול':'לפני '+d+' ימים'; }
+const fmtDT=ms=>ms?new Date(ms).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})+' '+new Date(ms).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}):'';
+async function listInfo(focusAdd){
+  if(!curList) return;
+  document.getElementById('edit-modal')?.remove();
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
+  ov.innerHTML='<div class="modal" style="max-width:520px;max-height:90vh;overflow:auto"><h3 id="li-title">👥 משתתפים</h3><div id="li-body" style="font-size:14px">טוען...</div><div class="modal-btns"><button class="btn-cancel" onclick="shareList()"><i class="ti ti-share"></i> קישור הזמנה</button><button class="btn-save" onclick="document.getElementById(\'edit-modal\').remove()">סגור</button></div></div>';
+  document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  const [j,c]=await Promise.all([listsApi('info',{listId:curList}).catch(()=>null), listsApi('contacts',{}).catch(()=>null)]);
+  const body=document.getElementById('li-body'); if(!body) return;
+  if(!j||!j.ok){ body.textContent='לא ניתן לטעון: '+((j&&j.error)||'שגיאה'); return; }
+  document.getElementById('li-title').textContent='👥 '+j.name+' – '+j.count+' משתתפים';
+  const dot=ms=>{ const h=ms?(Date.now()-ms)/36e5:1e9; return h<24?'#10B981':h<24*7?'#F59E0B':'#C4C3D6'; };
+  const rows=j.members.map(m=>'<div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #EEEDF7">'
+    +'<span style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:'+dot(m.lastSeen)+'"></span>'
+    +'<div style="flex:1;min-width:0"><div style="font-weight:700">'+escA(m.name)+(m.me?' (אני)':'')+(m.owner?' <span style="font-size:11px;background:#ECEBFA;color:#3730A3;border-radius:6px;padding:1px 6px;font-weight:600">יצר/ה את הרשימה</span>':'')+'</div>'
+    +'<div style="font-size:12px;color:#5B5B76">'+agoTxt(m.lastSeen)+' · הצטרף/ה '+(m.at?new Date(m.at).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'}):'')+(m.via==='added'&&m.by?' (צורף/ה ע״י '+escA(m.by)+')':m.via==='link'?' (בקישור)':'')+'</div>'
+    +'<div style="font-size:12px;color:#5B5B76">הוסיף/ה '+m.added+' משימות'+(m.assignedOpen?' · '+m.assignedOpen+' פתוחות באחריותו/ה':'')+'</div></div></div>').join('');
+  const inList=new Set(j.members.map(m=>m.uid));
+  const cands=((c&&c.contacts)||[]).filter(x=>!inList.has(x.uid));
+  const add='<div id="li-add" style="margin-top:14px;background:#F4F3FB;border-radius:14px;padding:12px">'
+    +'<div style="font-weight:700;margin-bottom:4px">➕ צירוף ישיר – בלי קישור</div>'
+    +'<div style="font-size:12px;color:#5B5B76;margin-bottom:8px">מי שכבר נמצא איתך ברשימה אחרת מצטרף מיד ומקבל התראה. הוא יכול לצאת מהרשימה בכל רגע.</div>'
+    +(cands.length?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+cands.map(x=>'<button class="cat-chip" data-add="'+escA(x.uid)+'">+ '+escA(x.name)+'</button>').join('')+'</div>':'')
+    +'<div style="display:flex;gap:6px"><input id="li-email" type="email" dir="ltr" placeholder="או מייל של משתמש תכל׳ס" style="flex:1;margin:0"><button class="btn-save" id="li-email-go" style="padding:8px 14px">צרף</button></div></div>';
+  const icon={create:'🆕',join:'✅',add:'➕',leave:'🚪'};
+  const txt=e=>e.type==='create'?escA(e.name)+' יצר/ה את הרשימה':e.type==='join'?escA(e.name)+' הצטרף/ה בקישור':e.type==='add'?escA(e.byName||'')+' צירף/ה את '+escA(e.name):escA(e.name)+' יצא/ה מהרשימה';
+  const log=j.log.length?'<div style="margin-top:16px;font-weight:700">📜 היסטוריה</div>'+j.log.map(e=>'<div style="font-size:13px;padding:6px 0;border-bottom:1px solid #EEEDF7;display:flex;gap:8px"><span>'+(icon[e.type]||'•')+'</span><span style="flex:1">'+txt(e)+'</span><span style="color:#8A89A3;font-size:12px;white-space:nowrap">'+fmtDT(e.at)+'</span></div>').join(''):'';
+  body.innerHTML=rows+add+log;
+  const doAdd=async(payload,btn)=>{ if(btn) btn.disabled=true; const r=await listsApi('add',{listId:curList,...payload}).catch(()=>null);
+    if(r&&r.ok){ showToast(r.already?r.name+' כבר ברשימה':'✓ '+r.name+' צורף/ה לרשימה'); listInfo(); } else { showToast((r&&r.error)||'הצירוף נכשל'); if(btn) btn.disabled=false; } };
+  body.querySelectorAll('button[data-add]').forEach(b=>b.onclick=()=>doAdd({uid:b.getAttribute('data-add')},b));
+  document.getElementById('li-email-go').onclick=e=>{ const v=document.getElementById('li-email').value.trim(); if(!/^\S+@\S+\.\S+$/.test(v)){ showToast('כתוב מייל תקין'); return; } doAdd({email:v},e.target); };
+  if(focusAdd) document.getElementById('li-add').scrollIntoView({block:'center'});
+}
 function renderLists(){
   const bar=document.getElementById('lists-bar'); if(!bar) return;
   if(!curUser){ bar.innerHTML=''; document.getElementById('list-members').style.display='none'; return; }
@@ -786,8 +823,9 @@ function renderLists(){
   bar.innerHTML=h;
   const mb=document.getElementById('list-members'), l=curList&&myLists[curList];
   if(l){
-    mb.innerHTML='<span class="list-members-names"></span><div class="list-tools"><button class="list-tool" onclick="shareList()"><i class="ti ti-share"></i> הזמן חברים</button><button class="list-tool leave" onclick="leaveList()">צא מהרשימה</button></div>';
-    mb.querySelector('.list-members-names').textContent=l.members?'משותף עם: '+Object.values(l.members).map(m=>m&&m.name).filter(Boolean).join(', '):'';
+    const cnt=l.members?Object.values(l.members).filter(Boolean).length:0;
+    mb.innerHTML='<button class="list-tool" onclick="listInfo()" style="background:#ECEBFA"><i class="ti ti-users"></i> '+cnt+' משתתפים · פרטים</button><span class="list-members-names" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><div class="list-tools"><button class="list-tool" onclick="listInfo(true)"><i class="ti ti-user-plus"></i> צרף</button><button class="list-tool leave" onclick="leaveList()">צא</button></div>';
+    mb.querySelector('.list-members-names').textContent=l.members?Object.values(l.members).map(m=>m&&m.name).filter(Boolean).join(', '):'';
     mb.style.display='flex';
   }
   else mb.style.display='none';
@@ -1183,6 +1221,7 @@ function addTask(auto){
   const id='task_'+Date.now();
   const task={id,name,pri:document.getElementById('f-pri').value,date,time,done:false,created:Date.now()};
   const fc=document.getElementById('f-cat'); if(fc&&fc.value&&fc.value!=='__new') task.cat=fc.value; else if(autoCat) task.cat=autoCat;
+  if(curList && curUser) task.byUid=curUser.uid;
   if(curList && curUser) task.by=(myLists[curList]&&myLists[curList].members&&myLists[curList].members[curUser.uid]&&myLists[curList].members[curUser.uid].name)||'';
   if(curList){
     const pw=parseWho(task.name); if(pw.who&&pw.name){ task.name=pw.name; task.who=pw.who; }
@@ -1432,7 +1471,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-28b';
+const APP_VERSION='2026-10-28c';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
