@@ -213,6 +213,7 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
     <select id="f-cat" onchange="onCatSelect(this)"></select>
     <input type="date" id="f-date"/>
     <input type="time" id="f-time"/>
+    <select id="f-who" style="display:none;grid-column:1/-1"></select>
   </div>
 </div>
 
@@ -253,7 +254,7 @@ if (localStorage.getItem('gcal_scope') !== GCAL_SCOPE) { localStorage.removeItem
 let gcalToken = localStorage.getItem('gcal_token') || null;
 let gcalExpiry = parseInt(localStorage.getItem('gcal_expiry') || '0');
 
-let gcalSrv = {configured:false, connected:false, email:''};
+let gcalSrv = {configured:false, connected:false, email:'', cal:false, events:false};
 function isGcalConnected() { return gcalSrv.configured ? gcalSrv.connected : (gcalToken && Date.now() < gcalExpiry); }
 async function gcalServerApi(path, body){
   const idToken = await curUser.getIdToken();
@@ -263,13 +264,13 @@ async function gcalServerApi(path, body){
 async function gcalServerStatus(){
   try {
     const j = await gcalServerApi('status');
-    if (j && j.ok) { gcalSrv = {configured:!!j.configured, connected:!!j.connected, email:j.email||''}; updateGcalStatus(); if (gcalSrv.connected) syncMissingToGcal(); }
+    if (j && j.ok) { gcalSrv = {configured:!!j.configured, connected:!!j.connected, email:j.email||'', cal:!!j.cal, events:!!j.events}; updateGcalStatus(); if (gcalSrv.connected) syncMissingToGcal(); }
   } catch(e) {}
 }
 // פותח את חלון ההתחברות של גוגל (חייב להיפתח מיד בלחיצה, אחרת הדפדפן חוסם)
-function gcalServerConnect(cb, win){
+function gcalServerConnect(cb, win, cal){
   const w = win || window.open('', 'gcal', 'width=520,height=680');
-  gcalServerApi('start').then(j => {
+  gcalServerApi('start', cal ? {cal:true} : {}).then(j => {
     if (!j || !j.url) { if (w) w.close(); showToast((j && j.error) || 'החיבור נכשל'); return; }
     if (!w) { location.href = j.url; return; }
     w.location.href = j.url;
@@ -306,9 +307,7 @@ function ensureGcalToken(callback) {
 function gcalButton() {
   if (gcalSrv.configured) {
     if (!gcalSrv.connected) { gcalServerConnect(() => { showToast('היומן מחובר לצמיתות ✓'); syncMissingToGcal(); }); return; }
-    if (!confirm('היומן מחובר' + (gcalSrv.email ? ' (' + gcalSrv.email + ')' : '') + '.\nלהחליף לחשבון Google אחר?')) return;
-    const w = window.open('', 'gcal', 'width=520,height=680');
-    gcalServerApi('disconnect').catch(()=>{}).finally(() => { gcalSrv.connected = false; updateGcalStatus(); gcalServerConnect(() => { showToast('היומן הוחלף ✓'); syncMissingToGcal(); }, w); });
+    gcalSettings();
     return;
   }
   if (!isGcalConnected()) { ensureGcalToken(()=>{ showToast('מחובר ליומן!'); syncMissingToGcal(); }); return; }
@@ -377,6 +376,51 @@ function gtaskError(r, data){
 }
 
 // משימות שלא נכנסו ליומן (למשל כשהחיבור פג) נכנסות אוטומטית - רק פתוחות, מאתמול והלאה
+// הגדרות היומן (כשמחובר): גם כאירוע ביומן (בשביל היומן של סמסונג) / החלפת חשבון
+function gcalSettings(){
+  document.getElementById('edit-modal')?.remove();
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
+  ov.innerHTML='<div class="modal"><h3>📅 יומן Google</h3>'
+    +'<div style="font-size:13px;color:#5B5B76;margin-bottom:14px">מחובר'+(gcalSrv.email?' ל-<b dir="ltr">'+escA(gcalSrv.email)+'</b>':'')+'. כל משימה עם תאריך נכנסת ל-Google Tasks (משימה עם וי).</div>'
+    +'<label style="display:flex;gap:10px;align-items:flex-start;font-size:15px;cursor:pointer;background:#F4F3FB;border-radius:14px;padding:12px"><input id="g-ev" type="checkbox" style="width:22px;height:22px;margin:2px 0 0;flex-shrink:0" '+(gcalSrv.events?'checked':'')+'><span><b>גם כאירוע ביומן</b><br><span style="font-size:13px;color:#5B5B76">כדי שהמשימות יופיעו ביומן של סמסונג (ובכל יומן שמסונכרן עם Google), עם צלצול בשעת המשימה</span></span></label>'
+    +'<div class="modal-btns" style="margin-top:16px;justify-content:space-between"><button class="btn-cancel" id="g-switch">החלף חשבון</button><button class="btn-save" id="g-close">סגור</button></div></div>';
+  document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  document.getElementById('g-close').onclick=()=>ov.remove();
+  document.getElementById('g-switch').onclick=()=>{
+    const w = window.open('', 'gcal', 'width=520,height=680'); ov.remove();
+    gcalServerApi('disconnect').catch(()=>{}).finally(() => { gcalSrv.connected = false; updateGcalStatus(); gcalServerConnect(() => { showToast('היומן הוחלף ✓'); syncMissingToGcal(); }, w); });
+  };
+  document.getElementById('g-ev').onchange=e=>setGcalEvents(e.target.checked, e.target);
+}
+function gcalEventTasks(){
+  const since=gcalSinceDate();
+  return Object.values(tasks).filter(t=>t&&t.gtaskId&&t.date&&!t.done&&t.date>=since&&(!t.gOwner||t.gOwner===curUser.uid))
+    .map(t=>({gtaskId:t.gtaskId,name:t.name,date:t.date,time:t.time||'',done:!!t.done,notes:t.notes||'',pri:t.pri||''}));
+}
+async function setGcalEvents(on, box){
+  if(on && !gcalSrv.cal){
+    // צריך הרשאה נוספת מגוגל (יומן) - החלון נפתח מיד בלחיצה (אחרת הדפדפן חוסם)
+    const w = window.open('', 'gcal', 'width=520,height=680');
+    showToast('אשר בגוגל גם את ההרשאה ליומן');
+    if(box){ box.checked=false; }
+    gcalServerConnect(async()=>{ const k=await gcalServerApi('events',{on:true, tasks:gcalEventTasks()}).catch(()=>null); afterGcalEvents(k,true); }, w, true);
+    return;
+  }
+  if(box) box.disabled=true;
+  let j=await gcalServerApi('events',{on, tasks:on?gcalEventTasks():[]}).catch(()=>null);
+  if(j&&j.needConsent){
+    // צריך הרשאה נוספת מגוגל (יומן) - חלון התחברות אחד
+    showToast('אשר בגוגל גם את ההרשאה ליומן');
+    gcalServerConnect(async()=>{ const k=await gcalServerApi('events',{on:true, tasks:gcalEventTasks()}).catch(()=>null); afterGcalEvents(k,true); }, null, true);
+    if(box){ box.checked=false; box.disabled=false; }
+    return;
+  }
+  afterGcalEvents(j,on); if(box) box.disabled=false;
+}
+function afterGcalEvents(j,on){
+  if(j&&j.ok){ gcalSrv.events=!!j.events; showToast(on?'✓ המשימות יופיעו גם ביומן של סמסונג'+(j.count?' ('+j.count+')':''):'האירועים הוסרו מהיומן'); const b=document.getElementById('g-ev'); if(b) b.checked=gcalSrv.events; }
+  else showToast('לא הצלחתי: '+((j&&j.error)||'שגיאה'));
+}
 let gcalSyncing=false;
 function gcalSinceDate(){ const d=new Date(); d.setDate(d.getDate()-1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 async function syncMissingToGcal(){
@@ -392,7 +436,7 @@ async function syncMissingToGcal(){
 async function addToGcal(task) {
   if (!task.date) return;
   if (gcalSrv.configured) {
-    const j = await gcalServerApi('task', {op:'create', task:{name:task.name, date:task.date, time:task.time||'', done:!!task.done, notes:task.notes||''}}).catch(e => ({ok:false, error:'אין חיבור לשרת'}));
+    const j = await gcalServerApi('task', {op:'create', task:{name:task.name, date:task.date, time:task.time||'', done:!!task.done, notes:task.notes||'', pri:task.pri||''}}).catch(e => ({ok:false, error:'אין חיבור לשרת'}));
     if (j.ok && j.id) { tasksRef.child(task.id).update(curList ? {gtaskId:j.id, gOwner:curUser.uid} : {gtaskId:j.id}); return true; }
     if (j.error === 'not_connected') { gcalSrv.connected = false; updateGcalStatus(); return 'צריך לחבר את היומן - לחץ 📅'; }
     return j.error || 'שגיאה';
@@ -412,7 +456,7 @@ async function syncGtask(task, remove){
   if (!task || !task.gtaskId || !isGcalConnected()) return;
   if (task.gOwner && curUser && task.gOwner !== curUser.uid) return; // משימה משותפת שנכנסה ליומן של מישהו אחר
   if (gcalSrv.configured) {
-    gcalServerApi('task', remove ? {op:'delete', gtaskId:task.gtaskId} : {op:'update', gtaskId:task.gtaskId, task:{name:task.name, date:task.date, time:task.time||'', done:!!task.done, notes:task.notes||''}}).catch(()=>{});
+    gcalServerApi('task', remove ? {op:'delete', gtaskId:task.gtaskId} : {op:'update', gtaskId:task.gtaskId, task:{name:task.name, date:task.date, time:task.time||'', done:!!task.done, notes:task.notes||'', pri:task.pri||''}}).catch(()=>{});
     return;
   }
   try {
@@ -689,7 +733,7 @@ function subscribeTasks(){
 function switchList(id){
   if(id && !myLists[id]) id=null;
   if(tasksStarted) tasksRef.off();
-  curList=id||null; tasks={}; render();
+  curList=id||null; whoFilter=''; tasks={}; render();
   try{ localStorage.setItem('tasks_cur_list', curList||''); }catch(e){}
   tasksRef=listTasksRef(curList); tasksStarted=true; subscribeTasks(); renderLists();
 }
@@ -709,6 +753,27 @@ function watchLists(){
     renderLists();
   }, ()=>{});
 }
+// ── באחריות מי (רק ברשימה משותפת) ──
+let whoFilter=''; // '' = הכל, 'me' = רק מה שבאחריותי
+function listMembers(){ const l=curList&&myLists[curList]; return l&&l.members?Object.entries(l.members).filter(([u,m])=>m).map(([uid,m])=>({uid,name:String(m.name||'חבר/ה')})):[]; }
+function whoOptions(sel){ return '<option value="">👤 באחריות: לא משויך</option>'+listMembers().map(m=>'<option value="'+m.uid+'"'+(m.uid===sel?' selected':'')+'>👤 '+escA(m.name)+(curUser&&m.uid===curUser.uid?' (אני)':'')+'</option>').join(''); }
+function renderWhoSelect(){
+  const s=document.getElementById('f-who'); if(!s) return;
+  if(!curList){ s.style.display='none'; s.value=''; return; }
+  const v=s.value; s.innerHTML=whoOptions(v); s.value=v&&listMembers().some(m=>m.uid===v)?v:''; s.style.display='';
+}
+// "באחריות נוגה" / "אחראית נוגה" בדיבור -> המשימה משויכת לנוגה
+function parseWho(name){
+  const ms=listMembers(); if(!ms.length) return {name,who:null};
+  const m=name.match(/(^|\s)(?:באחריות|אחראי|אחראית|אחראיות)\s+(?:של\s+)?(\S+(?:\s+\S+)?)/);
+  if(!m) return {name,who:null};
+  const words=m[2].split(' ');
+  for(const n of [words.join(' '),words[0]]){
+    const hit=ms.find(x=>x.name===n||x.name.split(' ')[0]===n);
+    if(hit){ const full=m[0].slice(0,m[0].length-m[2].length)+n; return {name:name.replace(full,' ').replace(/\s+/g,' ').trim(),who:{uid:hit.uid,name:hit.name}}; }
+  }
+  return {name,who:null};
+}
 function renderLists(){
   const bar=document.getElementById('lists-bar'); if(!bar) return;
   if(!curUser){ bar.innerHTML=''; document.getElementById('list-members').style.display='none'; return; }
@@ -726,6 +791,7 @@ function renderLists(){
     mb.style.display='flex';
   }
   else mb.style.display='none';
+  renderWhoSelect();
 }
 async function listsApi(path, body){
   const idToken=await curUser.getIdToken();
@@ -1118,13 +1184,18 @@ function addTask(auto){
   const task={id,name,pri:document.getElementById('f-pri').value,date,time,done:false,created:Date.now()};
   const fc=document.getElementById('f-cat'); if(fc&&fc.value&&fc.value!=='__new') task.cat=fc.value; else if(autoCat) task.cat=autoCat;
   if(curList && curUser) task.by=(myLists[curList]&&myLists[curList].members&&myLists[curList].members[curUser.uid]&&myLists[curList].members[curUser.uid].name)||'';
+  if(curList){
+    const pw=parseWho(task.name); if(pw.who&&pw.name){ task.name=pw.name; task.who=pw.who; }
+    const fw=document.getElementById('f-who'); const sel=fw&&fw.value&&listMembers().find(m=>m.uid===fw.value);
+    if(sel) task.who={uid:sel.uid,name:sel.name};
+  }
   if(autoPri && document.getElementById('f-pri').value!=='high') task.pri=autoPri; // בחירה ידנית של "דחוף" גוברת
   if(repParsed){ task.rep=repParsed; if(!task.date){ const d=new Date(); task.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } }
   tasksRef.child(id).set(task);
   // אחרי הקלטה בקול בלי שנאמרה דחיפות - שאלה קצרה: דחוף / לא דחוף (בלי תשובה תוך 8 שניות = לא דחוף)
   hidePriAsk();
   if(auto===true && !autoPri && task.pri!=='high') askPriority(id, task.name);
-  if(curList) listsApi('notify',{listId:curList,name:task.name}).catch(()=>{}); // התראה לשאר חברי הרשימה
+  if(curList) listsApi('notify',{listId:curList,name:task.name,assignee:(task.who&&task.who.uid)||''}).catch(()=>{}); // התראה לשאר חברי הרשימה (ולמי שבאחריותו)
   statsApi('event',{type: auto===true ? 'task_voice' : 'task_typed'});
   document.getElementById('f-name').value='';
   document.getElementById('f-date').value='';
@@ -1208,7 +1279,8 @@ function renderCats(){
   if(fc){ const v=fc.value||curCat; fc.innerHTML=catOptions(v); fc.value=allCats().includes(v)?v:''; }
   const bar=document.getElementById('cat-bar'); if(!bar) return;
   const open=c=>Object.values(tasks).filter(t=>t&&!t.done&&(c===null||(t.cat||'')===c)).length;
-  bar.innerHTML='<button class="cat-chip'+(!curCat?' active':'')+'" onclick="setCat(\'\')">הכל ('+open(null)+')</button>'
+  const mineN=curList&&curUser?Object.values(tasks).filter(t=>t&&!t.done&&t.who&&t.who.uid===curUser.uid).length:0;
+  bar.innerHTML=(curList?'<button class="cat-chip'+(whoFilter==='me'?' active':'')+'" onclick="whoFilter=whoFilter===\'me\'?\'\':\'me\';render()">👤 עליי ('+mineN+')</button>':'')+'<button class="cat-chip'+(!curCat?' active':'')+'" onclick="setCat(\'\')">הכל ('+open(null)+')</button>'
     +allCats().map(c=>'<button class="cat-chip'+(curCat===c?' active':'')+'" data-c="'+escCat(c)+'">'+escCat(c)+' ('+open(c)+')</button>').join('');
   bar.querySelectorAll('button[data-c]').forEach(b=>b.onclick=()=>setCat(b.getAttribute('data-c')));
 }
@@ -1246,7 +1318,7 @@ function render(){
   const due=t=>t.date?new Date(t.date+'T'+(t.time||'23:59')).getTime():Infinity;
   const nowMs=Date.now();
   // פתוחות קודם; בתוכן - לפי תאריך ושעה (הקרובה ראשונה, בלי תאריך בסוף); אחר כך לפי דחיפות
-  const list=Object.values(tasks).filter(t=>t&&(!curCat||(t.cat||'')===curCat)&&(!q||(String(t.name||'')+' '+String(t.notes||'')).toLowerCase().includes(q))).sort((a,b)=>{
+  const list=Object.values(tasks).filter(t=>t&&(!curCat||(t.cat||'')===curCat)&&(!(curList&&whoFilter==='me')||(t.who&&curUser&&t.who.uid===curUser.uid))&&(!q||(String(t.name||'')+' '+String(t.notes||'')).toLowerCase().includes(q))).sort((a,b)=>{
     if(a.done!==b.done)return a.done?1:-1;
     const da=due(a), db=due(b); if(da!==db) return da-db;
     const p={high:0,med:1,low:1};return (p[a.pri]??1)-(p[b.pri]??1);
@@ -1259,7 +1331,7 @@ function render(){
   const repTxt={daily:'כל יום',weekly:'כל שבוע',monthly:'כל חודש'};
   const card=t=>{
     const late=isLate(t);
-    const meta=[(!t.done&&t.pri==='high')?'<b style="color:#DC2626">דחוף</b>':'', late?'באיחור':'', [t.date&&t.date!==today?dayTxt(t):'', t.time||''].filter(Boolean).join(' '), (t.cat&&!curCat)?esc(t.cat):'', t.rep?'🔁 '+(repTxt[t.rep]||''):'', (curList&&t.by)?esc(t.by):''].filter(Boolean).join(' · ');
+    const meta=[(!t.done&&t.pri==='high')?'<b style="color:#DC2626">דחוף</b>':'', late?'באיחור':'', [t.date&&t.date!==today?dayTxt(t):'', t.time||''].filter(Boolean).join(' '), (t.cat&&!curCat)?esc(t.cat):'', t.rep?'🔁 '+(repTxt[t.rep]||''):'', (curList&&t.by)?'מאת '+esc(t.by):'', (curList&&t.who&&t.who.uid)?'<b style="color:#4338CA">👤 '+(curUser&&t.who.uid===curUser.uid?'עליי':esc(t.who.name))+'</b>':''].filter(Boolean).join(' · ');
     const sel=selectMode&&selected.has(t.id);
     return '<div class="card'+(t.done?' done':'')+(late?' late':'')+(sel?' sel':'')+'">'
       +(selectMode
@@ -1318,6 +1390,7 @@ function editTask(id) {
       <select id="e-cat" onchange="onCatSelect(this)">${catOptions(t.cat||'')}</select>
       <input type="date" id="e-date" value="${t.date||''}"/>
       <input type="time" id="e-time" value="${t.time||''}"/>
+      ${curList?'<select id="e-who">'+whoOptions((t.who&&t.who.uid)||'')+'</select>':''}
       <select id="e-rep"><option value="">🔁 לא חוזרת</option><option value="daily">🔁 כל יום</option><option value="weekly">🔁 כל שבוע</option><option value="monthly">🔁 כל חודש</option></select>
       <textarea id="e-notes" rows="4" placeholder="📝 פרטים נוספים (כתובת, טלפון, מה להביא...)" style="width:100%;padding:8px 10px;border:1px solid #b0b0b0;border-radius:4px;font-size:14px;margin-bottom:10px;font-family:inherit;resize:vertical"></textarea>
       <div class="modal-btns">
@@ -1344,6 +1417,9 @@ function saveEdit(id) {
     notes: document.getElementById('e-notes').value.trim().slice(0,2000),
     rep: document.getElementById('e-rep').value
   };
+  const ew=document.getElementById('e-who');
+  if(ew&&curList){ const m=listMembers().find(x=>x.uid===ew.value); const prevWho=tasks[id]&&tasks[id].who&&tasks[id].who.uid; upd.who=m?{uid:m.uid,name:m.name}:null;
+    if(m&&m.uid!==prevWho) listsApi('notify',{listId:curList,name:upd.name,assignee:m.uid,reassign:true}).catch(()=>{}); }
   if (upd.rep && !upd.date) { const d=new Date(); upd.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   tasksRef.child(id).update(upd);
   if (tasks[id] && tasks[id].gtaskId && upd.date) syncGtask({...tasks[id], ...upd});
@@ -1356,7 +1432,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-27za';
+const APP_VERSION='2026-10-28b';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
