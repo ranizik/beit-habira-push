@@ -89,5 +89,6 @@ test('קטגוריה ודחיפות מהמשפט', () => {
   const pri = new Function('name', 'let autoPri="";' + priBlock + ';return [name.replace(/\\s+/g," ").trim(),autoPri];');
   assert.deepEqual(pri('להזמין קולה דחוף'), ['להזמין קולה', 'high']);
   assert.deepEqual(pri('לסדר מחסן לא דחוף'), ['לסדר מחסן', 'low']);
+  assert.deepEqual(pri('לסדר מחסן בינוני'), ['לסדר מחסן', 'med']);
   assert.deepEqual(pri('לתקן את המדף הנמוך'), ['לתקן את המדף הנמוך', '']);
 });
