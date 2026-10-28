@@ -64,6 +64,17 @@ test('פענוח: תאריכים ושעות', () => {
   }
   const nov = parse('לשלם חשבון ב-15 בנובמבר');
   assert.equal(nov.cleanText, 'לשלם חשבון'); assert.equal(nov.date.getMonth(), 10); assert.equal(nov.date.getDate(), 15);
+  for (const t of ['לחדש רישיון לאוקטובר 2027', 'לחדש רישיון לאוקטובר2027', 'לחדש רישיון באוקטובר 2027']) {
+    const r = parse(t); assert.equal(r.cleanText, 'לחדש רישיון', t);
+    assert.equal(r.date.getFullYear(), 2027, t); assert.equal(r.date.getMonth(), 9, t);
+  }
+  const y = parse('לשלם ביטוח ב-15 במרץ 2027');
+  assert.equal(y.cleanText, 'לשלם ביטוח'); assert.equal(y.date.getFullYear(), 2027); assert.equal(y.date.getDate(), 15);
+  const n = parse('לשלם ביטוח 15/3/2027');
+  assert.equal(n.cleanText, 'לשלם ביטוח'); assert.equal(n.date.getFullYear(), 2027); assert.equal(n.date.getMonth(), 2);
+  const dec = parse('לסגור שנה בדצמבר');
+  assert.equal(dec.cleanText, 'לסגור שנה'); assert.equal(dec.date.getMonth(), 11);
+  assert.equal(parse('לקנות יין מאיציק').cleanText, 'לקנות יין מאיציק');
   assert.equal(parse('להשקות עציצים כל יום').rep, 'daily');
   assert.equal(parse('ישיבה כל שבוע').rep, 'weekly');
 });

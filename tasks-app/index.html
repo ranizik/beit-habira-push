@@ -628,10 +628,17 @@ function parseHebrewDateTime(text) {
     const addMonths=n=>{ const d=new Date(today); d.setMonth(d.getMonth()+n); return d; };
     const mNames=Object.keys(MON).join('|');
     let m;
-    if((m=text.match(new RegExp('(^|\\s)(?:ב-?|ה-?)?(\\d{1,2})\\s*(?:ב|ל|של\\s+)?('+mNames+')(?:\\s+(\\d{4}))?(?=\\s|$|[,.])')))){
+    if((m=text.match(new RegExp('(^|\\s)(?:ב-?|ה-?)?(\\d{1,2})\\s*(?:ב|ל|של\\s+)?('+mNames+')(?:\\s*(\\d{4}))?(?=\\s|$|[,.])')))){
       const dd=+m[2], mm=MON[m[3]]; let yy=m[4]?+m[4]:today.getFullYear();
       let d=new Date(yy,mm,dd); if(!m[4]&&d<today) d=new Date(yy+1,mm,dd);
       if(dd>=1&&dd<=31){ date=d; text=text.replace(m[0],m[1]); }
+    } else if((m=text.match(new RegExp('(^|\\s)(ב|ל|עד|של)?-?\\s*('+mNames+')(?:\\s*(\\d{4}))?(?=\\s|$|[,.])')))
+              && (m[4] || (m[2] && m[3]!=='מאי'))){
+      // חודש בלי יום: "לאוקטובר 2027", "באוקטובר", "בנובמבר 2027" ← ה-1 בחודש (או היום אם זה החודש הנוכחי)
+      const mm=MON[m[3]]; let yy=m[4]?+m[4]:today.getFullYear();
+      if(!m[4]&&mm<today.getMonth()) yy++;
+      let d=new Date(yy,mm,1); if(d<today) d=new Date(today);
+      date=d; text=text.replace(m[0],m[1]);
     } else if((m=text.match(/(^|\s)(?:ב-?)?(\d{1,2})\s+(?:לחודש|בחודש)(\s+הבא)?(?=\s|$|[,.])/))){
       const dd=+m[2]; let d=new Date(today.getFullYear(),today.getMonth()+(m[3]?1:0),dd); if(d<today) d=new Date(today.getFullYear(),today.getMonth()+1,dd);
       if(dd>=1&&dd<=31){ date=d; text=text.replace(m[0],m[1]); }
@@ -647,8 +654,8 @@ function parseHebrewDateTime(text) {
     }
   }
 
-  const dmatch = text.match(/(\d{1,2})[\/\.](\d{1,2})/);
-  if (dmatch) date=new Date(now.getFullYear(), parseInt(dmatch[2])-1, parseInt(dmatch[1]));
+  const dmatch = text.match(/(\d{1,2})[\/\.](\d{1,2})(?:[\/\.](\d{4}|\d{2}))?/);
+  if (dmatch){ let yy=dmatch[3]?+dmatch[3]:now.getFullYear(); if(yy<100) yy+=2000; date=new Date(yy, parseInt(dmatch[2])-1, parseInt(dmatch[1])); }
 
   const tmatch = text.match(/(?:בשעה|שעה|ב-?)\s*(\d{1,2})(?!\d|[\/.]\d)(?::(\d{2}))?(?:\s*(בבוקר|בצהריים|אחה"צ|אחרי הצהריים|בערב|בלילה))?/);
   if (tmatch) {
@@ -664,7 +671,7 @@ function parseHebrewDateTime(text) {
   let clean = text;
   clean = clean.replace(/(?:ביום|יום)\s+(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)/g,'');
   clean = clean.replace(/מחרתיים|מחר|היום/g,'');
-  clean = clean.replace(/(?:ב-?)?\d{1,2}[\/\.]\d{1,2}/g,''); // תאריך מספרי (ב-15/11) - לפני השעה
+  clean = clean.replace(/(?:ב-?)?\d{1,2}[\/\.]\d{1,2}(?:[\/\.](?:\d{4}|\d{2}))?/g,''); // תאריך מספרי (ב-15/11) - לפני השעה
   clean = clean.replace(/(?:בשעה|שעה|ב-?)\s*\d{1,2}(?!\d|[\/.]\d)(?::\d{2})?(?:\s*(?:בבוקר|בצהריים|אחה"צ|אחרי הצהריים|בערב|בלילה))?/g,'');
   clean = clean.replace(/\d{1,2}[\/\.]\d{1,2}/g,'');
   if (rep && !date) date = new Date(now);
@@ -1652,7 +1659,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-28m';
+const APP_VERSION='2026-10-28n';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
