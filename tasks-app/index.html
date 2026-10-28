@@ -638,7 +638,7 @@ function parseHebrewDateTime(text) {
   const dmatch = text.match(/(\d{1,2})[\/\.](\d{1,2})/);
   if (dmatch) date=new Date(now.getFullYear(), parseInt(dmatch[2])-1, parseInt(dmatch[1]));
 
-  const tmatch = text.match(/(?:בשעה|שעה|ב-?)\s*(\d{1,2})(?::(\d{2}))?(?:\s*(בבוקר|בצהריים|אחה"צ|אחרי הצהריים|בערב|בלילה))?/);
+  const tmatch = text.match(/(?:בשעה|שעה|ב-?)\s*(\d{1,2})(?!\d|[\/.]\d)(?::(\d{2}))?(?:\s*(בבוקר|בצהריים|אחה"צ|אחרי הצהריים|בערב|בלילה))?/);
   if (tmatch) {
     let h=parseInt(tmatch[1]), m=tmatch[2]?parseInt(tmatch[2]):0, p=tmatch[3]||'';
     if(p==='בצהריים'&&h<11) h+=12;
@@ -652,7 +652,8 @@ function parseHebrewDateTime(text) {
   let clean = text;
   clean = clean.replace(/(?:ביום|יום)\s+(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)/g,'');
   clean = clean.replace(/מחרתיים|מחר|היום/g,'');
-  clean = clean.replace(/(?:בשעה|שעה|ב-?)\s*\d{1,2}(?::\d{2})?(?:\s*(?:בבוקר|בצהריים|אחה"צ|אחרי הצהריים|בערב|בלילה))?/g,'');
+  clean = clean.replace(/(?:ב-?)?\d{1,2}[\/\.]\d{1,2}/g,''); // תאריך מספרי (ב-15/11) - לפני השעה
+  clean = clean.replace(/(?:בשעה|שעה|ב-?)\s*\d{1,2}(?!\d|[\/.]\d)(?::\d{2})?(?:\s*(?:בבוקר|בצהריים|אחה"צ|אחרי הצהריים|בערב|בלילה))?/g,'');
   clean = clean.replace(/\d{1,2}[\/\.]\d{1,2}/g,'');
   if (rep && !date) date = new Date(now);
   return {cleanText: clean.trim().replace(/\s+/g,' '), date, time, rep};

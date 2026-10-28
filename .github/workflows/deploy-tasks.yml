@@ -1,0 +1,74 @@
+# העלאה אוטומטית של תכל׳ס לאתר (beit-habira.com/tasks) בכל שינוי בתיקייה tasks-app/
+# 1. בדיקות אוטומטיות (tests/) – אם נכשלות, לא מעלים
+# 2. בדיקה שהגרסה (APP_VERSION) עלתה כשהאפליקציה השתנתה – אחרת טלפונים לא יתעדכנו
+# 3. העלאה ב-FTP לחשבון FTP ייעודי שהתיקייה שלו היא public_html/tasks (סיסמה ב-Secret: FTP_PASSWORD)
+# 4. בדיקה שהאתר באמת מגיש את הגרסה החדשה
+name: Deploy תכל׳ס
+
+on:
+  push:
+    branches: [main]
+    paths: ['tasks-app/**', 'tests/**', '.github/workflows/deploy-tasks.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-tasks
+  cancel-in-progress: false
+
+env:
+  FTP_SERVER: ftp.beit-habira.com
+  FTP_USERNAME: u589313841.tasksdeploy
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: בדיקות אוטומטיות
+        run: node --test tests/tasks-app.test.js
+      - name: בדיקה שהגרסה עלתה
+        run: |
+          if git rev-parse HEAD~1 >/dev/null 2>&1 && ! git diff --quiet HEAD~1 HEAD -- tasks-app/index.html; then
+            OLD=$(git show HEAD~1:tasks-app/index.html | grep -o "APP_VERSION='[^']*'" || true)
+            NEW=$(grep -o "APP_VERSION='[^']*'" tasks-app/index.html)
+            echo "old: $OLD  new: $NEW"
+            if [ "$OLD" = "$NEW" ]; then echo "::error::index.html השתנה אבל APP_VERSION לא עלה"; exit 1; fi
+          fi
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: בדיקה שהוגדרה סיסמת FTP
+        env:
+          HAS_PW: ${{ secrets.FTP_PASSWORD != '' }}
+        run: |
+          if [ "$HAS_PW" != "true" ]; then echo "::error::חסר Secret בשם FTP_PASSWORD (Settings → Secrets and variables → Actions)"; exit 1; fi
+      - name: העלאה ל-Hostinger
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ env.FTP_SERVER }}
+          username: ${{ env.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./tasks-app/
+          server-dir: ./
+          exclude: |
+            **/.git*
+            **/.git*/**
+            README.md
+      - name: בדיקה שהאתר מגיש את הגרסה החדשה
+        run: |
+          WANT=$(grep -o "APP_VERSION='[^']*'" tasks-app/index.html)
+          for i in 1 2 3 4 5 6; do
+            GOT=$(curl -fsS "https://beit-habira.com/tasks/?v=$(date +%s%N)" | grep -o "APP_VERSION='[^']*'" || true)
+            echo "want: $WANT  got: $GOT"
+            [ "$GOT" = "$WANT" ] && exit 0
+            sleep 10
+          done
+          echo "::error::האתר לא מגיש את הגרסה החדשה"; exit 1
