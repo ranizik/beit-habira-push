@@ -330,9 +330,23 @@ function ensureGcalToken(callback) {
 }
 
 // לחיצה על כפתור היומן: לא מחובר → חיבור. מחובר → אפשרות להחליף חשבון Google
+// לפני החיבור ליומן: הסבר על מסך האזהרה של גוגל ("האפליקציה לא מאומתת") – רוב מי שנתקע, נתקע שם
+function gcalConnectGuide(cal){
+  if(inAppBrowser()){ showToast('גוגל חוסם חיבור מתוך וואטסאפ/פייסבוק. פתח את הקישור ב-Chrome או Safari (⋯ ← פתח בדפדפן) ונסה שוב'); return; }
+  document.getElementById('edit-modal')?.remove();
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
+  ov.innerHTML='<div class="modal" style="line-height:1.7"><h3>📅 חיבור ליומן Google</h3>'
+    +'<div style="font-size:14px">גוגל יציג מסך <b>"Google לא אימתה את האפליקציה"</b> (Google hasn\'t verified this app). זה תקין – האפליקציה בתהליך אימות.</div>'
+    +'<div style="background:#F4F3FB;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:14px">1. בוחרים את חשבון ה-Google<br>2. לוחצים <b>"מתקדם"</b> (Advanced) – קישור קטן למטה משמאל<br>3. לוחצים <b>"המשך אל beit-habira-api.onrender.com (לא בטוח)"</b><br>4. מסמנים את ההרשאות ← <b>"המשך"</b></div>'
+    +'<div style="font-size:12px;color:#5B5B76">ההרשאה היא רק למשימות'+(cal?' וליומן':'')+' שלך, וניתן לבטל אותה בכל רגע.</div>'
+    +'<div class="modal-btns"><button class="btn-cancel" onclick="document.getElementById(\'edit-modal\').remove()">ביטול</button><button class="btn-save" id="g-go">הבנתי, להתחבר</button></div></div>';
+  document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  document.getElementById('g-go').onclick=()=>{ const w=window.open('', 'gcal', 'width=520,height=680'); ov.remove();
+    gcalServerConnect(cal ? async()=>{ const k=await gcalServerApi('events',{on:true, tasks:gcalEventTasks()}).catch(()=>null); afterGcalEvents(k,true); } : ()=>{ showToast('היומן מחובר לצמיתות ✓'); syncMissingToGcal(); }, w, !!cal); };
+}
 function gcalButton() {
   if (gcalSrv.configured) {
-    if (!gcalSrv.connected) { gcalServerConnect(() => { showToast('היומן מחובר לצמיתות ✓'); syncMissingToGcal(); }); return; }
+    if (!gcalSrv.connected) { gcalConnectGuide(); return; }
     gcalSettings();
     return;
   }
@@ -425,11 +439,9 @@ function gcalEventTasks(){
 }
 async function setGcalEvents(on, box){
   if(on && !gcalSrv.cal){
-    // צריך הרשאה נוספת מגוגל (יומן) - החלון נפתח מיד בלחיצה (אחרת הדפדפן חוסם)
-    const w = window.open('', 'gcal', 'width=520,height=680');
-    showToast('אשר בגוגל גם את ההרשאה ליומן');
+    // צריך הרשאה נוספת מגוגל (יומן) - קודם הסבר על מסך האזהרה, ואז חלון גוגל
     if(box){ box.checked=false; }
-    gcalServerConnect(async()=>{ const k=await gcalServerApi('events',{on:true, tasks:gcalEventTasks()}).catch(()=>null); afterGcalEvents(k,true); }, w, true);
+    gcalConnectGuide(true);
     return;
   }
   if(box) box.disabled=true;
@@ -1640,7 +1652,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-28l';
+const APP_VERSION='2026-10-28m';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());

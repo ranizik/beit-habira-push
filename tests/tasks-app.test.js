@@ -38,7 +38,7 @@ test('גרסה וזכויות יוצרים', () => {
 
 test('פונקציות חיוניות קיימות', () => {
   ['addTask', 'render', 'toggle', 'deleteWithUndo', 'editTask', 'saveEdit', 'showHelp', 'listInfo', 'notifSettings',
-    'checkAccess', 'trackVisit', 'askPriority', 'parseWho', 'quickDate', 'gcalSettings', 'renderAccessAdmin', 'subscribeTasks']
+    'checkAccess', 'gcalConnectGuide', 'trackVisit', 'askPriority', 'parseWho', 'quickDate', 'gcalSettings', 'renderAccessAdmin', 'subscribeTasks']
     .forEach((f) => assert.match(html, new RegExp('function ' + f + '\\('), 'חסרה הפונקציה ' + f));
 });
 
