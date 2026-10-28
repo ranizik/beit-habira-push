@@ -3,3 +3,8 @@
     Header set Pragma "no-cache"
     Header set Expires 0
 </FilesMatch>
+
+# קובץ המעקב של ההעלאה האוטומטית (GitHub Actions) - לא נגיש מהאינטרנט
+<Files ".ftp-deploy-sync-state.json">
+    Require all denied
+</Files>
