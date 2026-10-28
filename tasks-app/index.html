@@ -784,7 +784,7 @@ async function listInfo(focusAdd){
   const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
   ov.innerHTML='<div class="modal" style="max-width:520px;max-height:90vh;overflow:auto"><h3 id="li-title">👥 משתתפים</h3><div id="li-body" style="font-size:14px">טוען...</div><div class="modal-btns"><button class="btn-cancel" onclick="shareList()"><i class="ti ti-share"></i> קישור הזמנה</button><button class="btn-save" onclick="document.getElementById(\'edit-modal\').remove()">סגור</button></div></div>';
   document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
-  const [j,c]=await Promise.all([listsApi('info',{listId:curList}).catch(()=>null), listsApi('contacts',{}).catch(()=>null)]);
+  const [j,c]=await Promise.all([listsApi('info',{listId:curList}).catch(e=>({ok:false,error:e.message})), listsApi('contacts',{}).catch(()=>null)]);
   const body=document.getElementById('li-body'); if(!body) return;
   if(!j||!j.ok){ body.textContent='לא ניתן לטעון: '+((j&&j.error)||'שגיאה'); return; }
   document.getElementById('li-title').textContent='👥 '+j.name+' – '+j.count+' משתתפים';
@@ -805,7 +805,7 @@ async function listInfo(focusAdd){
   const txt=e=>e.type==='create'?escA(e.name)+' יצר/ה את הרשימה':e.type==='join'?escA(e.name)+' הצטרף/ה בקישור':e.type==='add'?escA(e.byName||'')+' צירף/ה את '+escA(e.name):escA(e.name)+' יצא/ה מהרשימה';
   const log=j.log.length?'<div style="margin-top:16px;font-weight:700">📜 היסטוריה</div>'+j.log.map(e=>'<div style="font-size:13px;padding:6px 0;border-bottom:1px solid #EEEDF7;display:flex;gap:8px"><span>'+(icon[e.type]||'•')+'</span><span style="flex:1">'+txt(e)+'</span><span style="color:#8A89A3;font-size:12px;white-space:nowrap">'+fmtDT(e.at)+'</span></div>').join(''):'';
   body.innerHTML=rows+add+log;
-  const doAdd=async(payload,btn)=>{ if(btn) btn.disabled=true; const r=await listsApi('add',{listId:curList,...payload}).catch(()=>null);
+  const doAdd=async(payload,btn)=>{ if(btn) btn.disabled=true; const r=await listsApi('add',{listId:curList,...payload}).catch(e=>({ok:false,error:e.message}));
     if(r&&r.ok){ showToast(r.already?r.name+' כבר ברשימה':'✓ '+r.name+' צורף/ה לרשימה'); listInfo(); } else { showToast((r&&r.error)||'הצירוף נכשל'); if(btn) btn.disabled=false; } };
   body.querySelectorAll('button[data-add]').forEach(b=>b.onclick=()=>doAdd({uid:b.getAttribute('data-add')},b));
   document.getElementById('li-email-go').onclick=e=>{ const v=document.getElementById('li-email').value.trim(); if(!/^\S+@\S+\.\S+$/.test(v)){ showToast('כתוב מייל תקין'); return; } doAdd({email:v},e.target); };
@@ -1283,8 +1283,12 @@ function deleteWithUndo(ids){
   finalizeUndo();
   const removed={}; ids.forEach(id=>{ removed[id]={...tasks[id]}; });
   const upd={}; ids.forEach(id=>{ upd[id]=null; });
-  const ref=tasksRef;
-  ref.update(upd).then(()=>{
+  const ref=tasksRef, listId=curList;
+  // ברשימה משותפת - המחיקה עוברת דרך השרת (בודק שאתה חבר ברשימה)
+  const doDelete = listId
+    ? listsApi('remove-tasks',{listId, ids}).then(j=>{ if(!j||!j.ok) throw new Error((j&&j.error)||'server'); })
+    : ref.update(upd);
+  doDelete.then(()=>{
     undoData={ref, removed};
     showUndo(ids.length===1?'המשימה נמחקה':ids.length+' משימות נמחקו');
     undoTimer=setTimeout(finalizeUndo, 7000);
@@ -1292,7 +1296,7 @@ function deleteWithUndo(ids){
 }
 // אחרי 7 שניות בלי "בטל" - נמחקת סופית גם מ-Google Tasks
 function finalizeUndo(){ clearTimeout(undoTimer); undoTimer=null; if(undoData){ Object.values(undoData.removed).forEach(t=>syncGtask(t,true)); undoData=null; } hideUndo(); }
-function undoDelete(){ clearTimeout(undoTimer); undoTimer=null; if(!undoData) return; const d=undoData; undoData=null; hideUndo(); d.ref.update(d.removed).then(()=>showToast('שוחזר ✓')).catch(()=>showToast('השחזור נכשל')); }
+function undoDelete(){ clearTimeout(undoTimer); undoTimer=null; if(!undoData) return; const d=undoData; undoData=null; hideUndo(); Promise.all(Object.entries(d.removed).map(([id,t])=>d.ref.child(id).set(t))).then(()=>showToast('שוחזר ✓')).catch(()=>showToast('השחזור נכשל')); }
 function showUndo(msg){ hideUndo(); const b=document.createElement('div'); b.id='undo-bar'; b.innerHTML='<span></span><button>בטל</button>'; b.querySelector('span').textContent=msg; b.querySelector('button').onclick=undoDelete; document.body.appendChild(b); }
 function hideUndo(){ document.getElementById('undo-bar')?.remove(); }
 
@@ -1471,7 +1475,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-28c';
+const APP_VERSION='2026-10-28d';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
