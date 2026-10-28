@@ -50,6 +50,16 @@ jobs:
           HAS_PW: ${{ secrets.FTP_PASSWORD != '' }}
         run: |
           if [ "$HAS_PW" != "true" ]; then echo "::error::חסר Secret בשם FTP_PASSWORD (Settings → Secrets and variables → Actions)"; exit 1; fi
+      - name: אבחון התחברות FTP (בלי להציג את הסיסמה)
+        env:
+          PW: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          echo "password length: ${#PW}"
+          case "$PW" in *[[:space:]]*) echo "::warning::הסיסמה מכילה רווח או שורה חדשה";; esac
+          for H in "$FTP_SERVER" 46.17.175.253; do
+            echo "--- $H (ftp)"; curl -sS --max-time 20 --user "$FTP_USERNAME:$PW" "ftp://$H/" --list-only 2>&1 | head -5 || true
+            echo "--- $H (ftps)"; curl -sS --max-time 20 --ssl-reqd -k --user "$FTP_USERNAME:$PW" "ftp://$H/" --list-only 2>&1 | head -5 || true
+          done
       - name: העלאה ל-Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
