@@ -111,6 +111,14 @@ tbody td:last-child{border-right:none;}
 .list-tool.leave{background:#fdecea;color:#A32D2D;}
 .list-members{font-size:12px;color:#666;padding:6px 12px;background:#fff;border-bottom:1px solid #d0d0d0;display:none;align-items:center;gap:8px;flex-wrap:wrap;}
 .list-members-names{flex:1;min-width:120px;}
+.help-modal details{border-bottom:1px solid #EEEDF7;padding:4px 0;}
+.help-modal summary{font-weight:700;font-size:16px;padding:10px 0;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;}
+.help-modal summary::-webkit-details-marker{display:none;}
+.help-modal summary::after{content:"+";font-size:20px;color:#5B5B76;}
+.help-modal details[open] summary::after{content:"–";}
+.help-modal .hb{font-size:14px;line-height:1.75;color:#1A1A2E;padding:0 2px 10px;}
+.help-modal .hb b{color:#1E1B4B;}
+.help-modal .ex{background:#F4F3FB;border-radius:10px;padding:8px 10px;margin:6px 0;}
 .copy{text-align:center;font-size:12px;color:#8A89A3;padding:18px 12px 8px;}
 .copy a{color:#5B5B76;}
 
@@ -197,6 +205,7 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 <div class="header">
   <img class="logo" src="icon-v3-192.png" alt=""/>
   <div class="brand"><h1>תכל׳ס</h1><small>אמרת – זה נרשם</small></div>
+  <button class="notif-status" id="help-btn" onclick="showHelp()" aria-label="עזרה – איך משתמשים" title="איך משתמשים">❓</button>
   <button class="notif-status" id="notif-btn" onclick="requestNotify()">🔔 התראות</button>
   <button class="notif-status" id="gcal-status" onclick="gcalButton()">📅 חבר יומן</button>
   <button class="notif-status" id="stats-btn" onclick="showStats()" title="נתוני שימוש" style="display:none">📊</button>
@@ -627,6 +636,53 @@ function parseHebrewDateTime(text) {
   return {cleanText: clean.trim().replace(/\s+/g,' '), date, time, rep};
 }
 
+
+// ── ❓ מדריך שימוש בתוך האפליקציה ──
+const HELP_SECTIONS=[
+ ['🎙️ הוספת משימה בקול',`<div>לוחצים על <b>המיקרופון האדום</b>, אומרים את המשימה ומפסיקים לדבר. אחרי כ-2 שניות היא נוספת לבד.</div>
+  <div class="ex">"לקנות ביצים <b>מחר ב-10</b>" ← מחר 10:00<br>"להתקשר לספק <b>ביום חמישי בשלוש וחצי</b>" ← חמישי 15:30<br>"לשלם חשבון <b>ב-15 בנובמבר</b>" ← 15/11<br>"לבדוק מלאי <b>בעוד שבוע</b>" · "<b>בעוד 3 ימים</b>" · "<b>שבוע הבא</b>"<br>"לקנות ביצים <b>לבית</b>" ← קטגוריה בית<br>"…<b>דחוף</b>" ← 🔴 דחוף · "…<b>לא דחוף</b>" ← לא דחוף<br>"להשקות עציצים <b>כל יום</b>" ← משימה חוזרת (גם כל שבוע / כל חודש)<br>"לקנות בלונים <b>באחריות נוגה</b>" ← ברשימה משותפת</div>
+  <div>אפשר לשלב: "להזמין קולה לעבודה מחר ב-10 דחוף".<br>שעה 1–6 בלי "בבוקר" = אחר הצהריים ("ב-3" = 15:00).<br>אם לא אמרת דחיפות, יופיע חלון קטן <b>"דחוף?"</b>. בלי תשובה תוך 8 שניות המשימה נשארת לא דחופה.</div>`],
+ ['⌨️ הוספה בהקלדה',`<div>כותבים בשדה "או כתוב משימה…" ולוחצים <b>+</b>. כל הכללים של הדיבור עובדים גם בכתב.<br>מתחת אפשר לבחור ידנית <b>דחיפות, קטגוריה, תאריך ושעה</b>, ויש כפתורים מהירים: היום · מחר · מחרתיים · בעוד שבוע · ✕.</div>`],
+ ['✅ ניהול המשימות',`<div>המשימות מסודרות לפי: <b>באיחור</b> (באדום) · היום · מחר · בהמשך · בלי תאריך.<br>
+  • <b>בוצע</b> – הריבוע ליד המשימה<br>
+  • <b>עריכה ופרטים</b> – לחיצה על שם המשימה (אפשר להוסיף כתובת, טלפון, מה להביא)<br>
+  • <b>מחיקה</b> – 🗑. נמחק בטעות? "בטל" תוך 7 שניות<br>
+  • <b>כמה יחד</b> – "בחירה מרובה" או "מחק בוצעו"<br>
+  • <b>חיפוש</b> – 🔍 (מחפש גם בפרטים)<br>
+  • <b>קטגוריה</b> – לחיצה על בית / עבודה / מכירות. "➕ קטגוריה חדשה" ברשימת הקטגוריות<br>
+  • <b>העברה לרשימה אחרת</b> – ⇄ ליד המשימה<br>
+  • <b>משימה חוזרת</b> – כשמסמנים שבוצעה, הפעם הבאה נוצרת לבד</div>`],
+ ['🔔 תזכורות',`<div>לוחצים <b>🔔</b> למעלה ומאשרים. כל משימה עם תאריך מקבלת תזכורת <b>בערב שלפני ב-20:00</b>, ואם יש שעה – גם <b>בשעת המשימה</b>, גם כשהאפליקציה סגורה.<br>באייפון התראות עובדות רק אחרי התקנה במסך הבית.</div>`],
+ ['📅 יומן Google וסמסונג',`<div>לוחצים <b>📅</b> ובוחרים חשבון Google (אם מופיע "לא מאומת": מתקדם ← המשך). מעכשיו כל משימה עם תאריך נכנסת ל-Google Tasks.<br>
+  <b>יומן של סמסונג:</b> 📅 ← מסמנים "גם כאירוע ביומן" ← מאשרים. המשימות יופיעו ביומן עם צלצול בשעת המשימה.</div>`],
+ ['👨‍👩‍👧 רשימות משותפות',`<div>רשימה משותפת מתעדכנת אצל כולם בזמן אמת. "שלי" נשארת פרטית.<br>
+  • <b>רשימה חדשה</b> – "+ רשימה משותפת"<br>
+  • <b>להזמין מישהו חדש</b> – "פרטים" ← "קישור הזמנה" ← וואטסאפ<br>
+  • <b>לצרף בלי קישור</b> – "צרף" ← לוחצים על השם (מי שכבר איתך ברשימה אחרת) או כותבים מייל<br>
+  • <b>באחריות מי</b> – בשורה "👤 באחריות", או בקול "…באחריות נוגה"<br>
+  • <b>👤 עליי</b> – רק המשימות שבאחריותך<br>
+  • <b>מי פעיל</b> – "משתתפים · פרטים" (ירוק = היום, כתום = השבוע) + היסטוריה<br>
+  • <b>יציאה</b> – "צא" (המשימות נשארות לאחרים)</div>`],
+ ['📲 התקנה במסך הבית',`<div><b>אנדרואיד (Chrome):</b> תפריט ⋮ ← "התקן אפליקציה" / "הוסף למסך הבית".<br><b>אייפון (רק Safari):</b> כפתור השיתוף (ריבוע עם חץ) ← "הוסף למסך הבית".<br>נפתח מתוך וואטסאפ? ⋯ ← "פתח ב-Chrome / Safari".</div>`],
+ ['❓ בעיות נפוצות',`<div>
+  • <b>המיקרופון לא עובד</b> – לאשר גישה למיקרופון. באייפון רק ב-Safari<br>
+  • <b>נקלט עם טעות</b> – לחיצה על השם ותיקון<br>
+  • <b>לא מגיעות התראות</b> – 🔔 ולאשר<br>
+  • <b>משהו נראה ישן</b> – לסגור את האפליקציה לגמרי ולפתוח שוב<br>
+  • <b>המשימות נעלמו?</b> – הן שמורות בשרת. מתחברים עם אותו חשבון Google</div>`]
+];
+function showHelp(){
+  document.getElementById('edit-modal')?.remove();
+  try{ localStorage.setItem('tk_help_seen','1'); }catch(e){}
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal'; ov.style.zIndex='10001'; // מעל מסך הכניסה
+  ov.innerHTML='<div class="modal help-modal" style="max-width:520px;max-height:88vh;overflow:auto"><h3 style="margin-bottom:4px">❓ איך משתמשים בתכל׳ס</h3>'
+    +'<div style="font-size:13px;color:#5B5B76;margin-bottom:6px">לוחצים, אומרים, וזה נרשם. בחר נושא:</div>'
+    +HELP_SECTIONS.map((x,i)=>'<details'+(i===0?' open':'')+'><summary>'+x[0]+'</summary><div class="hb">'+x[1]+'</div></details>').join('')
+    +'<div class="modal-btns" style="margin-top:12px"><button class="btn-save" onclick="document.getElementById(\'edit-modal\').remove()">הבנתי</button></div></div>';
+  document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+}
+// בפעם הראשונה אחרי הכניסה - המדריך נפתח לבד (פעם אחת בלבד)
+function maybeFirstHelp(){ try{ if(!localStorage.getItem('tk_help_seen')) setTimeout(()=>{ if(!document.getElementById('edit-modal')&&!document.getElementById('locked-ov')&&!document.getElementById('tasks-login')) showHelp(); },1500); }catch(e){} }
 function showTerms(){
   document.getElementById('edit-modal')?.remove();
   const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
@@ -1130,7 +1186,7 @@ function iosInstallHint(){
 
 function startTasks(u){
   if(tasksStarted) return;
-  curUser=u; registerPush(true); watchLists(); gcalServerStatus(); statsPing(); checkAccess();
+  curUser=u; registerPush(true); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp();
   const sb=document.getElementById('stats-btn'); if(sb) sb.style.display = u.uid==='staff-tasks' ? '' : 'none';
   let saved=''; try{ saved=localStorage.getItem('tasks_cur_list')||''; }catch(e){}
   curList=null; tasksRef=listTasksRef(null); tasksStarted=true; subscribeTasks(); renderLists();
@@ -1223,7 +1279,8 @@ function showTasksLogin(){
     +'<input type="text" name="username" autocomplete="username" value="מנהל" style="display:none" tabindex="-1" aria-hidden="true">' // שהדפדפן ימלא כאן ולא בשדה המשימה
     +'<input id="tasks-pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="קוד מנהל" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box">'
     +'<button id="tasks-login-btn" style="margin-top:12px;width:100%;padding:10px;font-size:16px;border:0;border-radius:8px;background:#1E1B4B;color:#fff">כניסה</button>'
-    +'<div style="margin-top:14px;font-size:11px;color:#8A89A3">© 2026 רני איציק · כל הזכויות שמורות</div></div>';
+    +'<button type="button" onclick="showHelp()" style="margin-top:12px;background:none;border:0;color:#4338CA;font-size:14px;font-weight:600;font-family:inherit">❓ איך זה עובד?</button>'
+    +'<div style="margin-top:10px;font-size:11px;color:#8A89A3">© 2026 רני איציק · כל הזכויות שמורות</div></div>';
   document.body.appendChild(ov);
   document.getElementById('tasks-login-btn').onclick=tasksLogin;
   document.getElementById('tasks-google-btn').onclick=googleLogin;
@@ -1558,7 +1615,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-28h';
+const APP_VERSION='2026-10-28i';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
