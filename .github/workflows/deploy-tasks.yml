@@ -17,7 +17,7 @@ concurrency:
 
 env:
   FTP_SERVER: ftp.beit-habira.com
-  FTP_USERNAME: u589313841.tasksdeploy
+  FTP_USERNAME: u589313841.tasks
 
 jobs:
   test:
