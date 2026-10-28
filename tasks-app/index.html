@@ -231,6 +231,7 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
   <div class="opts">
     <select id="f-pri">
       <option value="low" selected>⚪ לא דחוף</option>
+      <option value="med">🟡 בינוני</option>
       <option value="high">🔴 דחוף</option>
     </select>
     <select id="f-cat" onchange="onCatSelect(this)"></select>
@@ -1326,9 +1327,10 @@ let priAskTimer=null;
 function askPriority(id, name){
   hidePriAsk();
   const b=document.createElement('div'); b.id='pri-ask';
-  b.innerHTML='<div class="pa-t"></div><div class="pa-b"><button class="pa-h">🔴 דחוף</button><button class="pa-l">לא דחוף</button></div><div class="pa-bar"></div>';
-  b.querySelector('.pa-t').textContent='"'+name+'" – דחוף?';
-  b.querySelector('.pa-h').onclick=()=>{ const r=tasksRef; r.child(id).update({pri:'high'}).then(()=>showToast('סומן כדחוף 🔴')); hidePriAsk(); };
+  b.innerHTML='<div class="pa-t"></div><div class="pa-b" style="grid-template-columns:1fr 1fr 1fr"><button class="pa-h">🔴 דחוף</button><button class="pa-m" style="background:#F59E0B;color:#fff;">🟡 בינוני</button><button class="pa-l">לא דחוף</button></div><div class="pa-bar"></div>';
+  b.querySelector('.pa-t').textContent='"'+name+'" – דחיפות?';
+  b.querySelector('.pa-h').onclick=()=>{ tasksRef.child(id).update({pri:'high'}).then(()=>showToast('סומן כדחוף 🔴')); hidePriAsk(); };
+  b.querySelector('.pa-m').onclick=()=>{ tasksRef.child(id).update({pri:'med'}).then(()=>showToast('סומן כבינוני 🟡')); hidePriAsk(); };
   b.querySelector('.pa-l').onclick=hidePriAsk;
   document.body.appendChild(b);
   priAskTimer=setTimeout(hidePriAsk, 8000);
@@ -1370,12 +1372,12 @@ function addTask(auto){
   // דחיפות מהמשפט: "דחוף" / "דחיפות גבוהה|בינונית|נמוכה" / "עדיפות ..." / "לא דחוף" / בסוף המשפט גם "חשוב", "בינוני", "נמוך"
   const PRI_RULES=[
     [/(^|\s)(?:ב)?(?:דחיפות|עדיפות)\s+(?:גבוהה|עליונה)(?=\s|$)/,'high'],
-    [/(^|\s)(?:ב)?(?:דחיפות|עדיפות)\s+(?:בינונית|רגילה)(?=\s|$)/,'low'],
+    [/(^|\s)(?:ב)?(?:דחיפות|עדיפות)\s+(?:בינונית|רגילה)(?=\s|$)/,'med'],
     [/(^|\s)(?:ב)?(?:דחיפות|עדיפות)\s+נמוכה(?=\s|$)/,'low'],
     [/(^|\s)(?:לא\s+דחוף|לא\s+בוער|לא\s+חשוב|מתי\s+שיש\s+זמן)(?=\s|$)/,'low'],
     [/(^|\s)(?:דחוף\s+מאוד|דחוף|בדחיפות|בוער)(?=\s|$)/,'high'],
     [/(\s)(?:חשוב\s+מאוד|חשוב)$/,'high'],
-    [/(\s)(?:בינוני|רגיל)$/,'low'],
+    [/(\s)(?:בינוני|רגיל)$/,'med'],
     [/(\s)נמוך$/,'low']
   ];
   for(const [re,p] of PRI_RULES){ if(re.test(name)&&name.replace(re,'$1').trim()){ autoPri=p; name=name.replace(re,'$1'); break; } }
@@ -1432,7 +1434,7 @@ function nextRepeatDate(t){
 }
 function createNextRepeat(t){
   const nid='task_'+Date.now();
-  const n={id:nid,name:t.name,pri:t.pri==='high'?'high':'low',date:nextRepeatDate(t),time:t.time||'',done:false,created:Date.now(),rep:t.rep};
+  const n={id:nid,name:t.name,pri:t.pri||'low',date:nextRepeatDate(t),time:t.time||'',done:false,created:Date.now(),rep:t.rep};
   if(t.cat) n.cat=t.cat; if(t.notes) n.notes=t.notes; if(t.by) n.by=t.by;
   tasksRef.child(nid).set(n);
   if(isGcalConnected()) addToGcal(n);
@@ -1462,7 +1464,7 @@ function undoDelete(){ clearTimeout(undoTimer); undoTimer=null; if(!undoData) re
 function showUndo(msg){ hideUndo(); const b=document.createElement('div'); b.id='undo-bar'; b.innerHTML='<span></span><button>בטל</button>'; b.querySelector('span').textContent=msg; b.querySelector('button').onclick=undoDelete; document.body.appendChild(b); }
 function hideUndo(){ document.getElementById('undo-bar')?.remove(); }
 
-const priLabel={high:'דחוף',med:'לא דחוף',low:'לא דחוף'}; // שתי רמות: דחוף / לא דחוף (משימות ישנות 'בינוני' = לא דחוף)
+const priLabel={high:'דחוף',med:'בינוני',low:'לא דחוף'};
 
 // ── קטגוריות (בית / עבודה / מכירות + קטגוריות שהמשתמש מוסיף) ──
 const DEFAULT_CATS=['בית','עבודה','מכירות'];
@@ -1526,7 +1528,7 @@ function render(){
   const list=Object.values(tasks).filter(t=>t&&(!curCat||(t.cat||'')===curCat)&&(!(curList&&whoFilter==='me')||(t.who&&curUser&&t.who.uid===curUser.uid))&&(!q||(String(t.name||'')+' '+String(t.notes||'')).toLowerCase().includes(q))).sort((a,b)=>{
     if(a.done!==b.done)return a.done?1:-1;
     const da=due(a), db=due(b); if(da!==db) return da-db;
-    const p={high:0,med:1,low:1};return (p[a.pri]??1)-(p[b.pri]??1);
+    const p={high:0,med:1,low:2};return (p[a.pri]??2)-(p[b.pri]??2);
   });
   const esc=x=>String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const dk=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -1536,7 +1538,7 @@ function render(){
   const repTxt={daily:'כל יום',weekly:'כל שבוע',monthly:'כל חודש'};
   const card=t=>{
     const late=isLate(t);
-    const meta=[(!t.done&&t.pri==='high')?'<b style="color:#DC2626">דחוף</b>':'', late?'באיחור':'', [t.date&&t.date!==today?dayTxt(t):'', t.time||''].filter(Boolean).join(' '), (t.cat&&!curCat)?esc(t.cat):'', t.rep?'🔁 '+(repTxt[t.rep]||''):'', (curList&&t.by)?'מאת '+esc(t.by):'', (curList&&t.who&&t.who.uid)?'<b style="color:#4338CA">👤 '+(curUser&&t.who.uid===curUser.uid?'עליי':esc(t.who.name))+'</b>':''].filter(Boolean).join(' · ');
+    const meta=[(!t.done&&t.pri==='high')?'<b style="color:#DC2626">דחוף</b>':(!t.done&&t.pri==='med')?'<b style="color:#B45309">בינוני</b>':'', late?'באיחור':'', [t.date&&t.date!==today?dayTxt(t):'', t.time||''].filter(Boolean).join(' '), (t.cat&&!curCat)?esc(t.cat):'', t.rep?'🔁 '+(repTxt[t.rep]||''):'', (curList&&t.by)?'מאת '+esc(t.by):'', (curList&&t.who&&t.who.uid)?'<b style="color:#4338CA">👤 '+(curUser&&t.who.uid===curUser.uid?'עליי':esc(t.who.name))+'</b>':''].filter(Boolean).join(' · ');
     const sel=selectMode&&selected.has(t.id);
     return '<div class="card'+(t.done?' done':'')+(late?' late':'')+(sel?' sel':'')+'">'
       +(selectMode
@@ -1545,7 +1547,7 @@ function render(){
       +'<div class="cbody" onclick="rowClick(\''+t.id+'\')" title="לחץ לעריכה"><div class="cname">'+esc(t.name)+'</div>'
       +(meta?'<div class="cmeta">'+meta+'</div>':'')
       +(t.notes?'<div class="task-notes">📝 '+esc(String(t.notes).slice(0,80))+(String(t.notes).length>80?'…':'')+'</div>':'')+'</div>'
-      +(!t.done&&t.pri==='high'?'<span class="pdot p-high" title="דחוף"></span>':'')
+      +(!t.done&&t.pri==='high'?'<span class="pdot p-high" title="דחוף"></span>':(!t.done&&t.pri==='med'?'<span class="pdot p-med" title="בינוני"></span>':''))
       +(selectMode?'':'<div class="cact"><button onclick="moveTask(\''+t.id+'\')" title="העבר לרשימה אחרת" aria-label="העבר לרשימה אחרת"><i class="ti ti-arrows-exchange"></i></button><button class="del" onclick="del(\''+t.id+'\')" title="מחק" aria-label="מחק"><i class="ti ti-trash"></i></button></div>')
       +'</div>';
   };
@@ -1589,7 +1591,8 @@ function editTask(id) {
       <h3>ערוך משימה</h3>
       <input type="text" id="e-name" value="${t.name}" placeholder="שם המשימה"/>
       <select id="e-pri">
-        <option value="low" ${t.pri!=='high'?'selected':''}>⚪ לא דחוף</option>
+        <option value="low" ${t.pri==='low'||!t.pri?'selected':''}>⚪ לא דחוף</option>
+        <option value="med" ${t.pri==='med'?'selected':''}>🟡 בינוני</option>
         <option value="high" ${t.pri==='high'?'selected':''}>🔴 דחוף</option>
       </select>
       <select id="e-cat" onchange="onCatSelect(this)">${catOptions(t.cat||'')}</select>
@@ -1636,7 +1639,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-28j';
+const APP_VERSION='2026-10-28k';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
