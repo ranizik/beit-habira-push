@@ -1192,7 +1192,7 @@ async function renderAccessAdmin(cached){
       +'<span style="font-size:12px;padding:3px 8px;border-radius:8px;background:'+bg+';color:'+fg+';font-weight:600">'+bt+'</span></div>'
       +'<div style="font-size:12px;color:#5B5B76;margin:2px 0 0;direction:ltr;text-align:right">'+escA(u.email)+'</div>'
       +'<div style="display:inline-flex;margin:6px 0 2px;border:1.5px solid #E2E1F0;border-radius:10px;overflow:hidden">'+kindBtn(u,'business','🏢 עסקי')+kindBtn(u,'private','👤 פרטי')+'</div>'
-      +'<div style="font-size:12px;color:#5B5B76;margin:2px 0 8px">'+info(u)+'</div>'
+      +'<div style="font-size:12px;color:#5B5B76;margin:2px 0 8px">'+info(u)+(u.kind&&!C.freeMode?' · '+u.price+' ₪ לחודש':'')+'</div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
       +(u.pending
         ? btn(u.uid,'year','✅ אשר לשנה','main')+btn(u.uid,'opt','⏳ תקופה אחרת')+btn(u.uid,'lock','❌ דחה','danger')
@@ -1204,7 +1204,8 @@ async function renderAccessAdmin(cached){
     +'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0;cursor:pointer"><input id="acc-approval" type="checkbox" style="width:auto;margin:0" '+(C.approval?'checked':'')+'> <span><b>כל משתמש חדש צריך את האישור שלי</b> (מי שקיבל את הקישור ממישהו אחר יחכה לאישור)</span></label>'
     +'<div style="display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center;font-size:13px;color:#5B5B76;margin:8px 0">'
     +'<span>ימי ניסיון</span><input id="acc-days" type="number" min="1" max="365" value="'+escA(C.trialDays)+'" style="width:80px;margin:0;padding:6px 8px">'
-    +'<span>מחיר לחודש (₪)</span><input id="acc-price" type="number" min="0" value="'+escA(C.price)+'" style="width:80px;margin:0;padding:6px 8px">'
+    +'<span>👤 מחיר פרטי לחודש (₪)</span><input id="acc-price" type="number" min="0" value="'+escA(C.price)+'" style="width:80px;margin:0;padding:6px 8px">'
+    +'<span>🏢 מחיר עסקי לחודש (₪)</span><input id="acc-price-b" type="number" min="0" value="'+escA(C.priceBusiness!=null?C.priceBusiness:C.price)+'" style="width:80px;margin:0;padding:6px 8px">'
     +'<span>וואטסאפ ליצירת קשר</span><input id="acc-contact" type="tel" value="'+escA(C.contact)+'" style="width:140px;margin:0;padding:6px 8px">'
     +'</div><button id="acc-save" class="bulk-btn" style="margin-bottom:10px">שמור הגדרות</button></details>';
   box.querySelectorAll('button[data-filter]').forEach(b=>b.onclick=()=>{ accFilter=b.getAttribute('data-filter'); renderAccessAdmin(true); });
@@ -1220,7 +1221,7 @@ async function renderAccessAdmin(cached){
     showToast(r&&r.ok?(act==='kind'?(r.kind==='business'?'סומן כעסקי ✓':r.kind==='private'?'סומן כפרטי ✓':'הסיווג הוסר ✓'):r.until?'תוקף עד '+fmtD(r.until)+' ✓':'עודכן ✓'):'שגיאה: '+((r&&r.error)||'')); renderAccessAdmin();
   });
   document.getElementById('acc-save').onclick=async()=>{
-    const r=await accessApi('config',{trialDays:document.getElementById('acc-days').value,price:document.getElementById('acc-price').value,contact:document.getElementById('acc-contact').value,approval:document.getElementById('acc-approval').checked,freeMode:document.getElementById('acc-free').checked});
+    const r=await accessApi('config',{trialDays:document.getElementById('acc-days').value,price:document.getElementById('acc-price').value,priceBusiness:document.getElementById('acc-price-b').value,contact:document.getElementById('acc-contact').value,approval:document.getElementById('acc-approval').checked,freeMode:document.getElementById('acc-free').checked});
     renderAccessAdmin();
     showToast(r&&r.ok?'ההגדרות נשמרו ✓':'שגיאה בשמירה');
   };
@@ -1728,7 +1729,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-30d';
+const APP_VERSION='2026-10-30e';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
