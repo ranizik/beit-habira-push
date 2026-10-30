@@ -1137,9 +1137,10 @@ function hideLocked(){ document.getElementById('locked-ov')?.remove(); }
 
 // מסך ניהול משתמשים (בעל העסק) - בתוך 📊
 const fmtD=ms=>ms?new Date(ms).toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit'}):'—';
-async function renderAccessAdmin(){
+let accFilter='all', accLast=null;
+async function renderAccessAdmin(cached){
   const box=document.getElementById('acc-body'); if(!box) return;
-  const j=await accessApi('list');
+  const j=cached&&accLast?accLast:await accessApi('list'); accLast=j;
   if(!j||!j.ok){ box.textContent='לא ניתן לטעון משתמשים'+(j&&j.error?': '+j.error:''); return; }
   const C=j.config;
   const badge=u=>{
@@ -1156,7 +1157,12 @@ async function renderAccessAdmin(){
     const st=kind==='main'?'border:0;background:#1E1B4B;color:#fff;font-weight:700':kind==='danger'?'border:1.5px solid #F3B5B5;background:#FDECEA;color:#B42318':'border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B';
     return '<button data-uid="'+escA(uid)+'" data-act="'+act+'" style="height:34px;padding:0 12px;border-radius:10px;'+st+';font-size:13px;font-family:inherit;cursor:pointer">'+label+'</button>';
   };
-  const n={pending:0,ok:0,off:0}; j.users.forEach(u=>{ if(u.pending) n.pending++; else if(u.allowed) n.ok++; else n.off++; });
+  const kc={all:j.users.length,business:0,private:0,none:0}; j.users.forEach(u=>{ kc[u.kind==='business'||u.kind==='private'?u.kind:'none']++; });
+  if(accFilter==='none'&&!kc.none) accFilter='all';
+  const users=j.users.filter(u=>accFilter==='all'||(accFilter==='none'?!u.kind:u.kind===accFilter));
+  const tab=(k,label)=>'<button data-filter="'+k+'" style="height:32px;padding:0 12px;border-radius:999px;border:1.5px solid '+(accFilter===k?'#1E1B4B':'#E2E1F0')+';background:'+(accFilter===k?'#1E1B4B':'#fff')+';color:'+(accFilter===k?'#fff':'#1E1B4B')+';font-size:13px;font-family:inherit;cursor:pointer">'+label+' '+kc[k]+'</button>';
+  const tabs=j.users.length?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'+tab('all','הכל')+tab('business','🏢 עסקיים')+tab('private','👤 פרטיים')+(kc.none?tab('none','לא סווגו'):'')+'</div>':'';
+  const n={pending:0,ok:0,off:0}; users.forEach(u=>{ if(u.pending) n.pending++; else if(u.allowed) n.ok++; else n.off++; });
   const chip=(t,v,bg,fg)=>'<span style="padding:4px 10px;border-radius:999px;background:'+bg+';color:'+fg+';font-weight:600">'+t+' '+v+'</span>';
   const info=u=>{
     const p=['הצטרף/ה '+fmtD(u.joined),'פעיל/ה לאחרונה '+fmtD(u.last),u.tasks+' משימות'];
@@ -1164,33 +1170,35 @@ async function renderAccessAdmin(){
     return p.join(' · ');
   };
   // בחירת תוקף: כל אפשרות מראה את תאריך הסיום שייצא, לפני הלחיצה
+  const kindBtn=(u,k,label)=>{ const on=u.kind===k; return '<button data-uid="'+escA(u.uid)+'" data-act="kind" data-kind="'+(on?'':k)+'" style="height:30px;padding:0 12px;border:0;background:'+(on?'#1E1B4B':'#fff')+';color:'+(on?'#fff':'#5B5B76')+';font-size:12px;font-weight:'+(on?'700':'400')+';font-family:inherit;cursor:pointer">'+label+'</button>'; };
   const optBox=u=>{
     const now=Date.now(), D=864e5, base=u.pending||u.until==null?now:Math.max(now,u.until);
     const o=(act,label,days,extra)=>'<button data-uid="'+escA(u.uid)+'" data-act="'+act+'"'+(extra||'')+' style="display:flex;justify-content:space-between;align-items:center;width:100%;height:40px;padding:0 12px;border-radius:10px;border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B;font-size:14px;font-family:inherit;cursor:pointer;margin-bottom:6px"><span>'+label+'</span><span style="color:#5B5B76;font-size:12px">'+(days?'עד '+fmtD(base+days*D):'')+'</span></button>';
     const cur=u.until==null?'ללא הגבלה':(u.allowed?'עד '+fmtD(u.until):'נגמר '+fmtD(u.until));
     return '<div id="opt-'+escA(u.uid)+'" style="display:none;margin-top:8px;background:#F7F7FB;border-radius:12px;padding:10px">'
       +'<div style="font-size:12px;color:#5B5B76;margin-bottom:8px">'+(u.pending?'לאשר עם תקופה:':'תוקף נוכחי: <b>'+cur+'</b>'+(u.allowed&&u.until!=null?' · ההוספה נספרת מתאריך זה':''))+'</div>'
-      +(u.pending?o('approve','🧪 ניסיון '+C.trialDays+' ימים',Number(C.trialDays)):'')
+      +o('approve','🧪 ניסיון חודש',30,' data-days="30"')
       +o('extend','➕ חודש',30,' data-days="30"')+o('extend','➕ 3 חודשים',90,' data-days="90"')+o('extend','➕ שנה',365,' data-days="365"')
-      +(u.until==null&&!u.pending?'':o('forever','♾ ללא הגבלה',0))
+      +(u.until==null&&!u.pending&&!u.locked?'<div style="height:40px;display:flex;align-items:center;padding:0 12px;border-radius:10px;background:#E7F8EF;color:#0F6B3E;font-size:14px;margin-bottom:6px">♾ ללא הגבלה – נוכחי</div>':o('forever','♾ ללא הגבלה',0))
       +'<div style="display:flex;gap:6px;align-items:center"><span style="font-size:13px;white-space:nowrap">📅 עד תאריך</span><input type="date" id="optd-'+escA(u.uid)+'" min="'+new Date(now+D).toLocaleDateString('en-CA')+'" style="flex:1;margin:0;padding:6px 8px;min-width:0">'
       +'<button data-uid="'+escA(u.uid)+'" data-act="until" style="height:36px;padding:0 14px;border-radius:10px;border:0;background:#1E1B4B;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">קבע</button></div></div>';
   };
-  box.innerHTML=
-    (j.users.length?'<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:12px;margin-bottom:10px">'
+  box.innerHTML=tabs
+    +(users.length?'<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:12px;margin-bottom:10px">'
       +(n.pending?chip('🙋 ממתינים',n.pending,'#EEF0FF','#3730A3'):'')+chip('✅ פעילים',n.ok,'#E7F8EF','#0F6B3E')+(n.off?chip('🔒 לא פעילים',n.off,'#FDECEA','#B42318'):'')+'</div>':'')
-    +(j.users.length?j.users.map(u=>{ const [bt,bg,fg]=badge(u);
+    +(users.length?users.map(u=>{ const [bt,bg,fg]=badge(u);
     return '<div style="border:1.5px solid '+(u.pending?'#C7C9F5':'#E2E1F0')+';border-radius:14px;padding:10px 12px;margin-bottom:8px;'+(u.pending?'background:#F7F7FF':'')+'">'
       +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="font-size:15px">'+escA(u.name||u.email||'משתמש')+'</b>'
       +'<span style="font-size:12px;padding:3px 8px;border-radius:8px;background:'+bg+';color:'+fg+';font-weight:600">'+bt+'</span></div>'
       +'<div style="font-size:12px;color:#5B5B76;margin:2px 0 0;direction:ltr;text-align:right">'+escA(u.email)+'</div>'
+      +'<div style="display:inline-flex;margin:6px 0 2px;border:1.5px solid #E2E1F0;border-radius:10px;overflow:hidden">'+kindBtn(u,'business','🏢 עסקי')+kindBtn(u,'private','👤 פרטי')+'</div>'
       +'<div style="font-size:12px;color:#5B5B76;margin:2px 0 8px">'+info(u)+'</div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
       +(u.pending
         ? btn(u.uid,'year','✅ אשר לשנה','main')+btn(u.uid,'opt','⏳ תקופה אחרת')+btn(u.uid,'lock','❌ דחה','danger')
         : btn(u.uid,'opt',u.allowed?'⏳ תוקף':'🔓 פתח גישה',u.allowed?'':'main')+(u.locked?'':btn(u.uid,'lock','🔒 נעל','danger')))
       +'</div>'+optBox(u)+'</div>';
-  }).join(''):'<div style="color:#5B5B76">אין עדיין משתמשים</div>')
+  }).join(''):'<div style="color:#5B5B76">'+(j.users.length?'אין משתמשים בקבוצה הזו':'אין עדיין משתמשים')+'</div>')
     +'<details style="margin-top:10px;border:1.5px solid #E2E1F0;border-radius:14px;padding:4px 12px"><summary style="cursor:pointer;font-weight:700;font-size:14px;padding:8px 0">⚙️ הגדרות הרשמה ומחיר</summary>'
     +'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0;cursor:pointer"><input id="acc-free" type="checkbox" style="width:auto;margin:0" '+(C.freeMode?'checked':'')+'> <span><b>🎁 תקופת הרצה</b> – כל מי שאושר משתמש בחינם, בלי הגבלת זמן</span></label>'
     +'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0;cursor:pointer"><input id="acc-approval" type="checkbox" style="width:auto;margin:0" '+(C.approval?'checked':'')+'> <span><b>כל משתמש חדש צריך את האישור שלי</b> (מי שקיבל את הקישור ממישהו אחר יחכה לאישור)</span></label>'
@@ -1199,15 +1207,17 @@ async function renderAccessAdmin(){
     +'<span>מחיר לחודש (₪)</span><input id="acc-price" type="number" min="0" value="'+escA(C.price)+'" style="width:80px;margin:0;padding:6px 8px">'
     +'<span>וואטסאפ ליצירת קשר</span><input id="acc-contact" type="tel" value="'+escA(C.contact)+'" style="width:140px;margin:0;padding:6px 8px">'
     +'</div><button id="acc-save" class="bulk-btn" style="margin-bottom:10px">שמור הגדרות</button></details>';
+  box.querySelectorAll('button[data-filter]').forEach(b=>b.onclick=()=>{ accFilter=b.getAttribute('data-filter'); renderAccessAdmin(true); });
   box.querySelectorAll('button[data-act]').forEach(b=>b.onclick=async()=>{
     const act=b.getAttribute('data-act'), uid=b.getAttribute('data-uid');
     if(act==='opt'){ box.querySelectorAll('[id^="opt-"]').forEach(x=>{ if(x.id!=='opt-'+uid) x.style.display='none'; }); const ob=document.getElementById('opt-'+uid); ob.style.display=ob.style.display==='none'?'block':'none'; return; }
     const body={uid,action:act};
-    if(act==='extend') body.days=Number(b.getAttribute('data-days'));
+    if(act==='extend'||(act==='approve'&&b.hasAttribute('data-days'))) body.days=Number(b.getAttribute('data-days'));
+    if(act==='kind') body.kind=b.getAttribute('data-kind');
     if(act==='until'){ const v=document.getElementById('optd-'+uid).value; if(!v){ showToast('בחר תאריך'); return; } const [y,m,d]=v.split('-').map(Number); body.until=new Date(y,m-1,d,23,59).getTime(); }
     if(act==='lock'&&!confirm(b.textContent.includes('דחה')?'לדחות את הבקשה? המשתמש לא יוכל להשתמש באפליקציה.':'לנעול את המשתמש? המשימות שלו נשמרות, והוא יראה מסך "לחידוש".')) return;
     b.disabled=true; const r=await accessApi('set',body);
-    showToast(r&&r.ok?(r.until?'תוקף עד '+fmtD(r.until)+' ✓':'עודכן ✓'):'שגיאה: '+((r&&r.error)||'')); renderAccessAdmin();
+    showToast(r&&r.ok?(act==='kind'?(r.kind==='business'?'סומן כעסקי ✓':r.kind==='private'?'סומן כפרטי ✓':'הסיווג הוסר ✓'):r.until?'תוקף עד '+fmtD(r.until)+' ✓':'עודכן ✓'):'שגיאה: '+((r&&r.error)||'')); renderAccessAdmin();
   });
   document.getElementById('acc-save').onclick=async()=>{
     const r=await accessApi('config',{trialDays:document.getElementById('acc-days').value,price:document.getElementById('acc-price').value,contact:document.getElementById('acc-contact').value,approval:document.getElementById('acc-approval').checked,freeMode:document.getElementById('acc-free').checked});
@@ -1718,7 +1728,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-30c';
+const APP_VERSION='2026-10-30d';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
