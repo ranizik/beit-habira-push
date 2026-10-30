@@ -1201,12 +1201,17 @@ async function showStats(){
   if(!j||!j.ok){ body.textContent='לא ניתן לטעון נתונים'+(j&&j.error?': '+j.error:''); return; }
   const card=(label,val,sub)=>'<div style="background:#f5f5f5;border-radius:8px;padding:8px 10px"><div style="font-size:11px;color:#666">'+label+'</div><div style="font-size:22px;font-weight:700;color:#222">'+val+'</div>'+(sub?'<div style="font-size:11px;color:#888">'+sub+'</div>':'')+'</div>';
   const grid=a=>'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px">'+a.join('')+'</div>';
+  // הגרפים מתחילים מהיום הראשון שיש בו נתונים (לפחות 7 ימים), כדי שלא יהיו ריקים ברובם
+  const CK=['visitors','active','newUsers','tasks'];
+  let c0=j.days.findIndex(d=>CK.some(k=>d[k]>0)); if(c0<0) c0=j.days.length-7;
+  c0=Math.max(0,Math.min(c0,j.days.length-7));
+  const cDays=j.days.slice(c0);
   const chart=(title,key,color)=>{
-    const max=Math.max(1,...j.days.map(d=>d[key])); const total=j.days.reduce((a,d)=>a+d[key],0);
-    return '<div style="margin:10px 0 4px;font-weight:600">'+title+' <span style="color:#888;font-weight:400">('+total+' ב-30 יום)</span></div>'
-      +'<div style="display:flex;align-items:flex-end;gap:2px;height:70px;border-bottom:1px solid #ccc;direction:ltr">'
-      +j.days.map(d=>'<div title="'+d.day.split('-').reverse().join('/')+': '+d[key]+'" style="flex:1;background:'+color+';height:'+Math.round(d[key]/max*100)+'%;min-height:'+(d[key]?2:0)+'px;border-radius:2px 2px 0 0"></div>').join('')+'</div>'
-      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:#999;direction:ltr"><span>'+j.days[0].day.slice(5).split('-').reverse().join('/')+'</span><span>היום</span></div>';
+    const max=Math.max(1,...cDays.map(d=>d[key])); const total=cDays.reduce((a,d)=>a+d[key],0);
+    return '<div style="margin:10px 0 4px;font-weight:600">'+title+' <span style="color:#888;font-weight:400">('+total+' ב-'+cDays.length+' ימים)</span></div>'
+      +'<div style="display:flex;align-items:flex-end;gap:'+(cDays.length>14?2:6)+'px;height:70px;border-bottom:1px solid #ccc;direction:ltr">'
+      +cDays.map(d=>'<div title="'+d.day.split('-').reverse().join('/')+': '+d[key]+'" style="flex:1;background:'+color+';height:'+Math.round(d[key]/max*100)+'%;min-height:'+(d[key]?2:0)+'px;border-radius:2px 2px 0 0"></div>').join('')+'</div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:#999;direction:ltr"><span>'+cDays[0].day.slice(5).split('-').reverse().join('/')+'</span><span>היום</span></div>';
   };
   const U=j.users, I=j.installs, S=j.usage;
   const plat={iphone:'אייפון',android:'אנדרואיד',desktop:'מחשב'};
@@ -1217,10 +1222,10 @@ async function showStats(){
     +grid([card('היום',V.today,'פעם ראשונה: '+V.todayNew), card('7 ימים',V.d7), card('30 ימים',V.d30), card('סה"כ מכשירים',V.total)])
     +'<div style="background:#F4F3FB;border-radius:10px;padding:8px 10px;margin-bottom:12px;font-size:13px"><b>היום:</b> פתחו '+(td.visitors||0)+' → נרשמו '+(td.newUsers||0)+' → התקינו '+(td.installs||0)+'</div>'
     +'<div style="font-weight:600;margin-bottom:6px">משתמשים (כניסה עם Google, בלי כניסת המנהל)</div>'
-    +grid([card('רשומים',U.total), card('חדשים',U.new7,'ב-7 ימים · '+U.new30+' ב-30'), card('פעילים היום',U.active1), card('פעילים',U.active7,'ב-7 ימים · '+U.active30+' ב-30')])
+    +grid([card('רשומים',U.total), card('חדשים',U.new7,'ב-7 ימים · '+U.new30+' ב-30'), card('פעילים היום',td.active||0,'מחצות'), card('פעילים',U.active7,'ב-7 ימים · '+U.active30+' ב-30')])
     +'<div style="font-weight:600;margin-bottom:6px">התקנות ושימוש</div>'
     +grid([card('התקינו למסך הבית',I.installed,'פתחו משם ב-7 ימים: '+I.openFromHome7), card('התראות מופעלות',S.pushUsers), card('יומן מחובר',S.gcalUsers), card('רשימות משותפות',S.sharedLists),
-      card('משימות',S.tasksTotal,S.tasksOpen+' פתוחות · '+S.tasks30+' ב-30 יום'), card('בקול / בהקלדה',S.voice+' / '+S.typed,'מאז '+since)])
+      card('משימות',S.tasksTotal,S.tasksOpen+' פתוחות · '+S.tasks30+' ב-30 יום'), card('הוספות בקול / בהקלדה',S.voice+' / '+S.typed,'מאז '+since+' · כולל משימות שנמחקו')])
     +'<div style="font-size:12px;color:#666;margin-bottom:6px">מכשירים: '+(Object.entries(I.platforms).map(([k,v])=>(plat[k]||k)+' '+v).join(' · ')||'—')+'</div>'
     +chart('כניסות לקישור ביום','visitors','#FF5A5F')+chart('משתמשים פעילים ביום','active','#1a73e8')+chart('משתמשים חדשים','newUsers','#217346')+chart('משימות שנוצרו','tasks','#E53935')
     +'<div style="font-size:11px;color:#999;margin-top:10px">משתמשים חדשים ומשימות – כולל נתונים מלפני המדידה. פעילים, התקנות וקול/הקלדה – נאספים מ-'+since+'.</div>';
@@ -1671,7 +1676,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-28p';
+const APP_VERSION='2026-10-30a';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
