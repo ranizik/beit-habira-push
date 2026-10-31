@@ -1351,6 +1351,8 @@ async function showStats(tab){
   tab=tab||'users';
   if(!document.getElementById('edit-modal')) accOpen='';
   if(await checkAppUpdate(true)) return; // לפני פתיחת הניהול - אם יש גרסה חדשה, נטענת קודם
+  // הניהול נפתח רק אחרי אימות עם חשבון Google של בעל העסק (פעם אחת במכשיר). קוד המנהל לבד לא מספיק
+  try{ const r=await TASKS_APP.auth().currentUser.getIdTokenResult(); if(!r.claims.gadmin){ showAdminVerify(); return; } }catch(e){}
   document.getElementById('edit-modal')?.remove();
   const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
   const T=(k,l)=>'<button data-tab="'+k+'" style="flex:1;height:38px;border:0;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer">'+l+'</button>';
@@ -1400,6 +1402,36 @@ async function showStats(tab){
     +'<div style="font-size:11px;color:#999;margin-top:10px">משתמשים חדשים ומשימות – כולל נתונים מלפני המדידה. פעילים, התקנות וקול/הקלדה – נאספים מ-'+since+'.</div>'
     +'</details>';
 }
+// אימות בעלים לפני ניהול: כפתור Google, השרת בודק שזה ranizik@gmail.com ומחזיר כניסה עם הרשאת ניהול
+function showAdminVerify(){
+  document.getElementById('edit-modal')?.remove();
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
+  ov.innerHTML='<div class="modal" style="text-align:center"><div style="font-size:40px">🔐</div><h3 style="margin:4px 0 6px">אימות בעלים</h3>'
+    +'<div style="font-size:14px;color:#5B5B76;line-height:1.6;margin-bottom:14px">כדי להגן על הנתונים של המשתמשים, הניהול נפתח רק אחרי אימות עם חשבון Google שלך. צריך לעשות את זה פעם אחת בכל מכשיר.</div>'
+    +'<div id="adm-gsi" style="display:flex;justify-content:center;min-height:44px">טוען...</div><div id="adm-note" style="font-size:12px;color:#B42318;margin-top:8px"></div>'
+    +'<div class="modal-btns" style="justify-content:center;margin-top:12px"><button class="btn-cancel" onclick="document.getElementById(\'edit-modal\').remove()">ביטול</button></div></div>';
+  document.body.appendChild(ov);
+  let tries=0;
+  (function setup(){
+    const host=document.getElementById('adm-gsi'); if(!host) return;
+    if(!(window.google&&google.accounts&&google.accounts.id)){ if(++tries<40) return setTimeout(setup,250); host.textContent='לא ניתן לטעון את Google – נסה שוב'; return; }
+    const redirect=/iPhone|iPad|iPod/.test(navigator.userAgent)||isStandalone();
+    let nonce=''; try{ nonce=crypto.getRandomValues(new Uint32Array(4)).join('-'); localStorage.setItem('tasks_gsi_nonce',nonce); }catch(e){}
+    google.accounts.id.initialize({client_id:GCAL_CLIENT_ID, callback:onAdminCredential, ux_mode:redirect?'redirect':'popup', login_uri:STAFF_API+'/tasks/admin/google-redirect', auto_select:false, nonce});
+    host.textContent=''; google.accounts.id.renderButton(host,{theme:'filled_blue',size:'large',text:'continue_with',shape:'pill',locale:'he',width:260});
+  })();
+}
+async function onAdminCredential(resp){
+  const note=document.getElementById('adm-note'); if(note) note.style.color='#5B5B76', note.textContent='מאמת...';
+  try{
+    const r=await fetch(STAFF_API+'/tasks/admin/google',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:resp&&resp.credential})}).then(r=>r.json());
+    if(!r||!r.ok) throw new Error((r&&r.error)||'שגיאה');
+    await TASKS_APP.auth().signInWithCustomToken(r.token);
+    await TASKS_APP.auth().currentUser.getIdToken(true);
+    showStats();
+  }catch(e){ if(note){ note.style.color='#B42318'; note.textContent=e.message; } }
+}
+
 // כמה האפליקציה חיונית: מדדי תלות, אחוז שימוש יומי, ומשימות לכל משתמש ביום
 function dependHtml(j){
   const D=j.dependence, P=j.pct||[], U=j.perUser||[]; if(!D) return '';
@@ -1523,11 +1555,11 @@ async function onGoogleCredential(resp){
 // חזרה מגוגל (אייפון): #ct=טוקן כניסה, או #lerr=הודעת שגיאה
 (function(){
   const h=location.hash;
-  const ct=(h.match(/[#&]ct=([^&]+)/)||[])[1], le=(h.match(/[#&]lerr=([^&]+)/)||[])[1], nn=(h.match(/[#&]n=([^&]*)/)||[])[1];
+  const ct=(h.match(/[#&]ct=([^&]+)/)||[])[1], le=(h.match(/[#&]lerr=([^&]+)/)||[])[1], nn=(h.match(/[#&]n=([^&]*)/)||[])[1], adm=/[#&]adm=1/.test(h);
   if(ct||le) history.replaceState(null,'',location.pathname+location.search);
   let saved=''; try{ saved=localStorage.getItem('tasks_gsi_nonce')||''; }catch(e){}
   if(ct && (!saved || decodeURIComponent(nn||'')!==saved)) setTimeout(()=>loginNote('ההתחברות נכשלה (בדיקת אבטחה) - לחץ שוב על כניסה עם Google'),600);
-  else if(ct){ try{ localStorage.removeItem('tasks_gsi_nonce'); }catch(e){} TASKS_APP.auth().signInWithCustomToken(decodeURIComponent(ct)).catch(e=>setTimeout(()=>loginNote('ההתחברות נכשלה ('+(e.code||e.message)+')'),600)); }
+  else if(ct){ try{ localStorage.removeItem('tasks_gsi_nonce'); }catch(e){} TASKS_APP.auth().signInWithCustomToken(decodeURIComponent(ct)).then(()=>{ if(adm) setTimeout(()=>showStats(),1200); }).catch(e=>setTimeout(()=>loginNote('ההתחברות נכשלה ('+(e.code||e.message)+')'),600)); }
   if(le) setTimeout(()=>loginNote('ההתחברות נכשלה ('+decodeURIComponent(le)+')'),600);
   // קישור הזמנה לרשימה משותפת נשמר, כדי שלא ילך לאיבוד במעבר לגוגל וחזרה
   const j=new URLSearchParams(location.search).get('join'); if(j) try{ localStorage.setItem('tasks_pending_join',j); }catch(e){}
@@ -1890,7 +1922,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-31g';
+const APP_VERSION='2026-10-31h';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
