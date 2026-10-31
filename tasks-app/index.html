@@ -1139,6 +1139,31 @@ function hideLocked(){ document.getElementById('locked-ov')?.remove(); }
 const fmtD=ms=>ms?new Date(ms).toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit'}):'—';
 const fmtT=ms=>new Date(ms).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
 let accOpen='', accLast=null;
+// ניווט בתוך הניהול: כל מעבר (לשונית / משתמש) נשמר, וחץ "חזרה" - או כפתור החזרה של הטלפון - מחזיר צעד אחד בלי לצאת מהפאנל
+let admNav=[], admTab='users', admShow=null, admClosing=false;
+const admOpen=()=>!!document.querySelector('#edit-modal[data-admin]');
+function admApply(st){
+  admTab=st.tab; if(admShow) admShow(st.tab);
+  if(accOpen!==st.user){ accOpen=st.user; renderAccessAdmin(true); }
+  const b=document.getElementById('adm-back'); if(b) b.style.visibility=admNav.length?'visible':'hidden';
+  document.querySelector('#edit-modal[data-admin] .modal')?.scrollTo(0,0);
+}
+function admGo(st){
+  if(st.tab===admTab && st.user===accOpen) return;
+  admNav.push({tab:admTab,user:accOpen}); admApply(st);
+  try{ history.pushState({adm:1},''); }catch(e){}
+}
+function admClose(){
+  const n=admNav.length+1; admNav=[];
+  document.getElementById('edit-modal')?.remove();
+  admClosing=true; try{ history.go(-n); }catch(e){ admClosing=false; }
+}
+window.addEventListener('popstate',()=>{
+  if(admClosing){ admClosing=false; return; }
+  if(!admOpen()) return;
+  if(admNav.length) admApply(admNav.pop());
+  else document.getElementById('edit-modal')?.remove();
+});
 async function renderAccessAdmin(cached){
   const box=document.getElementById('acc-body'); if(!box) return;
   const j=cached&&accLast?accLast:await accessApi('list'); accLast=j;
@@ -1215,8 +1240,7 @@ async function renderAccessAdmin(cached){
     const u=sel, f=badge(u);
     const access=u.pending?'מחכה לאישור שלך':u.locked?'נעול – לא יכול להשתמש':!u.allowed?'הגישה הסתיימה':u.until==null||C.freeMode?'פעיל – ללא הגבלה':'פעיל עד '+fmtD(u.until)+' (עוד '+u.daysLeft+' ימים)';
     const stat=(v,l)=>'<div style="flex:1;background:#F4F3FB;border-radius:12px;padding:8px 4px;text-align:center"><div style="font-size:15px;font-weight:700">'+v+'</div><div style="font-size:11px;color:#5B5B76">'+l+'</div></div>';
-    box.innerHTML='<button data-back="1" style="border:0;background:none;color:#1E1B4B;font-size:14px;font-family:inherit;cursor:pointer;padding:0 0 10px">→ כל המשתמשים</button>'
-      +'<div style="display:flex;gap:12px;align-items:center">'+avatar(u,52)+'<div style="flex:1;min-width:0"><div style="font-size:18px;font-weight:700">'+escA(u.name||u.email||'משתמש')+'</div>'
+    box.innerHTML='<div style="display:flex;gap:12px;align-items:center">'+avatar(u,52)+'<div style="flex:1;min-width:0"><div style="font-size:18px;font-weight:700">'+escA(u.name||u.email||'משתמש')+'</div>'
       +'<div style="font-size:12px;color:#5B5B76;direction:ltr;text-align:right;overflow:hidden;text-overflow:ellipsis">'+escA(u.email)+'</div></div></div>'
       +'<div style="display:flex;gap:6px;margin-top:12px">'+stat(u.last?(isToday(u.last)?fmtT(u.last):fmtD(u.last)):'—','נכנס לאחרונה')+stat(u.opens||0,'פתיחות')+stat(u.tasks,'משימות')+stat(fmtD(u.joined),'הצטרף')+'</div>'
       +(u.pending
@@ -1267,8 +1291,8 @@ async function renderAccessAdmin(cached){
     pb.querySelector('.pl-fixed').oninput=()=>{ pb.querySelector('input[value="fixed"]').checked=true; };
     upd();
   });
-  box.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>{ accOpen=el.getAttribute('data-open'); renderAccessAdmin(true); box.closest('.modal')?.scrollTo(0,0); });
-  box.querySelectorAll('[data-back]').forEach(el=>el.onclick=()=>{ accOpen=''; renderAccessAdmin(true); });
+  box.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>admGo({tab:'users',user:el.getAttribute('data-open')}));
+  box.querySelectorAll('[data-back]').forEach(el=>el.onclick=()=>{ if(admNav.length) history.back(); else { accOpen=''; renderAccessAdmin(true); } });
   box.querySelectorAll('button[data-act]').forEach(b=>b.onclick=async()=>{
     const act=b.getAttribute('data-act'), uid=b.getAttribute('data-uid');
     if(act==='opt'||act==='plan'){ const id=(act==='opt'?'opt-':'plan-')+uid; box.querySelectorAll('[id^="opt-"],[id^="plan-"]').forEach(x=>{ if(x.id!==id) x.style.display='none'; }); const ob=document.getElementById(id); ob.style.display=ob.style.display==='none'?'block':'none'; return; }
@@ -1348,22 +1372,29 @@ window.addEventListener('appinstalled', ()=>statsApi('event',{type:'install'}));
 
 // ניהול: שלוש לשוניות - משתמשים / נתונים / הגדרות
 async function showStats(tab){
-  tab=tab||'users';
-  if(!document.getElementById('edit-modal')) accOpen='';
+  const fresh=!admOpen(); // פתיחה חדשה (לא רענון של פאנל פתוח)
+  tab=tab||(fresh?'users':admTab);
+  if(fresh){ accOpen=''; admNav=[]; }
   if(await checkAppUpdate(true)) return; // לפני פתיחת הניהול - אם יש גרסה חדשה, נטענת קודם
   // הניהול נפתח רק אחרי אימות עם חשבון Google של בעל העסק (פעם אחת במכשיר). קוד המנהל לבד לא מספיק
   try{ const r=await TASKS_APP.auth().currentUser.getIdTokenResult(); if(!r.claims.gadmin){ showAdminVerify(); return; } }catch(e){}
   document.getElementById('edit-modal')?.remove();
-  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal'; ov.dataset.admin='1';
+  if(fresh) try{ history.pushState({adm:1},''); }catch(e){}
   const T=(k,l)=>'<button data-tab="'+k+'" style="flex:1;height:38px;border:0;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer">'+l+'</button>';
   ov.innerHTML='<div class="modal" style="max-width:600px;max-height:90vh;overflow:auto">'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+    +'<button id="adm-back" onclick="history.back()" style="visibility:'+(admNav.length?'visible':'hidden')+';height:36px;padding:0 12px;border-radius:10px;border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer">→ חזרה</button>'
+    +'<div style="flex:1;text-align:center;font-weight:800;font-size:16px;color:#1E1B4B">ניהול</div>'
+    +'<button onclick="admClose()" aria-label="סגור" style="width:36px;height:36px;border-radius:50%;border:0;background:#F4F3FB;color:#1E1B4B;font-size:18px;cursor:pointer">✕</button></div>'
     +'<div style="display:flex;gap:4px;background:#F4F3FB;border-radius:12px;padding:4px;margin-bottom:12px">'+T('users','👥 משתמשים')+T('stats','📊 נתונים')+T('cfg','⚙️ הגדרות')+'</div>'
     +'<div id="acc-body" data-pane="users" style="font-size:13px">טוען...</div><div id="st-body" data-pane="stats" style="font-size:13px">טוען...</div><div id="cfg-body" data-pane="cfg" style="font-size:13px">טוען...</div>'
-    +'<div class="modal-btns"><button class="btn-cancel" onclick="document.getElementById(\'edit-modal\').remove()">סגור</button></div></div>';
-  document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+    +'<div class="modal-btns"><button class="btn-cancel" onclick="admClose()">סגור</button></div></div>';
+  document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) admClose(); });
   const show=k=>{ ov.querySelectorAll('[data-pane]').forEach(p=>p.style.display=p.dataset.pane===k?'block':'none');
     ov.querySelectorAll('[data-tab]').forEach(b=>{ const on=b.dataset.tab===k; b.style.background=on?'#1E1B4B':'transparent'; b.style.color=on?'#fff':'#1E1B4B'; b.style.fontWeight=on?'700':'400'; }); };
-  ov.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>show(b.dataset.tab)); show(tab);
+  admShow=show; admTab=tab;
+  ov.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>admGo({tab:b.dataset.tab,user:''})); show(tab);
   renderAccessAdmin();
   const j=await statsApi('summary');
   const body=document.getElementById('st-body'); if(!body) return;
@@ -1922,7 +1953,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-31h';
+const APP_VERSION='2026-10-31i';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
