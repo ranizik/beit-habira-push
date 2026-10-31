@@ -1138,7 +1138,7 @@ function hideLocked(){ document.getElementById('locked-ov')?.remove(); }
 // מסך ניהול משתמשים (בעל העסק) - בתוך 📊
 const fmtD=ms=>ms?new Date(ms).toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit'}):'—';
 const fmtT=ms=>new Date(ms).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
-let accFilter='all', accLast=null;
+let accOpen='', accLast=null;
 async function renderAccessAdmin(cached){
   const box=document.getElementById('acc-body'); if(!box) return;
   const j=cached&&accLast?accLast:await accessApi('list'); accLast=j;
@@ -1158,20 +1158,19 @@ async function renderAccessAdmin(cached){
     const st=kind==='main'?'border:0;background:#1E1B4B;color:#fff;font-weight:700':kind==='danger'?'border:1.5px solid #F3B5B5;background:#FDECEA;color:#B42318':'border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B';
     return '<button data-uid="'+escA(uid)+'" data-act="'+act+'" style="height:34px;padding:0 12px;border-radius:10px;'+st+';font-size:13px;font-family:inherit;cursor:pointer">'+label+'</button>';
   };
-  const kc={all:j.users.length,business:0,private:0,none:0}; j.users.forEach(u=>{ kc[u.kind==='business'||u.kind==='private'?u.kind:'none']++; });
-  if(accFilter==='none'&&!kc.none) accFilter='all';
-  const users=j.users.filter(u=>accFilter==='all'||(accFilter==='none'?!u.kind:u.kind===accFilter));
-  const tab=(k,label)=>'<button data-filter="'+k+'" style="height:32px;padding:0 12px;border-radius:999px;border:1.5px solid '+(accFilter===k?'#1E1B4B':'#E2E1F0')+';background:'+(accFilter===k?'#1E1B4B':'#fff')+';color:'+(accFilter===k?'#fff':'#1E1B4B')+';font-size:13px;font-family:inherit;cursor:pointer">'+label+' '+kc[k]+'</button>';
-  const tabs=j.users.length?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'+tab('all','הכל')+tab('business','🏢 עסקיים')+tab('private','👤 פרטיים')+(kc.none?tab('none','לא סווגו'):'')+'</div>':'';
+  const users=j.users;
   const n={pending:0,ok:0,off:0}; users.forEach(u=>{ if(u.pending) n.pending++; else if(u.allowed) n.ok++; else n.off++; });
-  const chip=(t,v,bg,fg)=>'<span style="padding:4px 10px;border-radius:999px;background:'+bg+';color:'+fg+';font-weight:600">'+t+' '+v+'</span>';
+  // "נכנס/ה היום 11:20" / "אתמול 09:05" / תאריך
+  const lastShort=u=>{ if(!u.last) return 'עוד לא נכנס/ה'; const d=new Date(u.last), t=new Date(); t.setHours(0,0,0,0);
+    const diff=Math.floor((t-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/864e5);
+    return 'נכנס/ה '+(diff<=0?'היום '+fmtT(u.last):diff===1?'אתמול '+fmtT(u.last):fmtD(u.last))+' · '+(u.opens||0)+' פתיחות'; };
   const info=u=>{
-    const p=['הצטרף/ה '+fmtD(u.joined),'פעיל/ה לאחרונה '+(u.last?fmtDT(u.last):'—'),(u.opens||0)+' פתיחות',u.tasks+' משימות'];
+    const p=['הצטרף/ה '+fmtD(u.joined),u.tasks+' משימות'];
     if(!u.pending&&u.until!=null&&!C.freeMode&&u.allowed&&u.plan!=='trial') p.push('נשארו '+u.daysLeft+' ימים');
     return p.join(' · ');
   };
   // בחירת תוקף: כל אפשרות מראה את תאריך הסיום שייצא, לפני הלחיצה
-  const planRow=(label,pi,pv,mi,mv,ei,ev)=>{ const inp=(id,v)=>'<td style="padding:2px"><input id="'+id+'" type="number" min="0" value="'+escA(v==null?'':v)+'" style="width:100%;margin:0;padding:6px;text-align:center"></td>'; return '<tr><td style="white-space:nowrap;padding-left:4px">'+label+'</td>'+inp(pi,pv)+inp(mi,mv)+inp(ei,ev)+'</tr>'; };
+  const planRow=(label,pi,pv,mi,mv,ei,ev)=>{ const inp=(id,v)=>'<td style="padding:2px"><input id="'+id+'" type="number" min="0" value="'+escA(v==null?'':v)+'" style="width:100%;min-width:0;box-sizing:border-box;margin:0;padding:6px;text-align:center"></td>'; return '<tr><td style="white-space:nowrap;padding-left:4px">'+label+'</td>'+inp(pi,pv)+inp(mi,mv)+inp(ei,ev)+'</tr>'; };
   // מחיר ומשתתפים ללקוח: תוספת משתתפים (מחיר אוטומטי מתעדכן) או מחיר קבוע משלו
   const planBox=u=>{
     const biz=u.kind==='business', baseLim=u.limit-(u.extraMembers||0), basePrice=Number(biz?(C.priceBusiness!=null?C.priceBusiness:C.price):C.price)||0, xp=Number(biz?C.extraPriceBusiness:C.extraPricePrivate)||0;
@@ -1199,35 +1198,41 @@ async function renderAccessAdmin(cached){
       +'<div style="display:flex;gap:6px;align-items:center"><span style="font-size:13px;white-space:nowrap">📅 עד תאריך</span><input type="date" id="optd-'+escA(u.uid)+'" min="'+new Date(now+D).toLocaleDateString('en-CA')+'" style="flex:1;margin:0;padding:6px 8px;min-width:0">'
       +'<button data-uid="'+escA(u.uid)+'" data-act="until" style="height:36px;padding:0 14px;border-radius:10px;border:0;background:#1E1B4B;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">קבע</button></div></div>';
   };
-  box.innerHTML=tabs
-    +(users.length?'<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:12px;margin-bottom:10px">'
-      +(n.pending?chip('🙋 ממתינים',n.pending,'#EEF0FF','#3730A3'):'')+chip('✅ פעילים',n.ok,'#E7F8EF','#0F6B3E')+(n.off?chip('🔒 לא פעילים',n.off,'#FDECEA','#B42318'):'')+'</div>':'')
-    +(users.length?users.map(u=>{ const [bt,bg,fg]=badge(u);
+  box.innerHTML=(users.length?'<div style="font-size:13px;color:#5B5B76;margin-bottom:10px">'+n.ok+' פעילים'+(n.pending?' · <b style="color:#3730A3">'+n.pending+' ממתינים לאישור</b>':'')+(n.off?' · '+n.off+' נעולים':'')+'</div>':'')
+    +(users.length?users.map(u=>{ const [bt,bg,fg]=badge(u); const open=accOpen===u.uid;
     return '<div style="border:1.5px solid '+(u.pending?'#C7C9F5':'#E2E1F0')+';border-radius:14px;padding:10px 12px;margin-bottom:8px;'+(u.pending?'background:#F7F7FF':'')+'">'
-      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="font-size:15px">'+escA(u.name||u.email||'משתמש')+'</b>'
-      +'<span style="font-size:12px;padding:3px 8px;border-radius:8px;background:'+bg+';color:'+fg+';font-weight:600">'+bt+'</span></div>'
-      +'<div style="font-size:12px;color:#5B5B76;margin:2px 0 0;direction:ltr;text-align:right">'+escA(u.email)+'</div>'
-      +'<div style="display:inline-flex;margin:6px 0 2px;border:1.5px solid #E2E1F0;border-radius:10px;overflow:hidden">'+kindBtn(u,'business','🏢 עסקי')+kindBtn(u,'private','👤 פרטי')+'</div>'
-      +'<div style="font-size:12px;color:#5B5B76;margin:2px 0 2px">'+info(u)+'</div>'
-      +'<div style="font-size:12px;color:#1A1A2E;margin:0 0 8px">💰 '+u.price+' ₪ לחודש'+(u.customPrice!=null?' (קבוע)':'')+' · 👥 עד '+u.limit+' משתתפים'+(u.lists?' · ברשימה הגדולה '+u.maxMembers+'/'+u.limit+(u.maxMembers>=u.limit?' <b style="color:#B42318">מלאה</b>':''):'')+'</div>'
-      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
-      +(u.pending
-        ? btn(u.uid,'year','✅ אשר לשנה','main')+btn(u.uid,'opt','⏳ תקופה אחרת')+btn(u.uid,'lock','❌ דחה','danger')
-        : btn(u.uid,'opt',u.allowed?'⏳ תוקף':'🔓 פתח גישה',u.allowed?'':'main')+btn(u.uid,'plan','💰 מחיר ומשתתפים')+(u.locked?'':btn(u.uid,'lock','🔒 נעל','danger'))+(u.last||u.opens?btn(u.uid,'clear-stats','🧹 מחק היסטוריה'):''))
+      +'<div data-toggle="'+escA(u.uid)+'" style="display:flex;gap:8px;align-items:center;cursor:pointer">'
+      +'<div style="flex:1;min-width:0"><b style="font-size:15px">'+escA(u.name||u.email||'משתמש')+'</b><div style="font-size:12px;color:#5B5B76">'+lastShort(u)+'</div></div>'
+      +'<span style="font-size:12px;padding:3px 8px;border-radius:8px;background:'+bg+';color:'+fg+';font-weight:600;white-space:nowrap">'+bt+'</span>'
+      +'<span style="color:#5B5B76;font-size:12px">'+(open?'▴':'▾')+'</span></div>'
+      +(u.pending?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+btn(u.uid,'year','✅ אשר לשנה','main')+btn(u.uid,'opt','⏳ תקופה אחרת')+btn(u.uid,'lock','❌ דחה','danger')+'</div>':'')
+      +'<div id="det-'+escA(u.uid)+'" style="display:'+(open?'block':'none')+';margin-top:8px;border-top:1px solid #EEEDF7;padding-top:8px">'
+      +'<div style="font-size:12px;color:#5B5B76;direction:ltr;text-align:right">'+escA(u.email)+'</div>'
+      +'<div style="font-size:12px;color:#5B5B76;margin:2px 0 6px">'+info(u)+'</div>'
+      +'<div style="display:inline-flex;margin:0 0 8px;border:1.5px solid #E2E1F0;border-radius:10px;overflow:hidden">'+kindBtn(u,'business','🏢 עסקי')+kindBtn(u,'private','👤 פרטי')+'</div>'
+      +(C.freeMode?'':'<div style="font-size:12px;color:#1A1A2E;margin:0 0 8px">💰 '+u.price+' ₪ לחודש'+(u.customPrice!=null?' (קבוע)':'')+' · 👥 עד '+u.limit+' משתתפים'+(u.lists?' · ברשימה הגדולה '+u.maxMembers+'/'+u.limit+(u.maxMembers>=u.limit?' <b style="color:#B42318">מלאה</b>':''):'')+'</div>')
+      +(u.pending?'':'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+        +btn(u.uid,'opt',u.allowed?'⏳ תוקף':'🔓 פתח גישה',u.allowed?'':'main')+btn(u.uid,'plan','💰 מחיר ומשתתפים')+(u.locked?'':btn(u.uid,'lock','🔒 נעל','danger'))+(u.last||u.opens?btn(u.uid,'clear-stats','🧹 מחק היסטוריה'):'')
+        +'</div>')
       +'</div>'+optBox(u)+(u.pending?'':planBox(u))+'</div>';
-  }).join(''):'<div style="color:#5B5B76">'+(j.users.length?'אין משתמשים בקבוצה הזו':'אין עדיין משתמשים')+'</div>')
-    +'<details style="margin-top:10px;border:1.5px solid #E2E1F0;border-radius:14px;padding:4px 12px"><summary style="cursor:pointer;font-weight:700;font-size:14px;padding:8px 0">⚙️ הגדרות הרשמה ומחיר</summary>'
+  }).join(''):'<div style="color:#5B5B76">אין עדיין משתמשים</div>');
+  const cfgBox=document.getElementById('cfg-body');
+  if(cfgBox) cfgBox.innerHTML=
+'<div style="font-weight:700;font-size:14px;margin-bottom:4px">הרשמה</div>'
     +'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0;cursor:pointer"><input id="acc-free" type="checkbox" style="width:auto;margin:0" '+(C.freeMode?'checked':'')+'> <span><b>🎁 תקופת הרצה</b> – כל מי שאושר משתמש בחינם, בלי הגבלת זמן</span></label>'
     +'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0;cursor:pointer"><input id="acc-approval" type="checkbox" style="width:auto;margin:0" '+(C.approval?'checked':'')+'> <span><b>כל משתמש חדש צריך את האישור שלי</b> (מי שקיבל את הקישור ממישהו אחר יחכה לאישור)</span></label>'
     +'<div style="display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center;font-size:13px;color:#5B5B76;margin:8px 0">'
     +'<span>ימי ניסיון</span><input id="acc-days" type="number" min="1" max="365" value="'+escA(C.trialDays)+'" style="width:80px;margin:0;padding:6px 8px">'
     +'</div><div style="font-weight:700;font-size:13px;margin:10px 0 6px">מסלולים</div>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:12px;color:#1A1A2E;margin-bottom:6px"><tr style="color:#5B5B76"><th></th><th style="font-weight:400;padding:0 2px 4px">מחיר לחודש ₪</th><th style="font-weight:400;padding:0 2px 4px">משתתפים כלולים</th><th style="font-weight:400;padding:0 2px 4px">₪ לכל משתתף נוסף</th></tr>'
+    +'<table style="width:100%;min-width:0;border:0;table-layout:fixed;border-collapse:collapse;font-size:12px;color:#1A1A2E;margin-bottom:6px"><tr style="color:#5B5B76"><th></th><th style="font-weight:400;padding:0 2px 4px">מחיר לחודש ₪</th><th style="font-weight:400;padding:0 2px 4px">משתתפים כלולים</th><th style="font-weight:400;padding:0 2px 4px">₪ לכל משתתף נוסף</th></tr>'
     +planRow('👤 פרטי','acc-price',C.price,'acc-mem-p',C.membersPrivate,'acc-ext-p',C.extraPricePrivate)
     +planRow('🏢 עסקי','acc-price-b',C.priceBusiness!=null?C.priceBusiness:C.price,'acc-mem-b',C.membersBusiness,'acc-ext-b',C.extraPriceBusiness)
     +'</table><div style="font-size:11px;color:#5B5B76;margin-bottom:8px">"משתתפים" = כמה אנשים יכולים להיות ברשימה משותפת של הלקוח, כולל אותו. לקוח שלא סווג נחשב פרטי. אפשר לקבוע ללקוח מחיר קבוע משלו דרך 💰.</div><div style="display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center;font-size:13px;color:#5B5B76;margin:8px 0">'
     +'<span>וואטסאפ ליצירת קשר</span><input id="acc-contact" type="tel" value="'+escA(C.contact)+'" style="width:140px;margin:0;padding:6px 8px">'
-    +'</div><button id="acc-save" class="bulk-btn" style="margin-bottom:10px">שמור הגדרות</button></details>';
+    +'</div><button id="acc-save" class="bulk-btn" style="margin-bottom:16px">שמור הגדרות</button>'
+    +'<div style="font-weight:700;font-size:14px;margin-bottom:4px">היסטוריית שימוש</div><div style="font-size:12px;color:#5B5B76;margin-bottom:8px">מוחק את נתוני הכניסות של כל המשתמשים (מי נכנס, מתי וכמה פעמים). המשימות והמשתמשים לא נמחקים.</div>'
+    +'<button id="st-clear-all" style="height:34px;padding:0 12px;border-radius:10px;border:1.5px solid #F3B5B5;background:#FDECEA;color:#B42318;font-size:13px;font-family:inherit;cursor:pointer">🧹 מחק את כל היסטוריית השימוש</button>';
+
   // עדכון חי של מספר המשתתפים והמחיר האוטומטי בחלון המסלול
   box.querySelectorAll('[id^="plan-"]').forEach(pb=>{
     const upd=()=>{ const e=Number(pb.querySelector('.pl-extra').textContent)||0; pb.querySelector('.pl-lim').textContent='= עד '+(Number(pb.dataset.baseLim)+e)+' משתתפים'; pb.querySelector('.pl-auto').textContent=(Number(pb.dataset.basePrice)+e*Number(pb.dataset.xp))+' ₪'; };
@@ -1235,7 +1240,7 @@ async function renderAccessAdmin(cached){
     pb.querySelector('.pl-fixed').oninput=()=>{ pb.querySelector('input[value="fixed"]').checked=true; };
     upd();
   });
-  box.querySelectorAll('button[data-filter]').forEach(b=>b.onclick=()=>{ accFilter=b.getAttribute('data-filter'); renderAccessAdmin(true); });
+  box.querySelectorAll('[data-toggle]').forEach(el=>el.onclick=()=>{ const uid=el.getAttribute('data-toggle'); accOpen=accOpen===uid?'':uid; renderAccessAdmin(true); });
   box.querySelectorAll('button[data-act]').forEach(b=>b.onclick=async()=>{
     const act=b.getAttribute('data-act'), uid=b.getAttribute('data-uid');
     if(act==='opt'||act==='plan'){ const id=(act==='opt'?'opt-':'plan-')+uid; box.querySelectorAll('[id^="opt-"],[id^="plan-"]').forEach(x=>{ if(x.id!==id) x.style.display='none'; }); const ob=document.getElementById(id); ob.style.display=ob.style.display==='none'?'block':'none'; return; }
@@ -1250,7 +1255,7 @@ async function renderAccessAdmin(cached){
     }
     if(act==='clear-stats'){
       if(!confirm('למחוק את היסטוריית השימוש של המשתמש (מתי נכנס וכמה פעמים)? המשימות שלו לא נמחקות.')) return;
-      b.disabled=true; const r=await statsApi('clear',{uid}); showToast(r&&r.ok?'ההיסטוריה נמחקה ✓':'שגיאה: '+((r&&r.error)||'')); showStats(); return;
+      b.disabled=true; const r=await statsApi('clear',{uid}); showToast(r&&r.ok?'ההיסטוריה נמחקה ✓':'שגיאה: '+((r&&r.error)||'')); renderAccessAdmin(); return;
     }
     const body={uid,action:act};
     if(act==='extend'||(act==='approve'&&b.hasAttribute('data-days'))) body.days=Number(b.getAttribute('data-days'));
@@ -1260,7 +1265,12 @@ async function renderAccessAdmin(cached){
     b.disabled=true; const r=await accessApi('set',body);
     showToast(r&&r.ok?(act==='kind'?(r.kind==='business'?'סומן כעסקי ✓':r.kind==='private'?'סומן כפרטי ✓':'הסיווג הוסר ✓'):r.until?'תוקף עד '+fmtD(r.until)+' ✓':'עודכן ✓'):'שגיאה: '+((r&&r.error)||'')); renderAccessAdmin();
   });
-  document.getElementById('acc-save').onclick=async()=>{
+  const ca=document.getElementById('st-clear-all');
+  if(ca) ca.onclick=async()=>{
+    if(!confirm('למחוק את כל היסטוריית השימוש של כל המשתמשים (מי נכנס, מתי וכמה פעמים)? המשימות והמשתמשים לא נמחקים.')) return;
+    ca.disabled=true; const r=await statsApi('clear',{}); showToast(r&&r.ok?'היסטוריית השימוש נמחקה ✓':'שגיאה: '+((r&&r.error)||'')); showStats('users');
+  };
+  const sv=document.getElementById('acc-save'); if(sv) sv.onclick=async()=>{
     const r=await accessApi('config',{trialDays:document.getElementById('acc-days').value,price:document.getElementById('acc-price').value,priceBusiness:document.getElementById('acc-price-b').value,membersPrivate:document.getElementById('acc-mem-p').value,membersBusiness:document.getElementById('acc-mem-b').value,extraPricePrivate:document.getElementById('acc-ext-p').value,extraPriceBusiness:document.getElementById('acc-ext-b').value,contact:document.getElementById('acc-contact').value,approval:document.getElementById('acc-approval').checked,freeMode:document.getElementById('acc-free').checked});
     renderAccessAdmin();
     showToast(r&&r.ok?'ההגדרות נשמרו ✓':'שגיאה בשמירה');
@@ -1283,11 +1293,20 @@ setTimeout(trackVisit,800);
 function statsPing(){ statsApi('ping',{standalone:isStandalone(), platform:statsPlatform()}); }
 window.addEventListener('appinstalled', ()=>statsApi('event',{type:'install'}));
 
-async function showStats(){
+// ניהול: שלוש לשוניות - משתמשים / נתונים / הגדרות
+async function showStats(tab){
+  tab=tab||'users';
   document.getElementById('edit-modal')?.remove();
   const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
-  ov.innerHTML='<div class="modal" style="max-width:600px;max-height:90vh;overflow:auto"><h3>👥 משתמשים ומנויים</h3><div id="acc-body" style="font-size:13px;margin-bottom:16px">טוען...</div><h3>📊 נתוני שימוש</h3><div id="st-body" style="font-size:13px">טוען...</div><div class="modal-btns"><button class="btn-cancel" onclick="document.getElementById(\'edit-modal\').remove()">סגור</button></div></div>';
+  const T=(k,l)=>'<button data-tab="'+k+'" style="flex:1;height:38px;border:0;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer">'+l+'</button>';
+  ov.innerHTML='<div class="modal" style="max-width:600px;max-height:90vh;overflow:auto">'
+    +'<div style="display:flex;gap:4px;background:#F4F3FB;border-radius:12px;padding:4px;margin-bottom:12px">'+T('users','👥 משתמשים')+T('stats','📊 נתונים')+T('cfg','⚙️ הגדרות')+'</div>'
+    +'<div id="acc-body" data-pane="users" style="font-size:13px">טוען...</div><div id="st-body" data-pane="stats" style="font-size:13px">טוען...</div><div id="cfg-body" data-pane="cfg" style="font-size:13px">טוען...</div>'
+    +'<div class="modal-btns"><button class="btn-cancel" onclick="document.getElementById(\'edit-modal\').remove()">סגור</button></div></div>';
   document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  const show=k=>{ ov.querySelectorAll('[data-pane]').forEach(p=>p.style.display=p.dataset.pane===k?'block':'none');
+    ov.querySelectorAll('[data-tab]').forEach(b=>{ const on=b.dataset.tab===k; b.style.background=on?'#1E1B4B':'transparent'; b.style.color=on?'#fff':'#1E1B4B'; b.style.fontWeight=on?'700':'400'; }); };
+  ov.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>show(b.dataset.tab)); show(tab);
   renderAccessAdmin();
   const j=await statsApi('summary');
   const body=document.getElementById('st-body'); if(!body) return;
@@ -1311,23 +1330,20 @@ async function showStats(){
   const since=j.trackingSince?j.trackingSince.split('-').reverse().join('/'):'היום';
   const V=j.visits||{total:0,today:0,d7:0,d30:0,todayNew:0,fromHome:0}, td=j.days[j.days.length-1]||{};
   body.innerHTML=
-    '<div style="font-weight:600;margin-bottom:6px">🔗 כניסות לקישור (גם בלי הרשמה)</div>'
+    grid([card('פעילים היום',td.active||0), card('פעילים השבוע',U.active7,'ב-30 יום: '+U.active30), card('משתמשים רשומים',U.total,'חדשים השבוע: '+U.new7), card('פתחו את הקישור היום',V.today)])
+    +activityHtml(j.activity||[])
+    +chart('משתמשים פעילים ביום','active','#1a73e8')
+    +'<details style="margin-top:14px;border:1.5px solid #E2E1F0;border-radius:14px;padding:4px 12px"><summary style="cursor:pointer;font-weight:700;font-size:14px;padding:8px 0">עוד נתונים</summary>'
+    +'<div style="font-weight:600;margin-bottom:6px">🔗 כניסות לקישור (גם בלי הרשמה)</div>'
     +grid([card('היום',V.today,'פעם ראשונה: '+V.todayNew), card('7 ימים',V.d7), card('30 ימים',V.d30), card('סה"כ מכשירים',V.total)])
     +'<div style="background:#F4F3FB;border-radius:10px;padding:8px 10px;margin-bottom:12px;font-size:13px"><b>היום:</b> פתחו '+(td.visitors||0)+' → נרשמו '+(td.newUsers||0)+' → התקינו '+(td.installs||0)+'</div>'
-    +'<div style="font-weight:600;margin-bottom:6px">משתמשים (כניסה עם Google, בלי כניסת המנהל)</div>'
-    +grid([card('רשומים',U.total), card('חדשים',U.new7,'ב-7 ימים · '+U.new30+' ב-30'), card('פעילים היום',td.active||0,'מחצות'), card('פעילים',U.active7,'ב-7 ימים · '+U.active30+' ב-30')])
     +'<div style="font-weight:600;margin-bottom:6px">התקנות ושימוש</div>'
     +grid([card('התקינו למסך הבית',I.installed,'פתחו משם ב-7 ימים: '+I.openFromHome7), card('התראות מופעלות',S.pushUsers), card('יומן מחובר',S.gcalUsers), card('רשימות משותפות',S.sharedLists),
       card('משימות',S.tasksTotal,S.tasksOpen+' פתוחות · '+S.tasks30+' ב-30 יום'), card('הוספות בקול / בהקלדה',S.voice+' / '+S.typed,'מאז '+since+' · כולל משימות שנמחקו')])
     +'<div style="font-size:12px;color:#666;margin-bottom:6px">מכשירים: '+(Object.entries(I.platforms).map(([k,v])=>(plat[k]||k)+' '+v).join(' · ')||'—')+'</div>'
-    +chart('כניסות לקישור ביום','visitors','#FF5A5F')+chart('משתמשים פעילים ביום','active','#1a73e8')+chart('משתמשים חדשים','newUsers','#217346')+chart('משימות שנוצרו','tasks','#E53935')
+    +chart('כניסות לקישור ביום','visitors','#FF5A5F')+chart('משתמשים חדשים','newUsers','#217346')+chart('משימות שנוצרו','tasks','#E53935')
     +'<div style="font-size:11px;color:#999;margin-top:10px">משתמשים חדשים ומשימות – כולל נתונים מלפני המדידה. פעילים, התקנות וקול/הקלדה – נאספים מ-'+since+'.</div>'
-    +activityHtml(j.activity||[]);
-  const cb=document.getElementById('st-clear-all');
-  if(cb) cb.onclick=async()=>{
-    if(!confirm('למחוק את כל היסטוריית השימוש של כל המשתמשים (מי נכנס, מתי וכמה פעמים)? המשימות והמשתמשים לא נמחקים.')) return;
-    cb.disabled=true; const r=await statsApi('clear',{}); showToast(r&&r.ok?'היסטוריית השימוש נמחקה ✓':'שגיאה: '+((r&&r.error)||'')); showStats();
-  };
+    +'</details>';
 }
 // מי נכנס ומתי - 14 הימים האחרונים
 function activityHtml(days){
@@ -1337,8 +1353,7 @@ function activityHtml(days){
     +(days.length?days.map(d=>'<div style="border:1.5px solid #E2E1F0;border-radius:12px;padding:8px 10px;margin-bottom:6px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">'+dayName(d.day)+' · '+d.people.length+' משתמשים</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:6px">'+d.people.map(p=>'<span style="background:#F4F3FB;border-radius:999px;padding:3px 10px;font-size:12px">'+escA(p.name||'משתמש')+(p.at?' <b style="color:#1E1B4B">'+fmtT(p.at)+'</b>':'')+'</span>').join('')+'</div></div>').join('')
       :'<div style="color:#888;font-size:12px">אין כניסות ב-14 הימים האחרונים</div>')
-    +'<div style="font-size:11px;color:#999;margin:4px 0 8px">השעה = הכניסה האחרונה באותו יום. כניסות מלפני היום מופיעות בלי שעה.</div>'
-    +'<button id="st-clear-all" style="height:34px;padding:0 12px;border-radius:10px;border:1.5px solid #F3B5B5;background:#FDECEA;color:#B42318;font-size:13px;font-family:inherit;cursor:pointer">🧹 מחק את כל היסטוריית השימוש</button>';
+    +'<div style="font-size:11px;color:#999;margin:4px 0 8px">השעה = הכניסה האחרונה באותו יום.</div>';
 }
 
 function iosInstallHint(){
@@ -1786,7 +1801,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-31a';
+const APP_VERSION='2026-10-31b';
 async function checkAppUpdate(){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
