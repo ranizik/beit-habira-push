@@ -1399,6 +1399,7 @@ function iosInstallHint(){
 
 function startTasks(u){
   if(tasksStarted) return;
+  if(u.uid==='staff-tasks' || /^ranizik@gmail\.com$/i.test(u.email||'')) markAdminDevice();
   curUser=u; registerPush(true); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp();
   const sb=document.getElementById('stats-btn'); if(sb) sb.style.display = u.uid==='staff-tasks' ? '' : 'none';
   let saved=''; try{ saved=localStorage.getItem('tasks_cur_list')||''; }catch(e){}
@@ -1486,12 +1487,12 @@ function showTasksLogin(){
   const ov=document.createElement('div'); ov.id='tasks-login';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999';
   ov.innerHTML='<div style="background:#fff;border-radius:14px;padding:22px;width:min(320px,90vw);text-align:center;direction:rtl">'
-    +'<img src="icon-v3-192.png" alt="" style="width:64px;height:64px;border-radius:18px;margin-bottom:8px"><div style="font-weight:800;font-size:22px;color:#1E1B4B">תכל׳ס</div><div style="font-size:13px;color:#5B5B76;margin-bottom:14px">אמרת – זה נרשם</div>'
+    +'<img id="login-logo" src="icon-v3-192.png" alt="" style="width:64px;height:64px;border-radius:18px;margin-bottom:8px"><div style="font-weight:800;font-size:22px;color:#1E1B4B">תכל׳ס</div><div style="font-size:13px;color:#5B5B76;margin-bottom:14px">אמרת – זה נרשם</div>'
     +'<button id="tasks-google-btn" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#333;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-brand-google"></i> כניסה עם Google</button>'
-    +'<div style="font-size:12px;color:#999;margin:14px 0 8px">או כניסת מנהל</div>'
+    +'<div id="adm-wrap" style="display:'+(isAdminDevice()?'block':'none')+'"><div style="font-size:12px;color:#999;margin:14px 0 8px">או כניסת מנהל</div>'
     +'<input type="text" name="username" autocomplete="username" value="מנהל" style="display:none" tabindex="-1" aria-hidden="true">' // שהדפדפן ימלא כאן ולא בשדה המשימה
     +'<input id="tasks-pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="קוד מנהל" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box">'
-    +'<button id="tasks-login-btn" style="margin-top:12px;width:100%;padding:10px;font-size:16px;border:0;border-radius:8px;background:#1E1B4B;color:#fff">כניסה</button>'
+    +'<button id="tasks-login-btn" style="margin-top:12px;width:100%;padding:10px;font-size:16px;border:0;border-radius:8px;background:#1E1B4B;color:#fff">כניסה</button></div>'
     +'<button type="button" onclick="showHelp()" style="margin-top:12px;background:none;border:0;color:#4338CA;font-size:14px;font-weight:600;font-family:inherit">❓ איך זה עובד?</button>'
     +'<div style="margin-top:10px;font-size:11px;color:#8A89A3">© 2026 רני איציק · כל הזכויות שמורות</div></div>';
   document.body.appendChild(ov);
@@ -1499,7 +1500,12 @@ function showTasksLogin(){
   document.getElementById('tasks-google-btn').onclick=googleLogin;
   setupGoogleButton();
   document.getElementById('tasks-pin').addEventListener('keydown',e=>{ if(e.key==='Enter') tasksLogin(); });
+  // כניסת מנהל מוסתרת: מופיעה רק במכשיר של בעל העסק. במכשיר חדש - 5 הקשות מהירות על הלוגו
+  let taps=0, tt=0; document.getElementById('login-logo').onclick=()=>{ const now=Date.now(); taps=now-tt<1500?taps+1:1; tt=now;
+    if(taps>=5){ document.getElementById('adm-wrap').style.display='block'; document.getElementById('tasks-pin').focus(); } };
 }
+function isAdminDevice(){ try{ return localStorage.getItem('tk_admin')==='1' || new URLSearchParams(location.search).has('admin'); }catch(e){ return false; } }
+function markAdminDevice(){ try{ localStorage.setItem('tk_admin','1'); }catch(e){} }
 async function tasksLogin(){
   const pin=document.getElementById('tasks-pin').value; if(!pin) return;
   try{
@@ -1830,7 +1836,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-31d';
+const APP_VERSION='2026-10-31e';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
