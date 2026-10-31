@@ -1296,6 +1296,7 @@ window.addEventListener('appinstalled', ()=>statsApi('event',{type:'install'}));
 // ניהול: שלוש לשוניות - משתמשים / נתונים / הגדרות
 async function showStats(tab){
   tab=tab||'users';
+  if(await checkAppUpdate(true)) return; // לפני פתיחת הניהול - אם יש גרסה חדשה, נטענת קודם
   document.getElementById('edit-modal')?.remove();
   const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
   const T=(k,l)=>'<button data-tab="'+k+'" style="flex:1;height:38px;border:0;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer">'+l+'</button>';
@@ -1801,13 +1802,14 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-31b';
-async function checkAppUpdate(){
+const APP_VERSION='2026-10-31c';
+async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
     const m=t.match(/const APP_VERSION='([^']+)'/);
-    if(m && m[1]!==APP_VERSION && !isRecording && !document.getElementById('edit-modal') && !document.getElementById('f-name').value) location.reload();
+    if(m && m[1]!==APP_VERSION && !isRecording && (beforePanel || !document.getElementById('edit-modal')) && !document.getElementById('f-name').value){ location.reload(); return true; }
   }catch(e){}
+  return false;
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ checkAppUpdate(); checkAccess(); } });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/tasks/sw-push.js', {scope: '/tasks/'}).catch(()=>{});
