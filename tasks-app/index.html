@@ -1520,9 +1520,8 @@ function startTasks(u){
   if(u.uid==='staff-tasks' || /^ranizik@gmail\.com$/i.test(u.email||'')) markAdminDevice();
   curUser=u; registerPush(true); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp();
   const sb=document.getElementById('stats-btn'); if(sb) sb.style.display = u.uid==='staff-tasks' ? '' : 'none';
-  let saved=''; try{ saved=localStorage.getItem('tasks_cur_list')||''; }catch(e){}
   curList=null; tasksRef=listTasksRef(null); tasksStarted=true; subscribeTasks(); renderLists();
-  handleJoinLink().then(joined=>{ if(!joined && saved){ db.ref('todo/userLists/'+u.uid+'/'+saved).once('value').then(s=>{ if(s.val()&&!curList){ myLists[saved]=myLists[saved]||{name:'...'}; switchList(saved); } }).catch(()=>{}); } });
+  handleJoinLink(); // בפתיחה תמיד מתחילים ב"שלי" (לא ברשימה האחרונה שהייתה פתוחה)
 }
 function stopTasks(){
   if(tasksStarted){ tasksRef.off(); tasksStarted=false; }
@@ -1954,7 +1953,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-31j';
+const APP_VERSION='2026-10-31k';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
