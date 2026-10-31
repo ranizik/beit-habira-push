@@ -261,9 +261,13 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
 <script>
+// ── כתובת האפליקציה: tachlesapps.com (עברה מ-beit-habira.com/tasks). אותם קבצים מוגשים בשתי הכתובות ──
+const APP_URL = 'https://tachlesapps.com/';
+const APP_BASE = new URL('./', location.href).pathname; // '/' בכתובת החדשה, '/tasks/' בישנה
+const OLD_HOST = /(^|\.)beit-habira\.com$/i.test(location.hostname); // בכתובת הישנה: מעבירים את המשתמש (מחובר) לכתובת החדשה
 const TASKS_APP = firebase.initializeApp({
   apiKey:"AIzaSyA1Pq3qi361K9xDwv6v4Q44d_nLgpZBtRs",
-  authDomain:"beit-habira.com", // קבצי ההתחברות מתארחים ב-beit-habira.com/__/auth - בלי זה התחברות Google לא עובדת באייפון (Safari חוסם)
+  authDomain: /tachlesapps\.com$/i.test(location.hostname) ? "tachlesapps.com" : "beit-habira.com", // קבצי ההתחברות מתארחים ב-<דומיין>/__/auth - בלי זה התחברות Google לא עובדת באייפון (Safari חוסם)
   databaseURL:"https://orders-app-78c0f-default-rtdb.europe-west1.firebasedatabase.app",
   projectId:"orders-app-78c0f",
   storageBucket:"orders-app-78c0f.firebasestorage.app",
@@ -519,7 +523,7 @@ async function registerPush(silent){
   try {
     const u = TASKS_APP.auth().currentUser;
     if (!HAS_NOTIF || Notification.permission !== 'granted' || !u) return false;
-    const reg = await navigator.serviceWorker.register('/tasks/sw-push.js', {scope: '/tasks/'});
+    const reg = await navigator.serviceWorker.register(APP_BASE+'sw-push.js', {scope: APP_BASE});
     await navigator.serviceWorker.ready;
     const token = await TASKS_APP.messaging().getToken({vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: reg});
     if (!token) throw new Error('no token');
@@ -553,8 +557,8 @@ function requestNotify() {
     if (p !== 'granted') { showToast('לא אושרו התראות'); return; }
     if (await registerPush(false)) {
       showToast('התראות מופעלות במכשיר הזה ✓');
-      const reg = await navigator.serviceWorker.getRegistration('/tasks/');
-      if (reg) reg.showNotification('תכל׳ס', {body: 'התראות פעילות! תקבל תזכורת בערב שלפני ובשעת המשימה.', icon: '/tasks/icon-v3-192.png', dir: 'rtl'});
+      const reg = await navigator.serviceWorker.getRegistration(APP_BASE);
+      if (reg) reg.showNotification('תכל׳ס', {body: 'התראות פעילות! תקבל תזכורת בערב שלפני ובשעת המשימה.', icon: APP_BASE+'icon-v3-192.png', dir: 'rtl'});
     }
   });
 }
@@ -576,7 +580,7 @@ async function notifSettings(){
   const j=await nagApi().catch(()=>null);
   if(j&&j.ok){ document.getElementById('n-mode').value=j.mode; document.getElementById('n-every').value=String(j.every); }
   document.getElementById('n-save').onclick=async()=>{ const r=await nagApi({mode:document.getElementById('n-mode').value,every:Number(document.getElementById('n-every').value)}).catch(()=>null); showToast(r&&r.ok?(r.mode==='off'?'הנודניק כבוי':'✓ הנודניק פעיל – כל '+r.every+' דקות'):'השמירה נכשלה'); if(r&&r.ok) ov.remove(); };
-  document.getElementById('n-test').onclick=async()=>{ const ok=await registerPush(false); const reg=await navigator.serviceWorker.getRegistration('/tasks/'); if(reg) reg.showNotification('תכל׳ס',{body:'בדיקה – ההתראות עובדות ✓',icon:'/tasks/icon-v3-192.png',dir:'rtl'}); if(!ok) showToast('ההתראות לא נרשמו'); };
+  document.getElementById('n-test').onclick=async()=>{ const ok=await registerPush(false); const reg=await navigator.serviceWorker.getRegistration(APP_BASE); if(reg) reg.showNotification('תכל׳ס',{body:'בדיקה – ההתראות עובדות ✓',icon:APP_BASE+'icon-v3-192.png',dir:'rtl'}); if(!ok) showToast('ההתראות לא נרשמו'); };
 }
 
 // ── Hebrew parser ──
@@ -865,7 +869,7 @@ function scheduleLocal(t) {
     timers.push(setTimeout(()=>{
       new Notification('תזכורת למחר: ' + t.name, {
         body: 'מחר' + (t.time ? ' בשעה ' + t.time : ''),
-        icon: '/tasks/icon-v3-192.png', dir: 'rtl', requireInteraction: true
+        icon: APP_BASE+'icon-v3-192.png', dir: 'rtl', requireInteraction: true
       });
     }, msBefore));
   }
@@ -878,7 +882,7 @@ function scheduleLocal(t) {
       timers.push(setTimeout(()=>{
         new Notification('הגיע הזמן: ' + t.name, {
           body: 'עכשיו!',
-          icon: '/tasks/icon-v3-192.png', dir: 'rtl', requireInteraction: true
+          icon: APP_BASE+'icon-v3-192.png', dir: 'rtl', requireInteraction: true
         });
       }, msTask));
     }
@@ -1028,7 +1032,7 @@ async function createList(){
 }
 async function shareList(){
   const l=myLists[curList]; if(!l||!l.invite){ showToast('רגע, טוען...'); return; }
-  const link=location.origin+'/tasks/?join='+curList+'.'+l.invite;
+  const link=APP_URL+'?join='+curList+'.'+l.invite;
   const text='הצטרף לרשימת המשימות "'+l.name+'":';
   if(navigator.share){ try{ await navigator.share({title:'משימות - '+l.name, text, url:link}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
   try{ await navigator.clipboard.writeText(text+' '+link); showToast('הקישור הועתק - הדבק בוואטסאפ'); }
@@ -1518,7 +1522,7 @@ function iosInstallHint(){
 function startTasks(u){
   if(tasksStarted) return;
   if(u.uid==='staff-tasks' || /^ranizik@gmail\.com$/i.test(u.email||'')) markAdminDevice();
-  curUser=u; registerPush(true); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp();
+  curUser=u; registerPush(true); setTimeout(showMovedBanner,1500); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp();
   const sb=document.getElementById('stats-btn'); if(sb) sb.style.display = u.uid==='staff-tasks' ? '' : 'none';
   curList=null; tasksRef=listTasksRef(null); tasksStarted=true; subscribeTasks(); renderLists();
   handleJoinLink(); // בפתיחה תמיד מתחילים ב"שלי" (לא ברשימה האחרונה שהייתה פתוחה)
@@ -1586,6 +1590,12 @@ async function onGoogleCredential(resp){
 // חזרה מגוגל (אייפון): #ct=טוקן כניסה, או #lerr=הודעת שגיאה
 (function(){
   const h=location.hash;
+  // הגעה מהכתובת הישנה: כרטיס כניסה (mt) + מזהה המכשיר הקודם (did) - כדי שההתראות יחליפו את הישנות ולא יוכפלו
+  const mt=(h.match(/[#&]mt=([^&]+)/)||[])[1], did=(h.match(/[#&]did=([^&]+)/)||[])[1];
+  if(mt||did) history.replaceState(null,'',location.pathname+location.search);
+  try{ const d=decodeURIComponent(did||''); if(/^[A-Za-z0-9_-]{1,40}$/.test(d)) localStorage.setItem('tasks_device_id',d); }catch(e){}
+  if(mt && !OLD_HOST){ try{ localStorage.setItem('tk_migrated','1'); }catch(e){}
+    TASKS_APP.auth().signInWithCustomToken(decodeURIComponent(mt)).catch(e=>setTimeout(()=>loginNote('ההתחברות נכשלה – היכנס שוב עם Google'),600)); }
   const ct=(h.match(/[#&]ct=([^&]+)/)||[])[1], le=(h.match(/[#&]lerr=([^&]+)/)||[])[1], nn=(h.match(/[#&]n=([^&]*)/)||[])[1], adm=/[#&]adm=1/.test(h);
   if(ct||le) history.replaceState(null,'',location.pathname+location.search);
   let saved=''; try{ saved=localStorage.getItem('tasks_gsi_nonce')||''; }catch(e){}
@@ -1632,10 +1642,44 @@ async function tasksLogin(){
   }catch(e){ showToast('אין חיבור לשרת'); }
 }
 TASKS_APP.auth().onAuthStateChanged(u=>{
+  if(OLD_HOST){ moveToNewDomain(u); return; } // הכתובת הישנה - מעבירים לכתובת החדשה (מחובר)
   const lb=document.getElementById('logout-btn');
   if(u){ const ov=document.getElementById('tasks-login'); if(ov) ov.remove(); if(lb) lb.style.display=''; startTasks(u); }
   else { if(lb) lb.style.display='none'; stopTasks(); showTasksLogin(); }
 });
+
+// ── מעבר לכתובת החדשה ──
+// בכתובת הישנה: מבקשים מהשרת כרטיס כניסה לאותו משתמש ועוברים ל-tachlesapps.com (כולל ?join= ו-?src=)
+let movingDomain=false;
+async function moveToNewDomain(u){
+  if(movingDomain) return; movingDomain=true;
+  const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;background:#1E1B4B;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;font-family:inherit;text-align:center;padding:24px';
+  ov.innerHTML='<img src="icon-v3-192.png" alt="" style="width:72px;height:72px;border-radius:20px;margin-bottom:14px"><div style="font-size:20px;font-weight:800">תכל׳ס עוברת לכתובת חדשה</div><div style="opacity:.8;margin-top:6px">tachlesapps.com · רגע...</div>';
+  document.body.appendChild(ov);
+  let hash='';
+  try{ if(u){ const t=await u.getIdToken(); const r=await fetch(STAFF_API+'/tasks/transfer',{method:'POST',headers:{'Authorization':'Bearer '+t}}).then(r=>r.json()); if(r&&r.ok&&r.token) hash='mt='+encodeURIComponent(r.token); } }catch(e){}
+  try{ const d=localStorage.getItem('tasks_device_id'); if(d) hash+=(hash?'&':'')+'did='+encodeURIComponent(d); }catch(e){}
+  location.replace(APP_URL+location.search+(hash?'#'+hash:''));
+}
+// בכתובת החדשה, אחרי המעבר: הודעה + אישור התראות מחדש + התקנה מחדש של האייקון (פעם אחת)
+let installEvt=null; window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installEvt=e; const b=document.getElementById('mig-install'); if(b) b.style.display=''; });
+function showMovedBanner(){
+  let st=''; try{ st=localStorage.getItem('tk_migrated')||''; }catch(e){}
+  if(st!=='1' || OLD_HOST || document.getElementById('mig-banner')) return;
+  const needNotif=HAS_NOTIF && Notification.permission!=='granted', ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
+  const b=document.createElement('div'); b.id='mig-banner';
+  b.style.cssText='position:fixed;left:10px;right:10px;bottom:12px;background:#fff;border:2px solid #1E1B4B;border-radius:16px;padding:14px;z-index:10000;box-shadow:0 8px 28px rgba(0,0,0,.25);direction:rtl;font-size:14px;line-height:1.6;color:#1A1A2E';
+  const bt=(id,l,main,hide)=>'<button id="'+id+'" style="'+(hide?'display:none;':'')+'height:40px;padding:0 14px;border-radius:12px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;'+(main?'border:0;background:#1E1B4B;color:#fff':'border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B')+'">'+l+'</button>';
+  b.innerHTML='<div style="font-weight:800;font-size:16px;margin-bottom:2px">✨ תכל׳ס עברה לכתובת חדשה</div>'
+    +'<div>מעכשיו: <b>tachlesapps.com</b>. המשימות והרשימות שלך כאן, הכול נשמר ✓</div>'
+    +'<div style="color:#5B5B76;font-size:13px;margin:4px 0 10px">'+(needNotif?'כדי להמשיך לקבל תזכורות – אשר התראות שוב. ':'')+(isStandalone()?'':(ios?'כדאי להוסיף שוב למסך הבית (שתף ← "הוסף למסך הבית") ולמחוק את האייקון הישן.':'כדאי להתקין שוב את האייקון ולמחוק את הישן.'))+'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+(needNotif?bt('mig-notif','🔔 אפשר התראות',true):'')+bt('mig-install','📲 התקן מחדש',!needNotif,!installEvt)+bt('mig-close','סגור')+'</div>';
+  document.body.appendChild(b);
+  const done=()=>{ try{ localStorage.setItem('tk_migrated','done'); }catch(e){} b.remove(); };
+  document.getElementById('mig-close').onclick=done;
+  const nb=document.getElementById('mig-notif'); if(nb) nb.onclick=()=>{ requestNotify(); nb.remove(); if(!document.querySelector('#mig-banner button[id^=mig-]:not(#mig-close)')) done(); };
+  document.getElementById('mig-install').onclick=async()=>{ if(!installEvt) return; installEvt.prompt(); try{ await installEvt.userChoice; }catch(e){} installEvt=null; done(); };
+}
 
 let priAskTimer=null;
 function askPriority(id, name){
@@ -1953,17 +1997,17 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-31k';
+const APP_VERSION='2026-11-01a';
 async function checkAppUpdate(beforePanel){
   try{
-    const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
+    const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
     const m=t.match(/const APP_VERSION='([^']+)'/);
     if(m && m[1]!==APP_VERSION && !isRecording && (beforePanel || !document.getElementById('edit-modal')) && !document.getElementById('f-name').value){ location.reload(); return true; }
   }catch(e){}
   return false;
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ checkAppUpdate(); checkAccess(); } });
-if('serviceWorker' in navigator) navigator.serviceWorker.register('/tasks/sw-push.js', {scope: '/tasks/'}).catch(()=>{});
+if('serviceWorker' in navigator) navigator.serviceWorker.register(APP_BASE+'sw-push.js', {scope: APP_BASE}).catch(()=>{});
 </script>
 </body>
 </html>
