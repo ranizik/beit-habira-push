@@ -152,7 +152,8 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 .qd{display:flex;gap:6px;flex-wrap:wrap;}
 .qd button{height:32px;padding:0 12px;border-radius:16px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font-family:inherit;font-size:13px;cursor:pointer;}
 .qd button:active{background:#ECEBFA;}
-.btn-add{height:46px;border-radius:14px;background:var(--navy);font-family:inherit;font-size:15px;font-weight:600;padding:0 16px;}
+.btn-add{height:46px;border-radius:14px;background:var(--navy);font-family:inherit;font-size:15px;font-weight:600;padding:0 14px;transition:background .15s,transform .15s;}
+.btn-add.ready{background:var(--coral);transform:scale(1.05);}
 .toolbar:has(.btn-mic.recording) .mic-status::before{content:"מקשיב…";color:#E11D48;}
 .parsed-hint{background:#E7F8EF;color:#0F6B3E;border-radius:8px;}
 .lists-bar,.list-members{background:transparent;border:0;padding:12px 12px 0;}
@@ -225,8 +226,8 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
     </div>
   </div>
   <div style="display:flex;gap:8px;width:100%">
-    <input type="text" id="f-name" autocomplete="off" name="task-text" placeholder="או כתוב משימה..." onkeydown="if(event.key==='Enter')addTask()" style="flex:1"/>
-    <button class="btn-add" onclick="addTask()" aria-label="הוסף"><i class="ti ti-plus"></i></button>
+    <input type="text" id="f-name" autocomplete="off" enterkeyhint="done" name="task-text" placeholder="או כתוב משימה..." onkeydown="if(event.key==='Enter')addTask()" oninput="document.getElementById('btn-add').classList.toggle('ready',!!this.value.trim())" style="flex:1"/>
+    <button class="btn-add" id="btn-add" onclick="addTask()" aria-label="הוסף משימה"><span style="font-size:20px;line-height:1">+</span> הוסף</button>
   </div>
   <div class="opts">
     <select id="f-pri">
@@ -819,7 +820,7 @@ function setupMic() {
     document.getElementById('mic-icon').className='ti ti-microphone-off';
     document.getElementById('mic-status').textContent='מקשיב... דבר, והמשימה תתווסף לבד כשתסיים';
     document.getElementById('parsed-hint').style.display='none';
-    document.getElementById('f-name').value='';
+    document.getElementById('f-name').value=''; document.getElementById('btn-add')?.classList.remove('ready');
     document.getElementById('f-date').value='';
     document.getElementById('f-time').value='';
   };
@@ -1714,7 +1715,7 @@ function addTask(auto){
   if(auto===true && !autoPri && task.pri!=='high') askPriority(id, task.name);
   if(curList) listsApi('notify',{listId:curList,name:task.name,assignee:(task.who&&task.who.uid)||''}).catch(()=>{}); // התראה לשאר חברי הרשימה (ולמי שבאחריותו)
   statsApi('event',{type: auto===true ? 'task_voice' : 'task_typed'});
-  document.getElementById('f-name').value='';
+  document.getElementById('f-name').value=''; document.getElementById('btn-add')?.classList.remove('ready');
   document.getElementById('f-date').value='';
   document.getElementById('f-time').value='';
   document.getElementById('parsed-hint').style.display='none';
@@ -1953,7 +1954,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-31i';
+const APP_VERSION='2026-10-31j';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
