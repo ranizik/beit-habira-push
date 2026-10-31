@@ -10,6 +10,12 @@
 
 ---
 
+
+> 🌐 **כתובת:** מ-31.10.2026 האפליקציה בכתובת **https://tachlesapps.com** (דומיין חונה על beit-habira.com ב-Hostinger).
+> ב-`public_html/.htaccess` (בראש הקובץ, בלוק "Takhles domain"): www → בלי www, וכל בקשה ל-tachlesapps.com מוגשת מ-`public_html/tasks/` (חוץ מ-`/__/` – קבצי ההתחברות של Firebase).
+> הכתובת הישנה beit-habira.com/tasks ממשיכה לעבוד ומעבירה אוטומטית (`moveToNewDomain`): כרטיס כניסה מהשרת (`POST /tasks/transfer`) + מזהה המכשיר (כדי שההתראות לא יוכפלו).
+> בקוד: `APP_URL`, `APP_BASE` (נתיבים יחסיים – '/' בחדשה, '/tasks/' בישנה). בשרת: `APP_URL` ב-`tasksAdmin.js` (משתנה סביבה `TASKS_APP_URL`).
+
 ## 1. מבנה כללי
 
 ```
