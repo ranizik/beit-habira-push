@@ -1360,8 +1360,8 @@ async function showStats(tab){
   const V=j.visits||{total:0,today:0,d7:0,d30:0,todayNew:0,fromHome:0}, td=j.days[j.days.length-1]||{};
   body.innerHTML=
     grid([card('פעילים היום',td.active||0), card('פעילים השבוע',U.active7,'ב-30 יום: '+U.active30), card('משתמשים רשומים',U.total,'חדשים השבוע: '+U.new7), card('פתחו את הקישור היום',V.today)])
+    +dependHtml(j)
     +activityHtml(j.activity||[])
-    +chart('משתמשים פעילים ביום','active','#1a73e8')
     +'<details style="margin-top:14px;border:1.5px solid #E2E1F0;border-radius:14px;padding:4px 12px"><summary style="cursor:pointer;font-weight:700;font-size:14px;padding:8px 0">עוד נתונים</summary>'
     +'<div style="font-weight:600;margin-bottom:6px">🔗 כניסות לקישור (גם בלי הרשמה)</div>'
     +grid([card('היום',V.today,'פעם ראשונה: '+V.todayNew), card('7 ימים',V.d7), card('30 ימים',V.d30), card('סה"כ מכשירים',V.total)])
@@ -1373,6 +1373,34 @@ async function showStats(tab){
     +chart('כניסות לקישור ביום','visitors','#FF5A5F')+chart('משתמשים חדשים','newUsers','#217346')+chart('משימות שנוצרו','tasks','#E53935')
     +'<div style="font-size:11px;color:#999;margin-top:10px">משתמשים חדשים ומשימות – כולל נתונים מלפני המדידה. פעילים, התקנות וקול/הקלדה – נאספים מ-'+since+'.</div>'
     +'</details>';
+}
+// כמה האפליקציה חיונית: מדדי תלות, אחוז שימוש יומי, ומשימות לכל משתמש ביום
+function dependHtml(j){
+  const D=j.dependence, P=j.pct||[], U=j.perUser||[]; if(!D) return '';
+  const lvl=D.stickiness>=50?['גבוה מאוד – האפליקציה הפכה להרגל','#0F6B3E']:D.stickiness>=20?['טוב – חוזרים אליה באופן קבוע','#8A5A00']:['נמוך – עדיין לא הרגל יומי','#B42318'];
+  const box=(v,l,sub)=>'<div style="background:#F4F3FB;border-radius:12px;padding:10px 8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#1E1B4B">'+v+'</div><div style="font-size:12px;font-weight:600">'+l+'</div><div style="font-size:11px;color:#5B5B76">'+sub+'</div></div>';
+  let c0=P.findIndex(d=>d.registered>0); if(c0<0) c0=P.length-7; c0=Math.max(0,Math.min(c0,P.length-7)); const PD=P.slice(c0);
+  const pctChart='<div style="margin:14px 0 4px;font-weight:600">אחוז המשתמשים שנכנסו בכל יום</div>'
+    +'<div style="display:flex;align-items:flex-end;gap:'+(PD.length>14?2:5)+'px;height:90px;border-bottom:1px solid #ccc;direction:ltr;position:relative">'
+    +'<div style="position:absolute;left:0;right:0;bottom:50%;border-top:1px dashed #D5D3EA"></div>'
+    +PD.map(d=>'<div title="'+d.day.split('-').reverse().join('/')+': '+d.pct+'% ('+d.active+' מתוך '+d.registered+')" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;height:100%;align-items:center">'
+      +(PD.length<=14&&d.pct?'<span style="font-size:9px;color:#5B5B76;white-space:nowrap;overflow:visible">'+d.pct+'</span>':'')
+      +'<div style="width:100%;background:'+(d.pct>=50?'#10B981':d.pct>=20?'#6366F1':'#C7C5F0')+';height:'+d.pct+'%;min-height:'+(d.pct?2:0)+'px;border-radius:3px 3px 0 0"></div></div>').join('')+'</div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:10px;color:#999;direction:ltr"><span>'+(PD[0]?PD[0].day.slice(5).split('-').reverse().join('/'):'')+'</span><span>קו מקווקו = 50%</span><span>היום</span></div>';
+  const bars=a=>{ const m=Math.max(1,...a); return '<div style="display:flex;align-items:flex-end;gap:2px;height:26px;direction:ltr;width:100%">'+a.map(v=>'<div style="flex:1;background:'+(v?'#6366F1':'#ECEBF7')+';height:'+(v?Math.max(15,Math.round(v/m*100)):15)+'%;border-radius:2px"></div>').join('')+'</div>'; };
+  const rows=U.length?U.map(u=>'<div style="padding:8px 0;border-bottom:1px solid #EEEDF7">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px"><b style="font-size:14px">'+escA(u.name||'משתמש')+'</b>'
+      +'<span style="font-size:12px;color:#5B5B76;white-space:nowrap">היום <b style="color:#1E1B4B">'+u.today+'</b> · שבוע <b style="color:#1E1B4B">'+u.d7+'</b> · '+u.perActiveDay+' ליום פעיל</span></div>'
+      +bars(u.tasks)+'<div style="font-size:11px;color:#5B5B76;margin-top:2px">פעיל/ה '+u.activeDays+' מתוך 14 ימים</div></div>').join('')
+    :'<div style="color:#888;font-size:12px">אין עדיין נתונים</div>';
+  return '<div style="font-weight:700;font-size:15px;margin:6px 0 6px">💡 כמה האפליקציה חיונית</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">'
+    +box(D.stickiness+'%','נכנסים כל יום','מהפעילים בחודש, בממוצע')
+    +box(D.habit+'/'+D.users,'הרגל קבוע','נכנסו 3+ ימים השבוע')
+    +box(D.tasksPerActiveDay,'משימות ליום','למשתמש ביום שהוא פעיל')+'</div>'
+    +'<div style="font-size:12px;margin:6px 0 0;color:'+lvl[1]+';font-weight:600">'+lvl[0]+'</div>'
+    +pctChart
+    +'<div style="font-weight:600;margin:16px 0 2px">📝 משימות לפי משתמש <span style="color:#888;font-weight:400">(14 ימים, כל עמודה = יום)</span></div>'+rows;
 }
 // מי נכנס ומתי - 14 הימים האחרונים
 function activityHtml(days){
@@ -1836,7 +1864,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-31e';
+const APP_VERSION='2026-10-31f';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
