@@ -1198,24 +1198,50 @@ async function renderAccessAdmin(cached){
       +'<div style="display:flex;gap:6px;align-items:center"><span style="font-size:13px;white-space:nowrap">📅 עד תאריך</span><input type="date" id="optd-'+escA(u.uid)+'" min="'+new Date(now+D).toLocaleDateString('en-CA')+'" style="flex:1;margin:0;padding:6px 8px;min-width:0">'
       +'<button data-uid="'+escA(u.uid)+'" data-act="until" style="height:36px;padding:0 14px;border-radius:10px;border:0;background:#1E1B4B;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">קבע</button></div></div>';
   };
-  box.innerHTML=(users.length?'<div style="font-size:13px;color:#5B5B76;margin-bottom:10px">'+n.ok+' פעילים'+(n.pending?' · <b style="color:#3730A3">'+n.pending+' ממתינים לאישור</b>':'')+(n.off?' · '+n.off+' נעולים':'')+'</div>':'')
-    +(users.length?users.map(u=>{ const [bt,bg,fg]=badge(u); const open=accOpen===u.uid;
-    return '<div style="border:1.5px solid '+(u.pending?'#C7C9F5':'#E2E1F0')+';border-radius:14px;padding:10px 12px;margin-bottom:8px;'+(u.pending?'background:#F7F7FF':'')+'">'
-      +'<div data-toggle="'+escA(u.uid)+'" style="display:flex;gap:8px;align-items:center;cursor:pointer">'
-      +'<div style="flex:1;min-width:0"><b style="font-size:15px">'+escA(u.name||u.email||'משתמש')+'</b><div style="font-size:12px;color:#5B5B76">'+lastShort(u)+'</div></div>'
-      +'<span style="font-size:12px;padding:3px 8px;border-radius:8px;background:'+bg+';color:'+fg+';font-weight:600;white-space:nowrap">'+bt+'</span>'
-      +'<span style="color:#5B5B76;font-size:12px">'+(open?'▴':'▾')+'</span></div>'
-      +(u.pending?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+btn(u.uid,'year','✅ אשר לשנה','main')+btn(u.uid,'opt','⏳ תקופה אחרת')+btn(u.uid,'lock','❌ דחה','danger')+'</div>':'')
-      +'<div id="det-'+escA(u.uid)+'" style="display:'+(open?'block':'none')+';margin-top:8px;border-top:1px solid #EEEDF7;padding-top:8px">'
-      +'<div style="font-size:12px;color:#5B5B76;direction:ltr;text-align:right">'+escA(u.email)+'</div>'
-      +'<div style="font-size:12px;color:#5B5B76;margin:2px 0 6px">'+info(u)+'</div>'
-      +'<div style="display:inline-flex;margin:0 0 8px;border:1.5px solid #E2E1F0;border-radius:10px;overflow:hidden">'+kindBtn(u,'business','🏢 עסקי')+kindBtn(u,'private','👤 פרטי')+'</div>'
-      +(C.freeMode?'':'<div style="font-size:12px;color:#1A1A2E;margin:0 0 8px">💰 '+u.price+' ₪ לחודש'+(u.customPrice!=null?' (קבוע)':'')+' · 👥 עד '+u.limit+' משתתפים'+(u.lists?' · ברשימה הגדולה '+u.maxMembers+'/'+u.limit+(u.maxMembers>=u.limit?' <b style="color:#B42318">מלאה</b>':''):'')+'</div>')
-      +(u.pending?'':'<div style="display:flex;gap:6px;flex-wrap:wrap">'
-        +btn(u.uid,'opt',u.allowed?'⏳ תוקף':'🔓 פתח גישה',u.allowed?'':'main')+btn(u.uid,'plan','💰 מחיר ומשתתפים')+(u.locked?'':btn(u.uid,'lock','🔒 נעל','danger'))+(u.last||u.opens?btn(u.uid,'clear-stats','🧹 מחק היסטוריה'):'')
-        +'</div>')
-      +'</div>'+optBox(u)+(u.pending?'':planBox(u))+'</div>';
-  }).join(''):'<div style="color:#5B5B76">אין עדיין משתמשים</div>');
+  // ---- מסך המשתמשים: רשימה פשוטה, ולחיצה על משתמש פותחת דף משלו ----
+  const isToday=ms=>ms&&new Date(ms).toDateString()===new Date().toDateString();
+  const COLORS=['#6366F1','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6'];
+  const avatar=(u,size)=>{ const nm=(u.name||u.email||'?').trim(); let h=0; for(const c of u.uid) h=(h*31+c.charCodeAt(0))>>>0;
+    return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+COLORS[h%COLORS.length]+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:'+Math.round(size*0.42)+'px;flex-shrink:0">'+escA(nm[0]||'?')+'</div>'; };
+  // תגית רק כשיש משהו שדורש תשומת לב (בתקופת ההרצה משתמש רגיל = בלי תגית)
+  const flag=u=>{ if(u.pending||u.locked||!u.allowed) return badge(u);
+    if(!C.freeMode&&u.until!=null&&u.daysLeft<=7) return ['⏰ עוד '+u.daysLeft+' ימים','#FFF4DB','#8A5A00']; return null; };
+  const pill=f=>f?'<span style="font-size:12px;padding:3px 9px;border-radius:999px;background:'+f[1]+';color:'+f[2]+';font-weight:600;white-space:nowrap">'+f[0]+'</span>':'';
+  const big=(uid,act,label,kind,extra)=>'<button data-uid="'+escA(uid)+'" data-act="'+act+'"'+(extra||'')+' style="flex:1;height:42px;padding:0 14px;border-radius:12px;font-size:14px;font-family:inherit;cursor:pointer;'
+    +(kind==='main'?'border:0;background:#1E1B4B;color:#fff;font-weight:700':kind==='danger'?'border:1.5px solid #F3B5B5;background:#fff;color:#B42318':'border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B')+'">'+label+'</button>';
+  const sec=(title,body,sub)=>'<div style="margin-top:14px"><div style="font-weight:700;font-size:14px;margin-bottom:2px">'+title+'</div>'+(sub?'<div style="font-size:12px;color:#5B5B76;margin-bottom:6px">'+sub+'</div>':'')+body+'</div>';
+  const sel=users.find(u=>u.uid===accOpen);
+  if(sel){
+    const u=sel, f=badge(u);
+    const access=u.pending?'מחכה לאישור שלך':u.locked?'נעול – לא יכול להשתמש':!u.allowed?'הגישה הסתיימה':u.until==null||C.freeMode?'פעיל – ללא הגבלה':'פעיל עד '+fmtD(u.until)+' (עוד '+u.daysLeft+' ימים)';
+    const stat=(v,l)=>'<div style="flex:1;background:#F4F3FB;border-radius:12px;padding:8px 4px;text-align:center"><div style="font-size:15px;font-weight:700">'+v+'</div><div style="font-size:11px;color:#5B5B76">'+l+'</div></div>';
+    box.innerHTML='<button data-back="1" style="border:0;background:none;color:#1E1B4B;font-size:14px;font-family:inherit;cursor:pointer;padding:0 0 10px">→ כל המשתמשים</button>'
+      +'<div style="display:flex;gap:12px;align-items:center">'+avatar(u,52)+'<div style="flex:1;min-width:0"><div style="font-size:18px;font-weight:700">'+escA(u.name||u.email||'משתמש')+'</div>'
+      +'<div style="font-size:12px;color:#5B5B76;direction:ltr;text-align:right;overflow:hidden;text-overflow:ellipsis">'+escA(u.email)+'</div></div></div>'
+      +'<div style="display:flex;gap:6px;margin-top:12px">'+stat(u.last?(isToday(u.last)?fmtT(u.last):fmtD(u.last)):'—','נכנס לאחרונה')+stat(u.opens||0,'פתיחות')+stat(u.tasks,'משימות')+stat(fmtD(u.joined),'הצטרף')+'</div>'
+      +(u.pending
+        ? sec('🙋 מבקש להצטרף','<div style="display:flex;gap:8px">'+big(u.uid,'year','✅ אשר','main')+big(u.uid,'lock','❌ דחה','danger')+'</div>')
+          +sec('או לאשר לתקופה מוגבלת',optBox(u).replace('display:none;margin-top:8px','display:block;margin-top:0'))
+        : sec('גישה','<div style="display:flex;align-items:center;gap:8px;background:#F4F3FB;border-radius:12px;padding:10px 12px"><span style="flex:1">'+access+'</span>'+(u.locked||!u.allowed?'':'')+'</div>'
+            +'<div style="display:flex;gap:8px;margin-top:8px">'+big(u.uid,'opt',u.allowed?'⏳ שינוי תוקף':'🔓 פתח גישה',u.allowed?'':'main')+'</div>'+optBox(u))
+          +sec('סוג לקוח','<div style="display:flex;border:1.5px solid #E2E1F0;border-radius:12px;overflow:hidden">'+kindBtn(u,'business','🏢 עסקי').replace('height:30px','height:40px;flex:1')+kindBtn(u,'private','👤 פרטי').replace('height:30px','height:40px;flex:1')+'</div>')
+          +(C.freeMode?'':sec('מחיר','<div style="font-size:13px;margin-bottom:6px">💰 '+u.price+' ₪ לחודש'+(u.customPrice!=null?' (קבוע)':'')+' · 👥 עד '+u.limit+' משתתפים'+(u.lists?' · ברשימה הגדולה '+u.maxMembers+'/'+u.limit:'')+'</div><div style="display:flex">'+big(u.uid,'plan','💰 שינוי מחיר ומשתתפים')+'</div>'+planBox(u)))
+          +sec('פעולות נוספות','<div style="display:grid;gap:8px">'+(u.locked?'':big(u.uid,'lock','🔒 נעל משתמש','danger'))+(u.last||u.opens?big(u.uid,'clear-stats','🧹 מחק את היסטוריית הכניסות שלו'):'')+'</div>'));
+  } else {
+    const pend=users.filter(u=>u.pending), rest=users.filter(u=>!u.pending).sort((x,y)=>(y.last||0)-(x.last||0));
+    const today=rest.filter(u=>isToday(u.last)).length;
+    const row=u=>{ const on=isToday(u.last);
+      return '<div data-open="'+escA(u.uid)+'" style="display:flex;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid #EEEDF7;cursor:pointer">'
+        +'<div style="position:relative">'+avatar(u,42)+(on?'<span style="position:absolute;bottom:0;left:0;width:12px;height:12px;border-radius:50%;background:#10B981;border:2px solid #fff"></span>':'')+'</div>'
+        +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">'+escA(u.name||u.email||'משתמש')+'</div><div style="font-size:12px;color:#5B5B76">'+lastShort(u).replace(' · ',' · ')+'</div></div>'
+        +pill(flag(u))+'<span style="color:#A5A3C2;font-size:18px">‹</span></div>'; };
+    box.innerHTML=
+      (pend.length?pend.map(u=>'<div style="background:#EEF0FF;border-radius:14px;padding:12px;margin-bottom:10px">'
+        +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px" data-open="'+escA(u.uid)+'">'+avatar(u,38)+'<div style="flex:1;min-width:0;cursor:pointer"><b>'+escA(u.name||u.email||'משתמש')+'</b> מבקש/ת להצטרף<div style="font-size:12px;color:#5B5B76;direction:ltr;text-align:right">'+escA(u.email)+'</div></div></div>'
+        +'<div style="display:flex;gap:8px">'+big(u.uid,'year','✅ אשר','main')+big(u.uid,'lock','❌ דחה','danger')+'</div></div>').join(''):'')
+      +(rest.length?'<div style="font-size:13px;color:#5B5B76;margin:4px 0 2px">היום נכנסו <b style="color:#0F6B3E">'+today+'</b> מתוך '+rest.length+' משתמשים · לחץ על משתמש לפרטים</div>'+rest.map(row).join('')
+        :(pend.length?'':'<div style="color:#5B5B76;padding:12px 0">אין עדיין משתמשים</div>'));
+  }
   const cfgBox=document.getElementById('cfg-body');
   if(cfgBox) cfgBox.innerHTML=
 '<div style="font-weight:700;font-size:14px;margin-bottom:4px">הרשמה</div>'
@@ -1240,7 +1266,8 @@ async function renderAccessAdmin(cached){
     pb.querySelector('.pl-fixed').oninput=()=>{ pb.querySelector('input[value="fixed"]').checked=true; };
     upd();
   });
-  box.querySelectorAll('[data-toggle]').forEach(el=>el.onclick=()=>{ const uid=el.getAttribute('data-toggle'); accOpen=accOpen===uid?'':uid; renderAccessAdmin(true); });
+  box.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>{ accOpen=el.getAttribute('data-open'); renderAccessAdmin(true); box.closest('.modal')?.scrollTo(0,0); });
+  box.querySelectorAll('[data-back]').forEach(el=>el.onclick=()=>{ accOpen=''; renderAccessAdmin(true); });
   box.querySelectorAll('button[data-act]').forEach(b=>b.onclick=async()=>{
     const act=b.getAttribute('data-act'), uid=b.getAttribute('data-uid');
     if(act==='opt'||act==='plan'){ const id=(act==='opt'?'opt-':'plan-')+uid; box.querySelectorAll('[id^="opt-"],[id^="plan-"]').forEach(x=>{ if(x.id!==id) x.style.display='none'; }); const ob=document.getElementById(id); ob.style.display=ob.style.display==='none'?'block':'none'; return; }
@@ -1296,6 +1323,7 @@ window.addEventListener('appinstalled', ()=>statsApi('event',{type:'install'}));
 // ניהול: שלוש לשוניות - משתמשים / נתונים / הגדרות
 async function showStats(tab){
   tab=tab||'users';
+  if(!document.getElementById('edit-modal')) accOpen='';
   if(await checkAppUpdate(true)) return; // לפני פתיחת הניהול - אם יש גרסה חדשה, נטענת קודם
   document.getElementById('edit-modal')?.remove();
   const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
@@ -1802,7 +1830,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-31c';
+const APP_VERSION='2026-10-31d';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
