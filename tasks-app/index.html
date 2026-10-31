@@ -1256,6 +1256,7 @@ async function renderAccessAdmin(cached){
     +'</table><div style="font-size:11px;color:#5B5B76;margin-bottom:8px">"משתתפים" = כמה אנשים יכולים להיות ברשימה משותפת של הלקוח, כולל אותו. לקוח שלא סווג נחשב פרטי. אפשר לקבוע ללקוח מחיר קבוע משלו דרך 💰.</div><div style="display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center;font-size:13px;color:#5B5B76;margin:8px 0">'
     +'<span>וואטסאפ ליצירת קשר</span><input id="acc-contact" type="tel" value="'+escA(C.contact)+'" style="width:140px;margin:0;padding:6px 8px">'
     +'</div><button id="acc-save" class="bulk-btn" style="margin-bottom:16px">שמור הגדרות</button>'
+    +'<div style="font-weight:700;font-size:14px;margin-bottom:4px">💾 גיבוי</div><div id="bk-box" style="font-size:12px;color:#5B5B76;margin-bottom:16px">טוען...</div>'
     +'<div style="font-weight:700;font-size:14px;margin-bottom:4px">היסטוריית שימוש</div><div style="font-size:12px;color:#5B5B76;margin-bottom:8px">מוחק את נתוני הכניסות של כל המשתמשים (מי נכנס, מתי וכמה פעמים). המשימות והמשתמשים לא נמחקים.</div>'
     +'<button id="st-clear-all" style="height:34px;padding:0 12px;border-radius:10px;border:1.5px solid #F3B5B5;background:#FDECEA;color:#B42318;font-size:13px;font-family:inherit;cursor:pointer">🧹 מחק את כל היסטוריית השימוש</button>';
 
@@ -1292,6 +1293,7 @@ async function renderAccessAdmin(cached){
     b.disabled=true; const r=await accessApi('set',body);
     showToast(r&&r.ok?(act==='kind'?(r.kind==='business'?'סומן כעסקי ✓':r.kind==='private'?'סומן כפרטי ✓':'הסיווג הוסר ✓'):r.until?'תוקף עד '+fmtD(r.until)+' ✓':'עודכן ✓'):'שגיאה: '+((r&&r.error)||'')); renderAccessAdmin();
   });
+  renderBackups();
   const ca=document.getElementById('st-clear-all');
   if(ca) ca.onclick=async()=>{
     if(!confirm('למחוק את כל היסטוריית השימוש של כל המשתמשים (מי נכנס, מתי וכמה פעמים)? המשימות והמשתמשים לא נמחקים.')) return;
@@ -1302,6 +1304,30 @@ async function renderAccessAdmin(cached){
     renderAccessAdmin();
     showToast(r&&r.ok?'ההגדרות נשמרו ✓':'שגיאה בשמירה');
   };
+}
+
+// גיבוי: כל לילה ב-03:00 השרת שומר עותק (30 יום). כאן רואים מתי היה האחרון, מגבים עכשיו או מורידים קובץ
+async function backupApi(path, body){
+  try{ const u=TASKS_APP.auth().currentUser; if(!u) return null; const t=await u.getIdToken();
+    const r=await fetch(STAFF_API+'/tasks/backup/'+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(body||{})});
+    return await r.json(); }catch(e){ return null; }
+}
+async function renderBackups(){
+  const box=document.getElementById('bk-box'); if(!box) return;
+  const j=await backupApi('list'); if(!box.isConnected) return;
+  if(!j||!j.ok){ box.textContent='לא ניתן לטעון את הגיבויים'; return; }
+  const last=j.backups[0];
+  const b2=(id,l)=>'<button id="'+id+'" style="height:34px;padding:0 12px;border-radius:10px;border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B;font-size:13px;font-family:inherit;cursor:pointer">'+l+'</button>';
+  box.innerHTML='<div style="background:#F4F3FB;border-radius:12px;padding:10px 12px;margin-bottom:8px;color:#1A1A2E">'
+    +(last?'✅ גיבוי אחרון: <b>'+fmtDT(last.at)+'</b> · '+(last.counts.tasks||0)+' משימות של '+(last.counts.users||0)+' משתמשים':'עוד אין גיבוי – הראשון ייעשה הלילה ב-03:00')
+    +'<div style="font-size:12px;color:#5B5B76;margin-top:2px">גיבוי אוטומטי כל לילה ב-03:00 · נשמרים '+j.keep+' ימים אחורה ('+j.backups.length+' כרגע)</div></div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+b2('bk-now','💾 גבה עכשיו')+(last?b2('bk-dl','⬇️ הורד עותק לטלפון'):'')+'</div>';
+  document.getElementById('bk-now').onclick=async e=>{ e.target.disabled=true; e.target.textContent='מגבה...'; const r=await backupApi('now'); showToast(r&&r.ok?'הגיבוי נשמר ✓ ('+r.counts.tasks+' משימות)':'שגיאה: '+((r&&r.error)||'')); renderBackups(); };
+  const dl=document.getElementById('bk-dl');
+  if(dl) dl.onclick=async()=>{ dl.disabled=true; const r=await backupApi('get',{day:last.day}); dl.disabled=false;
+    if(!r||!r.ok){ showToast('שגיאה בהורדה'); return; }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(r.data,null,1)],{type:'application/json'}));
+    a.download='takhles-backup-'+r.day+'.json'; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000); };
 }
 
 // כניסה לקישור - נספרת פעם ביום לכל מכשיר, גם בלי התחברות (כדי לדעת כמה פתחו את הקישור)
@@ -1864,7 +1890,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-10-31f';
+const APP_VERSION='2026-10-31g';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch('/tasks/?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
