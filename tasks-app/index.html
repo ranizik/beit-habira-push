@@ -1642,7 +1642,9 @@ async function tasksLogin(){
   }catch(e){ showToast('אין חיבור לשרת'); }
 }
 TASKS_APP.auth().onAuthStateChanged(u=>{
-  if(OLD_HOST){ moveToNewDomain(u); return; } // הכתובת הישנה - מעבירים לכתובת החדשה (מחובר)
+  // הכתובת הישנה: מי שכבר מותקן אצלו (אייקון / התראות פעילות) ממשיך לעבוד כאן כרגיל - בלי לגעת בכלום.
+  // רק מי שנכנס מקישור בדפדפן ואין לו כאן כלום - עובר לכתובת החדשה (מחובר)
+  if(OLD_HOST && !stayOnOldHost()){ moveToNewDomain(u); return; }
   const lb=document.getElementById('logout-btn');
   if(u){ const ov=document.getElementById('tasks-login'); if(ov) ov.remove(); if(lb) lb.style.display=''; startTasks(u); }
   else { if(lb) lb.style.display='none'; stopTasks(); showTasksLogin(); }
@@ -1651,6 +1653,7 @@ TASKS_APP.auth().onAuthStateChanged(u=>{
 // ── מעבר לכתובת החדשה ──
 // בכתובת הישנה: מבקשים מהשרת כרטיס כניסה לאותו משתמש ועוברים ל-tachlesapps.com (כולל ?join= ו-?src=)
 let movingDomain=false;
+function stayOnOldHost(){ try{ return isStandalone() || (HAS_NOTIF && Notification.permission==='granted'); }catch(e){ return false; } }
 async function moveToNewDomain(u){
   if(movingDomain) return; movingDomain=true;
   const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;background:#1E1B4B;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;font-family:inherit;text-align:center;padding:24px';
@@ -1997,7 +2000,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-01a';
+const APP_VERSION='2026-11-01b';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
