@@ -569,21 +569,51 @@ async function nagApi(body){ const t=await curUser.getIdToken(); const r=await f
 async function notifSettings(){
   document.getElementById('edit-modal')?.remove();
   const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
-  ov.innerHTML='<div class="modal"><h3>🔔 התראות</h3>'
-    +'<div style="font-size:13px;color:#5B5B76;margin-bottom:12px">תזכורת בערב שלפני ב-20:00, ובשעת המשימה.</div>'
-    +'<div style="font-weight:700;margin-bottom:4px">🔁 נודניק</div>'
-    +'<div style="font-size:13px;color:#5B5B76;margin-bottom:8px">משימה עם שעה שלא סימנת "בוצע" – תצפצף שוב ושוב עד שתסמן. בהתראה יש כפתורים "✅ בוצע" ו"⏰ עוד 30 דק׳". בלילה (22:00–07:00) הנודניק שקט.</div>'
-    +'<select id="n-mode"><option value="all">לכל המשימות עם שעה</option><option value="urgent">רק למשימות דחופות 🔴</option><option value="off">כבוי</option></select>'
-    +'<select id="n-every"><option value="5">כל 5 דקות</option><option value="10">כל 10 דקות</option><option value="15">כל 15 דקות</option><option value="30">כל 30 דקות</option></select>'
+  const BEFORE=[[10,'10 דק׳'],[15,'רבע שעה'],[30,'חצי שעה'],[60,'שעה'],[120,'שעתיים'],[1440,'יום']];
+  const chip=(m,l)=>'<button type="button" class="rb-chip" data-m="'+m+'" style="height:34px;padding:0 12px;border-radius:999px;border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B;font-family:inherit;font-size:13px;cursor:pointer">'+l+'</button>';
+  const sec=t=>'<div style="font-weight:700;margin:14px 0 6px">'+t+'</div>';
+  const row=(id,html)=>'<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:6px 0;cursor:pointer;flex-wrap:wrap"><input id="'+id+'" type="checkbox" style="width:18px;height:18px;margin:0"> '+html+'</label>';
+  ov.innerHTML='<div class="modal" style="max-height:88vh;overflow:auto"><h3>🔔 תזכורות</h3>'
+    +'<div style="font-size:13px;color:#5B5B76">בחר מתי לקבל תזכורת על משימה עם תאריך/שעה. ההגדרה אישית ושמורה בחשבון.</div>'
+    +sec('📅 מתי להזכיר')
+    +row('n-eve','<span>יום לפני, בשעה</span><input id="n-eve-time" type="time" style="width:auto;margin:0;padding:4px 8px">')
+    +row('n-at','<span>בשעת המשימה</span>')
+    +'<div style="font-size:14px;margin:8px 0 6px">⏳ לפני המשימה (עד 3, כמו ביומן):</div>'
+    +'<div id="n-before" style="display:flex;gap:6px;flex-wrap:wrap">'+BEFORE.map(([m,l])=>chip(m,l)).join('')+'</div>'
+    +sec('🔁 נודניק – אם לא סימנתי "בוצע"')
+    +'<select id="n-mode"><option value="off">כבוי – תזכורת אחת וזהו</option><option value="all">לכל המשימות עם שעה</option><option value="urgent">רק למשימות דחופות 🔴</option></select>'
+    +'<div id="n-nag-opts" style="display:flex;gap:8px"><select id="n-every" style="flex:1"><option value="5">כל 5 דק׳</option><option value="10">כל 10 דק׳</option><option value="15">כל רבע שעה</option><option value="30">כל חצי שעה</option><option value="60">כל שעה</option><option value="120">כל שעתיים</option></select>'
+    +'<select id="n-max" style="flex:1"><option value="1">פעם אחת</option><option value="2">עד 2 פעמים</option><option value="3">עד 3 פעמים</option><option value="5">עד 5 פעמים</option><option value="10">עד 10 פעמים</option><option value="0">עד שאסמן בוצע</option></select></div>'
+    +'<div style="font-size:12px;color:#5B5B76">בלילה (22:00–07:00) הנודניק שקט.</div>'
+    +sec('📆 יומן Google / סמסונג')
+    +row('n-cal','<span>צלצול גם מהיומן</span>')
+    +'<div style="font-size:12px;color:#5B5B76">כבוי = התזכורת מגיעה רק מתכל׳ס, בלי כפילויות. (רלוונטי למי שהפעיל "גם כאירוע ביומן")</div>'
     +'<div id="n-mkt-wrap" style="display:none;margin-top:12px;border-top:1px solid #EEEDF7;padding-top:10px"><label style="display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer"><input id="n-mkt" type="checkbox" style="width:auto;margin:0"> <span>📣 אשמח לקבל עדכונים ופרסומים מתכל׳ס</span></label></div>'
-    +'<div class="modal-btns"><button class="btn-cancel" id="n-test">שלח התראת בדיקה</button><button class="btn-save" id="n-save">שמור</button></div></div>';
+    +'<div class="modal-btns" style="margin-top:14px"><button class="btn-cancel" id="n-test">שלח התראת בדיקה</button><button class="btn-save" id="n-save">שמור</button></div></div>';
   document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
   consentApi('status').then(c=>{ if(!c||!c.ok||!c.active||curUser&&curUser.uid==='staff-tasks') return; const w=document.getElementById('n-mkt-wrap'), m=document.getElementById('n-mkt'); if(!w) return; w.style.display='block'; m.checked=!!c.marketing;
     m.onchange=async()=>{ const r=await consentApi('marketing',{on:m.checked}); showToast(r&&r.ok?(m.checked?'נרשמת לעדכונים ✓':'הוסרת מהעדכונים ✓'):'שגיאה'); }; });
+  let before=[];
+  const paint=()=>ov.querySelectorAll('.rb-chip').forEach(b=>{ const on=before.includes(+b.dataset.m); b.style.background=on?'#1E1B4B':'#fff'; b.style.color=on?'#fff':'#1E1B4B'; b.style.borderColor=on?'#1E1B4B':'#E2E1F0'; });
+  ov.querySelectorAll('.rb-chip').forEach(b=>b.onclick=()=>{ const m=+b.dataset.m; if(before.includes(m)) before=before.filter(x=>x!==m); else if(before.length<3) before.push(m); else showToast('אפשר עד 3 תזכורות מראש'); paint(); });
+  const modeSel=document.getElementById('n-mode'), nagOpts=document.getElementById('n-nag-opts');
+  const showNag=()=>{ nagOpts.style.display=modeSel.value==='off'?'none':'flex'; }; modeSel.onchange=showNag;
   const j=await nagApi().catch(()=>null);
-  if(j&&j.ok){ document.getElementById('n-mode').value=j.mode; document.getElementById('n-every').value=String(j.every); }
-  document.getElementById('n-save').onclick=async()=>{ const r=await nagApi({mode:document.getElementById('n-mode').value,every:Number(document.getElementById('n-every').value)}).catch(()=>null); showToast(r&&r.ok?(r.mode==='off'?'הנודניק כבוי':'✓ הנודניק פעיל – כל '+r.every+' דקות'):'השמירה נכשלה'); if(r&&r.ok) ov.remove(); };
-  document.getElementById('n-test').onclick=async()=>{ const ok=await registerPush(false); const reg=await navigator.serviceWorker.getRegistration(APP_BASE); if(reg) reg.showNotification('תכל׳ס',{body:'בדיקה – ההתראות עובדות ✓',icon:APP_BASE+'icon-v3-192.png',dir:'rtl'}); if(!ok) showToast('ההתראות לא נרשמו'); };
+  if(j&&j.ok){
+    document.getElementById('n-eve').checked=j.eve!==false; document.getElementById('n-eve-time').value=j.eveTime||'20:00';
+    document.getElementById('n-at').checked=j.at!==false; before=Array.isArray(j.before)?j.before.map(Number):[]; paint();
+    modeSel.value=j.mode||'off'; document.getElementById('n-every').value=String(j.every||30); document.getElementById('n-max').value=String(j.max==null?3:j.max);
+    document.getElementById('n-cal').checked=!!j.calAlert;
+  }
+  showNag();
+  document.getElementById('n-save').onclick=async()=>{
+    const body={eve:document.getElementById('n-eve').checked, eveTime:document.getElementById('n-eve-time').value||'20:00', at:document.getElementById('n-at').checked, before,
+      mode:modeSel.value, every:Number(document.getElementById('n-every').value), max:Number(document.getElementById('n-max').value), calAlert:document.getElementById('n-cal').checked};
+    const r=await nagApi(body).catch(()=>null);
+    if(r&&r.ok){ showToast('התזכורות נשמרו ✓'); ov.remove(); } else showToast('שגיאה בשמירה');
+    if(HAS_NOTIF&&Notification.permission!=='granted') requestNotify();
+  };
+  document.getElementById('n-test').onclick=async()=>{ const ok=await registerPush(false); const reg=await navigator.serviceWorker.getRegistration(APP_BASE); if(reg) reg.showNotification('תכל׳ס',{body:'בדיקה – ככה תיראה תזכורת ✓',icon:APP_BASE+'icon-v3-192.png',dir:'rtl'}); else if(!ok) showToast('קודם צריך לאשר התראות'); };
 }
 
 // ── Hebrew parser ──
@@ -722,8 +752,9 @@ const HELP_CONTENT={he:[
   • <b>העברה לרשימה אחרת</b> – ⇄ ליד המשימה<br>
   • <b>משימה חוזרת</b> – כשמסמנים שבוצעה, הפעם הבאה נוצרת לבד</div>`]]},
  {c:'🔔 תזכורות והתראות',items:[
-  ['🔔 הפעלת תזכורות',`<div>לוחצים <b>🔔</b> למעלה ומאשרים. כל משימה עם תאריך מקבלת תזכורת <b>בערב שלפני ב-20:00</b>, ואם יש שעה – גם <b>בשעת המשימה</b>, גם כשהאפליקציה סגורה.<br><b>🔁 נודניק:</b> משימה עם שעה שלא סימנת "בוצע" מצפצפת שוב כל 5 דקות עד שמסמנים. בהתראה עצמה יש כפתורים <b>✅ בוצע</b> ו<b>⏰ עוד 30 דק׳</b>. מגדירים בלחיצה על 🔔 (כל המשימות / רק דחופות / כבוי, וכל כמה דקות). בלילה (22:00–07:00) שקט.<br>באייפון התראות עובדות רק אחרי התקנה במסך הבית.</div>`],
-  ['🔁 נודניק – תזכורת חוזרת',`<div>משימה עם שעה שלא סימנת "בוצע" – ממשיכה להזכיר שוב ושוב.<br>הגדרה: <b>🔔</b> למעלה ← בוחרים <b>לכל המשימות עם שעה / רק לדחופות / כבוי</b>, וכל כמה דקות (5–30).<br>בהתראה עצמה יש כפתורים <b>✅ בוצע</b> ו-<b>⏰ עוד 30 דק׳</b> – עובדים בלי לפתוח את האפליקציה.<br>בלילה (22:00–07:00) הנודניק שקט.</div>`]]},
+  ['🔔 הפעלת תזכורות',`<div>לוחצים <b>🔔</b> למעלה ומאשרים התראות. התזכורות מגיעות גם כשהאפליקציה סגורה.<br>ב-🔔 בוחרים מתי להזכיר (אישי לכל משתמש):<br>• <b>יום לפני</b> – בשעה שתבחר (למשל 09:00 או 20:00)<br>• <b>בשעת המשימה</b><br>• <b>לפני המשימה</b> – עד 3: 10 דק׳ / רבע שעה / חצי שעה / שעה / שעתיים / יום, כמו ביומן<br>"שלח התראת בדיקה" – לראות שזה עובד.</div>`],
+  ['🔁 נודניק – תזכורת חוזרת',`<div>אם רוצים – משימה עם שעה שלא סימנת "בוצע" ממשיכה להזכיר. <b>כברירת מחדל הנודניק כבוי</b> (תזכורת אחת וזהו).<br>הפעלה: <b>🔔</b> ← "נודניק" ← לכל המשימות או רק לדחופות, כל כמה זמן (5 דק׳–שעתיים) ועד כמה פעמים.<br>בהתראה יש כפתורים <b>✅ בוצע</b> ו-<b>⏰ עוד 30 דק׳</b> – עובדים בלי לפתוח את האפליקציה. בלילה (22:00–07:00) שקט.</div>`],
+  ['📆 תזכורת כפולה מהיומן?',`<div>מי שהפעיל "גם כאירוע ביומן" יכול לבחור ב-🔔 אם לקבל צלצול <b>גם מהיומן</b>. כבוי (ברירת מחדל) = התזכורת מגיעה רק מתכל׳ס, בלי כפילויות.</div>`]]},
  {c:'👨‍👩‍👧 שיתוף ועבודה בצוות',items:[
   ['👨‍👩‍👧 רשימות משותפות',`<div>רשימה משותפת מתעדכנת אצל כולם בזמן אמת. "שלי" נשארת פרטית.<br>
   • <b>רשימה חדשה</b> – "+ רשימה משותפת"<br>
@@ -2183,7 +2214,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-02b';
+const APP_VERSION='2026-11-02d';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
