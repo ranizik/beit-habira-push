@@ -1262,7 +1262,7 @@ async function renderAccessAdmin(cached){
     const row=u=>{ const on=isToday(u.last);
       return '<div data-open="'+escA(u.uid)+'" style="display:flex;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid #EEEDF7;cursor:pointer">'
         +'<div style="position:relative">'+avatar(u,42)+(on?'<span style="position:absolute;bottom:0;left:0;width:12px;height:12px;border-radius:50%;background:#10B981;border:2px solid #fff"></span>':'')+'</div>'
-        +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">'+escA(u.name||u.email||'משתמש')+'</div><div style="font-size:12px;color:#5B5B76">'+lastShort(u).replace(' · ',' · ')+'</div></div>'
+        +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">'+escA(u.name||u.email||'משתמש')+(u.guest?' <span style="font-size:11px;font-weight:600;color:#5B5B76;background:#F4F3FB;border-radius:6px;padding:1px 6px">👤 בלי Google</span>':'')+'</div><div style="font-size:12px;color:#5B5B76">'+lastShort(u).replace(' · ',' · ')+'</div></div>'
         +pill(flag(u))+'<span style="color:#A5A3C2;font-size:18px">‹</span></div>'; };
     box.innerHTML=
       (pend.length?pend.map(u=>'<div style="background:#EEF0FF;border-radius:14px;padding:12px;margin-bottom:10px">'
@@ -1522,7 +1522,7 @@ function iosInstallHint(){
 function startTasks(u){
   if(tasksStarted) return;
   if(u.uid==='staff-tasks' || /^ranizik@gmail\.com$/i.test(u.email||'')) markAdminDevice();
-  curUser=u; registerPush(true); setTimeout(showMovedBanner,1500); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp();
+  curUser=u; registerPush(true); setTimeout(showMovedBanner,1500); setTimeout(maybeGuestNudge,4000); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp();
   const sb=document.getElementById('stats-btn'); if(sb) sb.style.display = u.uid==='staff-tasks' ? '' : 'none';
   curList=null; tasksRef=listTasksRef(null); tasksStarted=true; subscribeTasks(); renderLists();
   handleJoinLink(); // בפתיחה תמיד מתחילים ב"שלי" (לא ברשימה האחרונה שהייתה פתוחה)
@@ -1596,17 +1596,20 @@ async function onGoogleCredential(resp){
   try{ const d=decodeURIComponent(did||''); if(/^[A-Za-z0-9_-]{1,40}$/.test(d)) localStorage.setItem('tasks_device_id',d); }catch(e){}
   if(mt && !OLD_HOST){ try{ localStorage.setItem('tk_migrated','1'); }catch(e){}
     TASKS_APP.auth().signInWithCustomToken(decodeURIComponent(mt)).catch(e=>setTimeout(()=>loginNote('ההתחברות נכשלה – היכנס שוב עם Google'),600)); }
-  const ct=(h.match(/[#&]ct=([^&]+)/)||[])[1], le=(h.match(/[#&]lerr=([^&]+)/)||[])[1], nn=(h.match(/[#&]n=([^&]*)/)||[])[1], adm=/[#&]adm=1/.test(h);
+  const ct=(h.match(/[#&]ct=([^&]+)/)||[])[1], le=(h.match(/[#&]lerr=([^&]+)/)||[])[1], nn=(h.match(/[#&]n=([^&]*)/)||[])[1], adm=/[#&]adm=1/.test(h), lnk=(h.match(/[#&]lnk=(\d)/)||[])[1];
   if(ct||le) history.replaceState(null,'',location.pathname+location.search);
   let saved=''; try{ saved=localStorage.getItem('tasks_gsi_nonce')||''; }catch(e){}
   if(ct && (!saved || decodeURIComponent(nn||'')!==saved)) setTimeout(()=>loginNote('ההתחברות נכשלה (בדיקת אבטחה) - לחץ שוב על כניסה עם Google'),600);
-  else if(ct){ try{ localStorage.removeItem('tasks_gsi_nonce'); }catch(e){} TASKS_APP.auth().signInWithCustomToken(decodeURIComponent(ct)).then(()=>{ if(adm) setTimeout(()=>showStats(),1200); }).catch(e=>setTimeout(()=>loginNote('ההתחברות נכשלה ('+(e.code||e.message)+')'),600)); }
+  else if(ct){ try{ localStorage.removeItem('tasks_gsi_nonce'); }catch(e){} TASKS_APP.auth().signInWithCustomToken(decodeURIComponent(ct)).then(()=>{ if(adm) setTimeout(()=>showStats(),1200); if(lnk) setTimeout(()=>showToast(lnk==='2'?'המשימות הועברו לחשבון ה-Google שלך ✓':'החשבון חובר ל-Google ✓'),1500); }).catch(e=>setTimeout(()=>loginNote('ההתחברות נכשלה ('+(e.code||e.message)+')'),600)); }
   if(le) setTimeout(()=>loginNote('ההתחברות נכשלה ('+decodeURIComponent(le)+')'),600);
   // קישור הזמנה לרשימה משותפת נשמר, כדי שלא ילך לאיבוד במעבר לגוגל וחזרה
   const j=new URLSearchParams(location.search).get('join'); if(j) try{ localStorage.setItem('tasks_pending_join',j); }catch(e){}
 })();
 function logout(){
-  if(!confirm('להתנתק?')) return;
+  if(isGuest()){ // אורח שמתנתק מאבד גישה למשימות - מציעים קודם לחבר Google
+    if(confirm('נכנסת בלי Google – אחרי התנתקות לא תוכל לחזור למשימות שלך.\n\nלחבר קודם חשבון Google? (אישור = לחבר)')){ showGuestLink(); return; }
+    if(!confirm('להתנתק בכל זאת? המשימות שלך לא יהיו נגישות יותר.')) return;
+  } else if(!confirm('להתנתק?')) return;
   stopTasks(); TASKS_APP.auth().signOut();
 }
 function showTasksLogin(){
@@ -1616,6 +1619,10 @@ function showTasksLogin(){
   ov.innerHTML='<div style="background:#fff;border-radius:14px;padding:22px;width:min(320px,90vw);text-align:center;direction:rtl">'
     +'<img id="login-logo" src="icon-v3-192.png" alt="" style="width:64px;height:64px;border-radius:18px;margin-bottom:8px"><div style="font-weight:800;font-size:22px;color:#1E1B4B">תכל׳ס</div><div style="font-size:13px;color:#5B5B76;margin-bottom:14px">אמרת – זה נרשם</div>'
     +'<button id="tasks-google-btn" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#333;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-brand-google"></i> כניסה עם Google</button>'
+    +'<div id="guest-wrap" style="margin-top:12px"><button id="guest-btn" type="button" style="width:100%;padding:10px;font-size:15px;border:0;border-radius:8px;background:#F4F3FB;color:#1E1B4B;font-family:inherit;font-weight:600">המשך בלי Google</button>'
+    +'<div id="guest-form" style="display:none;text-align:right"><div style="font-size:13px;color:#5B5B76;margin:6px 0">איך קוראים לך?</div><input id="guest-name" type="text" maxlength="40" autocomplete="given-name" placeholder="השם שלך" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box">'
+    +'<button id="guest-go" type="button" style="margin-top:8px;width:100%;padding:10px;font-size:16px;border:0;border-radius:8px;background:#1E1B4B;color:#fff;font-family:inherit">המשך</button>'
+    +'<div style="font-size:11px;color:#8A89A3;margin-top:6px;line-height:1.5">המשימות יישמרו בחשבון במכשיר הזה. אפשר לחבר Google בכל רגע, כדי לא לאבד אותן בהחלפת טלפון.</div></div></div>'
     +'<div id="adm-wrap" style="display:'+(isAdminDevice()?'block':'none')+'"><div style="font-size:12px;color:#999;margin:14px 0 8px">או כניסת מנהל</div>'
     +'<input type="text" name="username" autocomplete="username" value="מנהל" style="display:none" tabindex="-1" aria-hidden="true">' // שהדפדפן ימלא כאן ולא בשדה המשימה
     +'<input id="tasks-pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="קוד מנהל" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box">'
@@ -1627,9 +1634,75 @@ function showTasksLogin(){
   document.getElementById('tasks-google-btn').onclick=googleLogin;
   setupGoogleButton();
   document.getElementById('tasks-pin').addEventListener('keydown',e=>{ if(e.key==='Enter') tasksLogin(); });
+  document.getElementById('guest-btn').onclick=()=>{ document.getElementById('guest-btn').style.display='none'; document.getElementById('guest-form').style.display='block'; document.getElementById('guest-name').focus(); };
+  document.getElementById('guest-go').onclick=guestStart;
+  document.getElementById('guest-name').addEventListener('keydown',e=>{ if(e.key==='Enter') guestStart(); });
   // כניסת מנהל מוסתרת: מופיעה רק במכשיר של בעל העסק. במכשיר חדש - 5 הקשות מהירות על הלוגו
   let taps=0, tt=0; document.getElementById('login-logo').onclick=()=>{ const now=Date.now(); taps=now-tt<1500?taps+1:1; tt=now;
     if(taps>=5){ document.getElementById('adm-wrap').style.display='block'; document.getElementById('tasks-pin').focus(); } };
+}
+// ── כניסה בלי Google (אורח): רק שם. אפשר לחבר Google מאוחר יותר (showGuestLink) ──
+async function guestStart(){
+  const name=(document.getElementById('guest-name').value||'').trim(); if(name.length<2){ showToast('כתוב את השם שלך'); return; }
+  const b=document.getElementById('guest-go'); b.disabled=true; b.textContent='רגע...';
+  try{
+    const r=await fetch(STAFF_API+'/tasks/guest/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})}).then(r=>r.json());
+    if(!r||!r.ok) throw new Error((r&&r.error)||'שגיאה');
+    await TASKS_APP.auth().signInWithCustomToken(r.token);
+  }catch(e){ b.disabled=false; b.textContent='המשך'; showToast(e.message||'אין חיבור לשרת'); }
+}
+const isGuest=()=>!!(curUser && !curUser.email && curUser.uid!=='staff-tasks');
+// אורח: תזכורת עדינה (לא יותר מפעם בשלושה ימים) לחבר Google כדי לא לאבד את המשימות
+function maybeGuestNudge(){
+  if(!isGuest() || document.getElementById('guest-nudge')) return;
+  let t=0; try{ t=+localStorage.getItem('tk_guest_nudge')||0; }catch(e){}
+  if(Date.now()-t<3*864e5) return;
+  const b=document.createElement('div'); b.id='guest-nudge';
+  b.style.cssText='position:fixed;left:10px;right:10px;bottom:12px;background:#fff;border:2px solid #1E1B4B;border-radius:16px;padding:12px 14px;z-index:9000;box-shadow:0 8px 28px rgba(0,0,0,.2);direction:rtl;font-size:14px;line-height:1.5';
+  b.innerHTML='<b>👤 נכנסת בלי Google</b><div style="color:#5B5B76;font-size:13px;margin:2px 0 10px">המשימות שמורות במכשיר הזה. כדי לא לאבד אותן בהחלפת טלפון – חבר חשבון Google (לוקח רגע).</div>'
+    +'<div style="display:flex;gap:8px"><button id="gn-link" style="height:38px;padding:0 14px;border-radius:12px;border:0;background:#1E1B4B;color:#fff;font-family:inherit;font-weight:600">חבר Google</button><button id="gn-later" style="height:38px;padding:0 14px;border-radius:12px;border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B;font-family:inherit">אחר כך</button></div>';
+  document.body.appendChild(b);
+  const later=()=>{ try{ localStorage.setItem('tk_guest_nudge',String(Date.now())); }catch(e){} b.remove(); };
+  document.getElementById('gn-later').onclick=later;
+  document.getElementById('gn-link').onclick=()=>{ later(); showGuestLink(); };
+}
+async function showGuestLink(){
+  document.getElementById('edit-modal')?.remove();
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
+  ov.innerHTML='<div class="modal" style="text-align:center"><div style="font-size:40px">🔗</div><h3 style="margin:4px 0 6px">חיבור לחשבון Google</h3>'
+    +'<div style="font-size:14px;color:#5B5B76;line-height:1.6;margin-bottom:14px">המשימות והרשימות שלך נשמרות, ומעכשיו תוכל להיכנס איתן מכל מכשיר. אם כבר יש לך חשבון בתכל׳ס עם ה-Google הזה – המשימות יעברו אליו.</div>'
+    +'<div id="gl-gsi" style="display:flex;justify-content:center;min-height:44px">טוען...</div><div id="gl-note" style="font-size:12px;color:#B42318;margin-top:8px"></div>'
+    +'<div class="modal-btns" style="justify-content:center;margin-top:12px"><button class="btn-cancel" onclick="document.getElementById(\'edit-modal\').remove()">ביטול</button></div></div>';
+  document.body.appendChild(ov);
+  const host=document.getElementById('gl-gsi'), note=document.getElementById('gl-note');
+  if(inAppBrowser()){ host.textContent='פתח את האפליקציה ב-Chrome / Safari כדי לחבר Google'; return; }
+  const redirect=/iPhone|iPad|iPod/.test(navigator.userAgent)||isStandalone();
+  let nonce='';
+  if(redirect){ // מעבר לגוגל וחזרה: הכרטיס החתום של האורח נשלח בתוך ה-nonce
+    try{ const t=await curUser.getIdToken(); const r=await fetch(STAFF_API+'/tasks/guest/link-ticket',{method:'POST',headers:{'Authorization':'Bearer '+t}}).then(r=>r.json()); if(!r||!r.ok) throw new Error((r&&r.error)||'שגיאה'); nonce=r.ticket; }
+    catch(e){ host.textContent=''; note.textContent=e.message; return; }
+  } else { try{ nonce=crypto.getRandomValues(new Uint32Array(4)).join('-'); }catch(e){} }
+  try{ localStorage.setItem('tasks_gsi_nonce',nonce); }catch(e){}
+  let tries=0;
+  (function setup(){
+    if(!document.getElementById('gl-gsi')) return;
+    if(!(window.google&&google.accounts&&google.accounts.id)){ if(++tries<40) return setTimeout(setup,250); host.textContent='לא ניתן לטעון את Google – נסה שוב'; return; }
+    google.accounts.id.initialize({client_id:GCAL_CLIENT_ID, callback:onGuestLinkCredential, ux_mode:redirect?'redirect':'popup', login_uri:STAFF_API+'/tasks/guest/link-redirect', auto_select:false, nonce});
+    host.textContent=''; google.accounts.id.renderButton(host,{theme:'filled_blue',size:'large',text:'continue_with',shape:'pill',locale:'he',width:260});
+  })();
+}
+async function onGuestLinkCredential(resp){
+  const note=document.getElementById('gl-note'); if(note){ note.style.color='#5B5B76'; note.textContent='מחבר...'; }
+  try{
+    const t=await curUser.getIdToken();
+    const r=await fetch(STAFF_API+'/tasks/guest/link',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify({credential:resp&&resp.credential})}).then(r=>r.json());
+    if(!r||!r.ok) throw new Error((r&&r.error)||'שגיאה');
+    if(r.merged) stopTasks(); // עוברים לחשבון ה-Google הקיים
+    await TASKS_APP.auth().signInWithCustomToken(r.token);
+    await TASKS_APP.auth().currentUser.reload().catch(()=>{});
+    document.getElementById('edit-modal')?.remove(); document.getElementById('guest-nudge')?.remove();
+    showToast(r.merged?'המשימות הועברו לחשבון ה-Google שלך ✓':'החשבון חובר ל-Google ✓');
+  }catch(e){ if(note){ note.style.color='#B42318'; note.textContent=e.message; } }
 }
 function isAdminDevice(){ try{ return localStorage.getItem('tk_admin')==='1' || new URLSearchParams(location.search).has('admin'); }catch(e){ return false; } }
 function markAdminDevice(){ try{ localStorage.setItem('tk_admin','1'); }catch(e){} }
@@ -1927,7 +2000,8 @@ function render(){
     const nm=curUser?(curUser.uid==='staff-tasks'?'רני':String(curUser.displayName||'').split(' ')[0]):'';
     const all=Object.values(tasks).filter(t=>t&&!t.done), nT=all.filter(t=>t.date===today&&!isLate(t)).length, nL=all.filter(isLate).length;
     const A=accessInfo, trialNote=(A&&A.allowed&&A.until!=null&&A.daysLeft<=3)?'<div style="margin-top:8px;display:inline-block;background:rgba(255,90,95,.18);color:#FFD7D8;border-radius:10px;padding:5px 10px;font-size:13px">⏳ '+(A.plan==='paid'?'המנוי נגמר':'הניסיון נגמר')+(A.daysLeft<=1?' מחר':' בעוד '+A.daysLeft+' ימים')+'</div>':'';
-    g.innerHTML='<b>'+hi+(nm?', '+esc(nm):'')+'</b><span>'+(nT?nT+' משימות להיום':'אין משימות להיום')+(nL?' · '+nL+' באיחור':'')+'</span>'+trialNote;
+    g.innerHTML='<b>'+hi+(nm?', '+esc(nm):'')+'</b><span>'+(nT?nT+' משימות להיום':'אין משימות להיום')+(nL?' · '+nL+' באיחור':'')+'</span>'+trialNote
+      +(isGuest()?'<div><button onclick="showGuestLink()" style="margin-top:8px;background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:10px;padding:5px 10px;font-size:13px;font-family:inherit;cursor:pointer">👤 בלי Google · חבר חשבון לגיבוי</button></div>':'');
   }
   const total=list.length,done=list.filter(t=>t.done).length,urgent=list.filter(t=>t.pri==='high'&&!t.done).length;
   document.getElementById('stats-bar').innerHTML=
@@ -2000,7 +2074,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-01b';
+const APP_VERSION='2026-11-01c';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
