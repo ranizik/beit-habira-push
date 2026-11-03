@@ -178,6 +178,8 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 .list-tab.shared.active{background:var(--coral);border-color:var(--coral);color:#fff;}
 .lists-bar{overflow:visible!important;position:relative;z-index:50;}
 .lp-wrap{position:relative;width:100%;}
+.lists-bar{flex-wrap:wrap;}
+.all-sum{width:100%;font-size:13px;color:var(--muted);margin:8px 4px 0;line-height:1.5;}
 .list-pick{width:100%;height:48px;border-radius:14px;border:0;display:flex;align-items:center;gap:10px;padding:0 16px;font-family:inherit;font-size:17px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 3px 10px rgba(30,27,75,.18);}
 .list-pick.mine{background:var(--navy);} .list-pick.shared{background:var(--coral);} .list-pick.all{background:#0E7C66;}
 .lp-name{flex:1;text-align:start;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -1392,7 +1394,7 @@ function locOf(key){ key=String(key); const i=key.indexOf('~'); if(allView&&i>0)
 function refOf(key){ const L=locOf(key); return L.ref.child(L.id); }
 function listNameOf(l){ return !l||l==='me'?'שלי':((myLists[l]&&myLists[l].name)||''); }
 function allOff(){ allRefs.forEach(r=>r.off()); allRefs=[]; allParts={}; }
-function mergeAll(){ const out={}; for(const [l,part] of Object.entries(allParts)) for(const [k,t] of Object.entries(part||{})){ if(t&&typeof t==='object'){ const key=l+'~'+k; out[key]={...t,id:key,_l:l}; } } tasks=out; render(); }
+function mergeAll(){ const out={}; for(const [l,part] of Object.entries(allParts)) for(const [k,t] of Object.entries(part||{})){ if(t&&typeof t==='object'){ const key=l+'~'+k; out[key]={...t,id:key,_l:l}; } } tasks=out; render(); renderLists(); }
 function subscribeAll(){ allOff(); [null,...Object.keys(myLists)].forEach(l=>{ const r=listTasksRef(l); allRefs.push(r); r.on('value',snap=>{ allParts[l||'me']=snap.val()||{}; mergeAll(); },()=>{ delete allParts[l||'me']; mergeAll(); }); }); }
 function showAllTasks(){ if(tasksStarted){ tasksRef.off(); tasksStarted=false; } allView=true; curList=null; whoFilter=''; tasks={}; tasksRef=listTasksRef(null); subscribeAll(); renderLists(); render(); }
 function subscribeTasks(){
@@ -1503,7 +1505,12 @@ function renderLists(){
     menu+=item(!allView&&curList===id,'shared',isOrgList(id)?'🏢':'👥',l.name,'pickList(\''+id+'\')',true,cnt?'👤 '+cnt:''); });
   menu+='<div class="lm-sep"></div><button class="lm-item add" onclick="pickList(\'__new\')"><span class="lm-ic">➕</span><span class="lm-name">רשימה משותפת</span></button>';
   bar.innerHTML='<div class="lp-wrap"><button class="list-pick '+cur.c+'" id="list-pick" onclick="toggleListMenu(event)" aria-haspopup="true"><span class="lp-ic">'+cur.ic+'</span><span class="lp-name"'+(cur.u?' data-notr':'')+'>'+esc(cur.n)+'</span><span class="lp-caret">▾</span></button>'
-    +'<div class="list-menu" id="list-menu" role="menu">'+menu+'</div></div>';
+    +'<div class="list-menu" id="list-menu" role="menu">'+menu+'</div></div>'
+    +(allView?(()=>{ // כמה משימות פתוחות מכל רשימה – כדי שיהיה ברור מאיפה המספר
+      const cnt={}; Object.values(tasks).forEach(t=>{ if(t&&!t.done) cnt[t._l]=(cnt[t._l]||0)+1; });
+      const parts=Object.entries(cnt).sort((a,b)=>(a[0]==='me'?-1:b[0]==='me'?1:b[1]-a[1])).map(([l,n])=>'<span data-notr>'+esc(listNameOf(l))+'</span> '+n);
+      const total=Object.values(cnt).reduce((a,b)=>a+b,0);
+      return '<div class="all-sum">'+total+' '+'פתוחות'+(parts.length?': '+parts.join(' · '):'')+'</div>'; })():'');
   const mb=document.getElementById('list-members'), l=curList&&myLists[curList];
   if(l){
     const cnt=l.members?Object.values(l.members).filter(Boolean).length:0;
@@ -2765,7 +2772,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03g';
+const APP_VERSION='2026-11-03h';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
