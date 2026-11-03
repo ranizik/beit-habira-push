@@ -1435,7 +1435,7 @@ function watchLists(){
 // ── באחריות מי (רק ברשימה משותפת) ──
 let whoFilter=''; // '' = הכל, 'me' = רק מה שבאחריותי
 function listMembers(){ const l=curList&&myLists[curList]; return l&&l.members?Object.entries(l.members).filter(([u,m])=>m).map(([uid,m])=>({uid,name:String(m.name||'חבר/ה')})):[]; }
-function whoOptions(sel){ return '<option value="">👤 באחריות: לא משויך</option>'+listMembers().map(m=>'<option value="'+m.uid+'"'+(m.uid===sel?' selected':'')+'>👤 '+escA(m.name)+(curUser&&m.uid===curUser.uid?' (אני)':'')+'</option>').join(''); }
+function whoOptions(sel,lid){ return '<option value="">👤 באחריות: לא משויך</option>'+(lid===undefined?listMembers():listMembersOf(lid)).map(m=>'<option value="'+m.uid+'"'+(m.uid===sel?' selected':'')+'>👤 '+escA(m.name)+(curUser&&m.uid===curUser.uid?' (אני)':'')+'</option>').join(''); }
 function renderWhoSelect(){
   const s=document.getElementById('f-who'); if(!s) return;
   if(!curList){ s.style.display='none'; s.value=''; return; }
@@ -1702,7 +1702,7 @@ async function doMove(key, to, extra){
   const L=locOf(key); to=to||null; if((L.lid||null)===to) return false;
   const copy={...t, ...(extra||{})}; delete copy.rem; delete copy._l; copy.id=L.id;
   if(to&&copy.who&&!listMembersOf(to).some(m=>m.uid===copy.who.uid)) delete copy.who;
-  if(!to) delete copy.who;
+  if(!to||!copy.who) delete copy.who;
   // הקישור ל-Google Tasks נשמר רק אם הוא שלי
   const mine=!copy.gOwner||copy.gOwner===curUser.uid;
   if(!mine){ delete copy.gtaskId; delete copy.gOwner; }
@@ -2736,7 +2736,7 @@ function editTask(id) {
       <select id="e-cat" onchange="onCatSelect(this)">${catOptions(t.cat||'')}</select>
       <label class="fld"><span>📋 רשימה</span><select id="e-list"></select></label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="fld"><span>📅 תאריך</span><input type="date" id="e-date" value="${t.date||''}"/></label><label class="fld"><span>🕐 שעה</span><input type="time" id="e-time" value="${t.time||''}"/></label></div>
-      ${curList?'<select id="e-who">'+whoOptions((t.who&&t.who.uid)||'')+'</select>':''}
+      <select id="e-who" style="${locOf(id).lid?'':'display:none'}">${whoOptions((t.who&&t.who.uid)||'',locOf(id).lid)}</select>
       <select id="e-rep"><option value="">🔁 לא חוזרת</option><option value="daily">🔁 כל יום</option><option value="weekly">🔁 כל שבוע</option><option value="monthly">🔁 כל חודש</option></select>
       <textarea id="e-notes" rows="4" placeholder="📝 פרטים נוספים (כתובת, טלפון, מה להביא...)" style="width:100%;padding:8px 10px;border:1px solid #b0b0b0;border-radius:4px;font-size:14px;margin-bottom:10px;font-family:inherit;resize:vertical"></textarea>
       <div class="modal-btns">
@@ -2752,6 +2752,7 @@ function editTask(id) {
   const el=document.getElementById('e-list'), from=locOf(id).lid||'';
   moveTargets().forEach(([lid,label])=>{ const o=document.createElement('option'); o.value=lid; o.textContent=label; o.setAttribute('data-notr',''); el.appendChild(o); });
   el.value=from;
+  el.onchange=()=>{ const w=document.getElementById('e-who'), v=w.value, l=el.value||null; w.innerHTML=whoOptions(v,l); if(![...w.options].some(o=>o.value===v)) w.value=''; else w.value=v; w.style.display=l?'':'none'; };
   document.getElementById('e-name').focus();
 }
 
@@ -2767,9 +2768,10 @@ function saveEdit(id) {
     rep: document.getElementById('e-rep').value,
     tz: LOCAL_TZ
   };
-  const ew=document.getElementById('e-who');
-  if(ew&&curList){ const m=listMembers().find(x=>x.uid===ew.value); const prevWho=tasks[id]&&tasks[id].who&&tasks[id].who.uid; upd.who=m?{uid:m.uid,name:m.name}:null;
-    if(m&&m.uid!==prevWho) listsApi('notify',{listId:curList,name:upd.name,assignee:m.uid,reassign:true}).catch(()=>{}); }
+  const ew=document.getElementById('e-who'), elw=document.getElementById('e-list');
+  const wl=elw?(elw.value||null):locOf(id).lid; // הרשימה שבה המשימה תהיה אחרי השמירה
+  if(ew&&wl){ const m=listMembersOf(wl).find(x=>x.uid===ew.value); const prevWho=tasks[id]&&tasks[id].who&&tasks[id].who.uid; upd.who=m?{uid:m.uid,name:m.name}:null;
+    if(m&&(m.uid!==prevWho||wl!==(locOf(id).lid||null))) listsApi('notify',{listId:wl,name:upd.name,assignee:m.uid,reassign:true}).catch(()=>{}); }
   if (upd.rep && !upd.date) { const d=new Date(); upd.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   const el=document.getElementById('e-list'), toL=el?(el.value||null):undefined;
   if(toL!==undefined && toL!==(locOf(id).lid||null)){ doMove(id,toL,upd); document.getElementById('edit-modal').remove(); scheduleAllLocal(); return; }
@@ -2784,7 +2786,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03i';
+const APP_VERSION='2026-11-03j';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
