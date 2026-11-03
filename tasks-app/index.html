@@ -173,6 +173,9 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 .lists-bar,.list-members{background:transparent;border:0;padding:12px 12px 0;}
 .list-tab{border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:18px;height:36px;padding:0 14px;font-family:inherit;}
 .list-tab.active{background:var(--navy);border-color:var(--navy);}
+/* שני צבעים: "שלי" (פרטי) בכחול לילה, רשימות משותפות בקורל */
+.list-tab.shared{border-color:#FFC4C6;background:#FFF5F5;color:#B4232A;}
+.list-tab.shared.active{background:var(--coral);border-color:var(--coral);color:#fff;}
 .list-tab.add{color:var(--navy);border-color:var(--navy);}
 .list-tool{background:#ECEBFA;color:var(--navy);border-radius:10px;height:32px;font-family:inherit;}
 .stats{background:transparent;border:0;padding:10px 12px 0;gap:8px;}
@@ -1452,7 +1455,7 @@ function renderLists(){
   const esc=x=>String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let h='<button class="list-tab'+(!curList?' active':'')+'" onclick="switchList(null)"><i class="ti ti-lock"></i> שלי</button>';
   Object.entries(myLists).sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name),'he')).forEach(([id,l])=>{
-    h+='<button class="list-tab'+(curList===id?' active':'')+'" onclick="switchList(\''+id+'\')"><i class="ti '+(isOrgList(id)?'ti-building':'ti-users')+'"></i> <span data-notr>'+esc(l.name)+'</span></button>';
+    h+='<button class="list-tab shared'+(curList===id?' active':'')+'" onclick="switchList(\''+id+'\')"><i class="ti '+(isOrgList(id)?'ti-building':'ti-users')+'"></i> <span data-notr>'+esc(l.name)+'</span></button>';
   });
   h+='<button class="list-tab add" onclick="createList()"><i class="ti ti-plus"></i> רשימה משותפת</button>';
   bar.innerHTML=h;
@@ -2693,7 +2696,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03d';
+const APP_VERSION='2026-11-03e';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
