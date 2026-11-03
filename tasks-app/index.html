@@ -283,6 +283,7 @@ const I18N_V='c4c42c5a'; // i18n:version (נכתב ע״י build.py)
 let curLang=(()=>{ try{ return localStorage.getItem('tk_lang')||'he'; }catch(e){ return 'he'; } })();
 if(!LANGS[curLang]||!LANG_READY.includes(curLang)) curLang='he';
 const LOC=()=>(LANGS[curLang]||LANGS.he).loc;
+const LOCAL_TZ=(()=>{ try{ return Intl.DateTimeFormat().resolvedOptions().timeZone||'Asia/Jerusalem'; }catch(e){ return 'Asia/Jerusalem'; } })(); // אזור הזמן של המכשיר – תזכורות לפי השעה המקומית (גם בחו״ל)
 let I18N=null, I18N_MAX=0;
 const HEB_CH=/[֐-׿]/, HEB_RUN=/[֐-׿](?:[^<>{}`'"\n\\]*[֐-׿])?/g;
 const GLUE=/(^|[\s(\-])[בלוכמהש]$/; // מפתח שנגמר באות-שימוש בודדת ("הועבר ל") נצמד למילה שאחריו
@@ -350,7 +351,7 @@ function startI18n(dict){
 })();
 async function langPref(lang){ // שומר בשרת - לתזכורות בשפה שנבחרה
   try{ if(!curUser) return null; const t=await curUser.getIdToken();
-    const r=await fetch(STAFF_API+'/tasks/prefs',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(lang?{lang}:{})});
+    const r=await fetch(STAFF_API+'/tasks/prefs',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(lang?{lang,tz:LOCAL_TZ}:{tz:LOCAL_TZ})});
     return await r.json(); }catch(e){ return null; }
 }
 async function setLang(l){
@@ -551,7 +552,7 @@ function gcalSettings(){
 function gcalEventTasks(){
   const since=gcalSinceDate();
   return Object.values(tasks).filter(t=>t&&t.gtaskId&&t.date&&!t.done&&t.date>=since&&(!t.gOwner||t.gOwner===curUser.uid))
-    .map(t=>({gtaskId:t.gtaskId,name:t.name,date:t.date,time:t.time||'',done:!!t.done,notes:t.notes||'',pri:t.pri||''}));
+    .map(t=>({gtaskId:t.gtaskId,tz:t.tz||LOCAL_TZ,name:t.name,date:t.date,time:t.time||'',done:!!t.done,notes:t.notes||'',pri:t.pri||''}));
 }
 async function setGcalEvents(on, box){
   if(on && !gcalSrv.cal){
@@ -590,7 +591,7 @@ async function syncMissingToGcal(){
 async function addToGcal(task) {
   if (!task.date) return;
   if (gcalSrv.configured) {
-    const j = await gcalServerApi('task', {op:'create', task:{name:task.name, date:task.date, time:task.time||'', done:!!task.done, notes:task.notes||'', pri:task.pri||''}}).catch(e => ({ok:false, error:'אין חיבור לשרת'}));
+    const j = await gcalServerApi('task', {op:'create', task:{tz:task.tz||LOCAL_TZ, name:task.name, date:task.date, time:task.time||'', done:!!task.done, notes:task.notes||'', pri:task.pri||''}}).catch(e => ({ok:false, error:'אין חיבור לשרת'}));
     if (j.ok && j.id) { tasksRef.child(task.id).update(curList ? {gtaskId:j.id, gOwner:curUser.uid} : {gtaskId:j.id}); return true; }
     if (j.error === 'not_connected') { gcalSrv.connected = false; updateGcalStatus(); return 'צריך לחבר את היומן - לחץ 📅'; }
     return j.error || 'שגיאה';
@@ -610,7 +611,7 @@ async function syncGtask(task, remove){
   if (!task || !task.gtaskId || !isGcalConnected()) return;
   if (task.gOwner && curUser && task.gOwner !== curUser.uid) return; // משימה משותפת שנכנסה ליומן של מישהו אחר
   if (gcalSrv.configured) {
-    gcalServerApi('task', remove ? {op:'delete', gtaskId:task.gtaskId} : {op:'update', gtaskId:task.gtaskId, task:{name:task.name, date:task.date, time:task.time||'', done:!!task.done, notes:task.notes||'', pri:task.pri||''}}).catch(()=>{});
+    gcalServerApi('task', remove ? {op:'delete', gtaskId:task.gtaskId} : {op:'update', gtaskId:task.gtaskId, task:{tz:task.tz||LOCAL_TZ, name:task.name, date:task.date, time:task.time||'', done:!!task.done, notes:task.notes||'', pri:task.pri||''}}).catch(()=>{});
     return;
   }
   try {
@@ -2404,7 +2405,7 @@ function addTask(auto){
   else for(const [re,p] of PRI_RULES){ if(re.test(name)&&name.replace(re,'$1').trim()){ autoPri=p; name=name.replace(re,'$1'); break; } }
   name=name.replace(/\s+/g,' ').trim(); if(!name) return;
   const id='task_'+Date.now();
-  const task={id,name,pri:document.getElementById('f-pri').value,date,time,done:false,created:Date.now()};
+  const task={id,name,pri:document.getElementById('f-pri').value,date,time,done:false,created:Date.now(),tz:LOCAL_TZ};
   const fc=document.getElementById('f-cat'); if(fc&&fc.value&&fc.value!=='__new') task.cat=fc.value; else if(autoCat) task.cat=autoCat;
   if(curList && curUser) task.byUid=curUser.uid;
   if(curList && curUser) task.by=(myLists[curList]&&myLists[curList].members&&myLists[curList].members[curUser.uid]&&myLists[curList].members[curUser.uid].name)||'';
@@ -2455,7 +2456,7 @@ function nextRepeatDate(t){
 }
 function createNextRepeat(t){
   const nid='task_'+Date.now();
-  const n={id:nid,name:t.name,pri:t.pri||'low',date:nextRepeatDate(t),time:t.time||'',done:false,created:Date.now(),rep:t.rep};
+  const n={id:nid,name:t.name,pri:t.pri||'low',date:nextRepeatDate(t),time:t.time||'',done:false,created:Date.now(),rep:t.rep,tz:t.tz||LOCAL_TZ};
   if(t.cat) n.cat=t.cat; if(t.notes) n.notes=t.notes; if(t.by) n.by=t.by;
   tasksRef.child(nid).set(n);
   if(isGcalConnected()) addToGcal(n);
@@ -2644,7 +2645,8 @@ function saveEdit(id) {
     time: document.getElementById('e-time').value,
     cat: (document.getElementById('e-cat').value==='__new'?'':document.getElementById('e-cat').value),
     notes: document.getElementById('e-notes').value.trim().slice(0,2000),
-    rep: document.getElementById('e-rep').value
+    rep: document.getElementById('e-rep').value,
+    tz: LOCAL_TZ
   };
   const ew=document.getElementById('e-who');
   if(ew&&curList){ const m=listMembers().find(x=>x.uid===ew.value); const prevWho=tasks[id]&&tasks[id].who&&tasks[id].who.uid; upd.who=m?{uid:m.uid,name:m.name}:null;
@@ -2661,7 +2663,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03b';
+const APP_VERSION='2026-11-03c';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
