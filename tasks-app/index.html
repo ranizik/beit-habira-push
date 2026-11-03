@@ -189,15 +189,17 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 .task-list{padding:6px 12px 12px;display:flex;flex-direction:column;gap:8px;}
 .sec{font-size:13px;font-weight:700;color:var(--muted);margin:10px 4px 0;letter-spacing:.2px;}
 .sec.late{color:#B42318;}
-.card{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:12px 12px 12px 6px;border:1.5px solid transparent;}
-.card.late{border-color:#FDD3D0;}
+.card{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:12px 12px 12px 6px;border:1.5px solid #E6E5F3;box-shadow:0 1px 3px rgba(30,27,75,.06);}
+/* הפרדה בין משימות: רקע לסירוגין – לבן / סגלגל בהיר */
+.card.alt{background:#ECEBFA;border-color:#DCDAF2;}
+.card.late{border-color:#F9B4AE;background:#FFF4F3;}
 .card.sel{border-color:#6366F1;background:#EEF0FF;}
 .card.done{opacity:.6;}
 .card.done .cname{text-decoration:line-through;}
 .tick{width:28px;height:28px;border-radius:9px;border:2px solid #D0CFE3;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;cursor:pointer;padding:0;}
 .tick.on{background:#10B981;border-color:#10B981;}
 .cbody{flex:1;min-width:0;cursor:pointer;}
-.cname{font-size:16px;font-weight:600;line-height:1.35;word-break:break-word;}
+.cname{font-size:16.5px;font-weight:700;color:#0E0D26;line-height:1.35;word-break:break-word;}
 .cmeta{font-size:13px;color:var(--muted);margin-top:3px;}
 .card.late .cmeta{color:#B42318;}
 .pdot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
@@ -2591,11 +2593,12 @@ function render(){
   const isLate=t=>!t.done&&t.date&&due(t)<nowMs;
   const dayTxt=t=>!t.date?'':t.date===today?'היום':t.date===tmr?'מחר':t.date===yst?'אתמול':new Date(t.date+'T12:00').toLocaleDateString(LOC(),{weekday:'short',day:'numeric',month:'numeric'});
   const repTxt={daily:'כל יום',weekly:'כל שבוע',monthly:'כל חודש'};
+  let altN=0; // רקע לסירוגין
   const card=t=>{
-    const late=isLate(t);
+    const late=isLate(t), alt=(altN++)%2===1;
     const meta=[(!t.done&&t.pri==='high')?'<b style="color:#DC2626">דחוף</b>':(!t.done&&t.pri==='med')?'<b style="color:#B45309">בינוני</b>':'', late?'באיחור':'', [t.date&&t.date!==today?dayTxt(t):'', t.time||''].filter(Boolean).join(' '), (t.cat&&!curCat)?esc(t.cat):'', t.rep?'🔁 '+(repTxt[t.rep]||''):'', (curList&&t.by)?'מאת '+esc(t.by):'', (curList&&t.who&&t.who.uid)?'<b style="color:#4338CA">👤 '+(curUser&&t.who.uid===curUser.uid?'עליי':esc(t.who.name))+'</b>':''].filter(Boolean).join(' · ');
     const sel=selectMode&&selected.has(t.id);
-    return '<div class="card'+(t.done?' done':'')+(late?' late':'')+(sel?' sel':'')+'">'
+    return '<div class="card'+(alt?' alt':'')+(t.done?' done':'')+(late?' late':'')+(sel?' sel':'')+'">'
       +(selectMode
         ?'<button class="tick'+(sel?' on':'')+'" aria-label="בחר" onclick="toggleSel(\''+t.id+'\')">'+(sel?'✓':'')+'</button>'
         :'<button class="tick'+(t.done?' on':'')+'" aria-label="'+(t.done?'סמן כפתוחה':'סמן כבוצעה')+'" onclick="toggle(\''+t.id+'\')">'+(t.done?'✓':'')+'</button>')
@@ -2696,7 +2699,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03e';
+const APP_VERSION='2026-11-03f';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
