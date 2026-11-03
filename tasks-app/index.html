@@ -138,6 +138,15 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 .header h1{font-size:23px;font-weight:800;letter-spacing:-.3px;line-height:1.1;flex:none;}
 .brand small{font-size:12px;color:var(--soft);white-space:nowrap;}
 .header{flex-wrap:wrap;row-gap:8px;}
+.header{position:relative;}
+.menu-btn{position:relative;width:44px;}
+.menu-dot{position:absolute;top:7px;inset-inline-end:7px;width:9px;height:9px;border-radius:50%;background:#FF6B57;border:2px solid var(--navy);display:none;}
+.hdr-menu{position:absolute;top:50px;inset-inline-end:0;z-index:900;background:#fff;border-radius:16px;box-shadow:0 12px 36px rgba(20,18,60,.28);padding:6px;min-width:230px;display:none;flex-direction:column;gap:2px;}
+.hdr-menu.open{display:flex;animation:menuIn .14s ease-out;}
+@keyframes menuIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.hdr-menu .notif-status{background:none;color:#1E1B4B;justify-content:flex-start;width:100%;height:46px;padding:0 14px;border-radius:11px;font-size:15px;gap:8px;}
+.hdr-menu .notif-status:hover,.hdr-menu .notif-status:focus-visible{background:#F4F3FB;outline:none;}
+.hdr-menu #logout-btn{color:#B42318;border-top:1px solid #EEEDF7;border-radius:0 0 11px 11px;}
 .brand{flex:1 0 auto;}
 .notif-status{font-size:12px;opacity:1;background:rgba(255,255,255,.12);padding:0 9px;height:40px;min-width:40px;border-radius:12px;color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;font-family:inherit;}
 .greet{margin-top:16px;}
@@ -211,13 +220,16 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 <div class="header">
   <img class="logo" src="icon-v3-192.png" alt=""/>
   <div class="brand"><h1>תכל׳ס</h1><small>אמרת – זה נרשם</small></div>
-  <button class="notif-status" id="lang-btn" onclick="showLangPicker()" title="שפה" aria-label="שפה">🌐</button>
-  <button class="notif-status" id="org-btn" onclick="showOrg()" title="תכל׳ס לעסקים" aria-label="תכל׳ס לעסקים" style="display:none">🏢</button>
-  <button class="notif-status" id="help-btn" onclick="showHelp()" aria-label="עזרה – איך משתמשים" title="איך משתמשים">❓</button>
-  <button class="notif-status" id="notif-btn" onclick="requestNotify()">🔔 התראות</button>
-  <button class="notif-status" id="gcal-status" onclick="gcalButton()">📅 חבר יומן</button>
-  <button class="notif-status" id="stats-btn" onclick="showStats()" title="נתוני שימוש" style="display:none">📊</button>
-  <button class="notif-status" id="logout-btn" onclick="logout()" title="התנתק" aria-label="התנתק" style="display:none"><i class="ti ti-logout"></i></button>
+  <button class="notif-status menu-btn" id="menu-btn" onclick="toggleHdrMenu(event)" aria-label="תפריט" aria-haspopup="true" aria-expanded="false"><span style="font-size:22px;line-height:1">☰</span><span class="menu-dot" id="menu-dot"></span></button>
+  <div class="hdr-menu" id="hdr-menu" role="menu">
+    <button class="notif-status" id="notif-btn" onclick="hdrGo(requestNotify)">🔔 התראות</button>
+    <button class="notif-status" id="gcal-status" onclick="hdrGo(gcalButton)">📅 חבר יומן</button>
+    <button class="notif-status" id="org-btn" onclick="hdrGo(showOrg)" style="display:none">🏢 תכל׳ס לעסקים</button>
+    <button class="notif-status" id="lang-btn" onclick="hdrGo(showLangPicker)">🌐 שפה</button>
+    <button class="notif-status" id="help-btn" onclick="hdrGo(showHelp)">❓ עזרה – איך משתמשים</button>
+    <button class="notif-status" id="stats-btn" onclick="hdrGo(showStats)" style="display:none">📊 ניהול</button>
+    <button class="notif-status" id="logout-btn" onclick="hdrGo(logout)" style="display:none">⏻ התנתק</button>
+  </div>
 </div>
 <div class="greet" id="greet"></div>
 </div>
@@ -273,13 +285,21 @@ const APP_URL = 'https://tachlesapps.com/';
 const APP_BASE = new URL('./', location.href).pathname; // '/' בכתובת החדשה, '/tasks/' בישנה
 const OLD_HOST = /(^|\.)beit-habira\.com$/i.test(location.hostname); // בכתובת הישנה: מעבירים את המשתמש (מחובר) לכתובת החדשה
 
+// ── תפריט בכותרת (כל הכפתורים ברשימה נפתחת) ──
+function toggleHdrMenu(e){ if(e) e.stopPropagation(); const m=document.getElementById('hdr-menu'), b=document.getElementById('menu-btn'); const open=!m.classList.contains('open'); m.classList.toggle('open',open); b.setAttribute('aria-expanded',open?'true':'false'); }
+function closeHdrMenu(){ const m=document.getElementById('hdr-menu'); if(m&&m.classList.contains('open')){ m.classList.remove('open'); document.getElementById('menu-btn').setAttribute('aria-expanded','false'); } }
+function hdrGo(fn){ closeHdrMenu(); try{ fn(); }catch(e){ console.error(e); } }
+document.addEventListener('click',e=>{ if(!e.target.closest('#hdr-menu')&&!e.target.closest('#menu-btn')) closeHdrMenu(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeHdrMenu(); });
+// נקודה על כפתור התפריט כשההתראות כבויות (כדי שלא ייעלם מהעין)
+setInterval(()=>{ const n=document.getElementById('notif-btn'), d=document.getElementById('menu-dot'); if(n&&d) d.style.display=/🔕/.test(n.textContent)&&curUser?'block':'none'; },2000);
 // ── שפות (i18n) ──
 // המילונים: lang/<שפה>.json, ממופים לפי הטקסט העברי שבממשק (נבנים ע״י tools/i18n/build.py).
 // שפה מופעלת רק כשהתרגום שלה הושלם (LANG_READY מתעדכן אוטומטית בבנייה).
 // זיהוי תאריכים/שעות בדיבור: כרגע בעברית בלבד. הרחבה עתידית: PARSERS[lang] (ראה addTask).
 const LANGS={he:{n:'עברית',dir:'rtl',loc:'he-IL',sr:'he-IL'},en:{n:'English',dir:'ltr',loc:'en-US',sr:'en-US'},ar:{n:'العربية',dir:'rtl',loc:'ar',sr:'ar-SA'},ru:{n:'Русский',dir:'ltr',loc:'ru-RU',sr:'ru-RU'},fr:{n:'Français',dir:'ltr',loc:'fr-FR',sr:'fr-FR'},es:{n:'Español',dir:'ltr',loc:'es-ES',sr:'es-ES'}};
 const LANG_READY=['he','en','ar','ru','fr','es']; // i18n:ready (נכתב ע״י build.py)
-const I18N_V='c4c42c5a'; // i18n:version (נכתב ע״י build.py)
+const I18N_V='11ac128e'; // i18n:version (נכתב ע״י build.py)
 let curLang=(()=>{ try{ return localStorage.getItem('tk_lang')||'he'; }catch(e){ return 'he'; } })();
 if(!LANGS[curLang]||!LANG_READY.includes(curLang)) curLang='he';
 const LOC=()=>(LANGS[curLang]||LANGS.he).loc;
@@ -493,9 +513,9 @@ function gcalButton() {
 function updateGcalStatus() {
   const btn = document.getElementById('gcal-status');
   if (!btn) return;
-  btn.textContent = isGcalConnected() ? '📅 ✓' : '📅 חבר יומן'; btn.setAttribute('aria-label', isGcalConnected() ? 'יומן Google מחובר' : 'חבר ליומן Google');
+  btn.textContent = isGcalConnected() ? '📅 יומן Google ✓' : '📅 חבר יומן'; btn.setAttribute('aria-label', isGcalConnected() ? 'יומן Google מחובר' : 'חבר ליומן Google');
   btn.title = gcalSrv.email || '';
-  btn.style.background = isGcalConnected() ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.15)';
+  btn.style.background = '';
 }
 
 // ── Google Tasks: כל משימה עם תאריך נכנסת כ"משימה" (עם וי) ביומן גוגל ──
@@ -647,13 +667,11 @@ async function registerPush(silent){
 }
 function updateNotifBtn() {
   const btn = document.getElementById('notif-btn');
-  if (!HAS_NOTIF) { btn.textContent = '🔕 התראות'; btn.style.background = 'rgba(255,255,255,0.15)'; return; }
+  if (!HAS_NOTIF) { btn.textContent = '🔕 התראות'; return; }
   if (Notification.permission === 'granted') {
-    btn.textContent = '🔔 ✓'; btn.setAttribute('aria-label','התראות פעילות');
-    btn.style.background = 'rgba(255,255,255,0.3)';
+    btn.textContent = '🔔 התראות ✓'; btn.setAttribute('aria-label','התראות פעילות');
   } else {
     btn.textContent = '🔕 התראות'; btn.setAttribute('aria-label','אפשר התראות');
-    btn.style.background = 'rgba(255,255,255,0.15)';
   }
 }
 
@@ -1706,7 +1724,17 @@ function hideLocked(){ document.getElementById('locked-ov')?.remove(); }
 // מסך ניהול משתמשים (בעל העסק) - בתוך 📊
 const fmtD=ms=>ms?new Date(ms).toLocaleDateString(LOC(),{day:'numeric',month:'numeric',year:'2-digit'}):'—';
 const fmtT=ms=>new Date(ms).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'});
-let accOpen='', accLast=null;
+let accOpen='', accLast=null, accAt=0, sumLast=null, sumAt=0;
+// ניהול מהיר: הנתונים נטענים מראש ברקע (במכשיר של בעל העסק), והפאנל נפתח מיד עם מה שכבר נטען ומתעדכן ברקע
+async function admPrefetch(){
+  try{ const r=await TASKS_APP.auth().currentUser.getIdTokenResult(); if(!r.claims.gadmin) return; }catch(e){ return; }
+  accessApi('list').then(j=>{ if(j&&j.ok){ accLast=j; accAt=Date.now(); } });
+  statsApi('summary').then(j=>{ if(j&&j.ok){ sumLast=j; sumAt=Date.now(); } });
+}
+async function admSummary(onFresh){
+  if(sumLast){ if(Date.now()-sumAt>30000) statsApi('summary').then(j=>{ if(j&&j.ok){ sumLast=j; sumAt=Date.now(); onFresh&&onFresh(); } }); return sumLast; }
+  const j=await statsApi('summary'); if(j&&j.ok){ sumLast=j; sumAt=Date.now(); } return j;
+}
 // ניווט בתוך הניהול: כל מעבר (לשונית / משתמש) נשמר, וחץ "חזרה" - או כפתור החזרה של הטלפון - מחזיר צעד אחד בלי לצאת מהפאנל
 let admNav=[], admTab='users', admShow=null, admClosing=false;
 const admOpen=()=>!!document.querySelector('#edit-modal[data-admin]');
@@ -1732,10 +1760,13 @@ window.addEventListener('popstate',()=>{
   if(admNav.length) admApply(admNav.pop());
   else document.getElementById('edit-modal')?.remove();
 });
-async function renderAccessAdmin(cached){
+async function renderAccessAdmin(cached, quick){
   const box=document.getElementById('acc-body'); if(!box) return;
   if(!cached) renderOrgAdmin();
-  const j=cached&&accLast?accLast:await accessApi('list'); accLast=j;
+  let j;
+  if(accLast&&(cached||quick)){ j=accLast;
+    if(quick&&Date.now()-accAt>15000) accessApi('list').then(x=>{ if(x&&x.ok){ accLast=x; accAt=Date.now(); if(document.getElementById('acc-body')) renderAccessAdmin(true); } }); }
+  else { j=await accessApi('list'); if(j&&j.ok){ accLast=j; accAt=Date.now(); } }
   if(!j||!j.ok){ box.textContent='לא ניתן לטעון משתמשים'+(j&&j.error?': '+j.error:''); return; }
   const C=j.config;
   const badge=u=>{
@@ -1946,7 +1977,6 @@ async function showStats(tab){
   const fresh=!admOpen(); // פתיחה חדשה (לא רענון של פאנל פתוח)
   tab=tab||(fresh?'users':admTab);
   if(fresh){ accOpen=''; admNav=[]; }
-  if(await checkAppUpdate(true)) return; // לפני פתיחת הניהול - אם יש גרסה חדשה, נטענת קודם
   // הניהול נפתח רק אחרי אימות עם חשבון Google של בעל העסק (פעם אחת במכשיר). קוד המנהל לבד לא מספיק
   try{ const r=await TASKS_APP.auth().currentUser.getIdTokenResult(); if(!r.claims.gadmin){ showAdminVerify(); return; } }catch(e){}
   document.getElementById('edit-modal')?.remove();
@@ -1966,8 +1996,8 @@ async function showStats(tab){
     ov.querySelectorAll('[data-tab]').forEach(b=>{ const on=b.dataset.tab===k; b.style.background=on?'#1E1B4B':'transparent'; b.style.color=on?'#fff':'#1E1B4B'; b.style.fontWeight=on?'700':'400'; }); };
   admShow=show; admTab=tab;
   ov.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>admGo({tab:b.dataset.tab,user:''})); show(tab);
-  renderAccessAdmin();
-  const j=await statsApi('summary');
+  renderAccessAdmin(false,true);
+  const j=await admSummary(()=>{ if(admOpen()&&admTab==='stats') showStats('stats'); });
   const body=document.getElementById('st-body'); if(!body) return;
   if(!j||!j.ok){ body.textContent='לא ניתן לטעון נתונים'+(j&&j.error?': '+j.error:''); return; }
   const card=(label,val,sub)=>'<div style="background:#f5f5f5;border-radius:8px;padding:8px 10px"><div style="font-size:11px;color:#666">'+label+'</div><div style="font-size:22px;font-weight:700;color:#222">'+val+'</div>'+(sub?'<div style="font-size:11px;color:#888">'+sub+'</div>':'')+'</div>';
@@ -2088,7 +2118,7 @@ function iosInstallHint(){
 function startTasks(u){
   if(tasksStarted) return;
   if(u.uid==='staff-tasks' || /^ranizik@gmail\.com$/i.test(u.email||'')) markAdminDevice();
-  curUser=u; registerPush(true); setTimeout(showMovedBanner,1500); setTimeout(maybeGuestNudge,4000); checkConsent(); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp(); setTimeout(syncLangFromServer,2500); loadOrg().then(handleOrgJoinLink);
+  curUser=u; registerPush(true); setTimeout(showMovedBanner,1500); setTimeout(maybeGuestNudge,4000); checkConsent(); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp(); setTimeout(syncLangFromServer,2500); if(isAdminDevice()) setTimeout(admPrefetch,3000); loadOrg().then(handleOrgJoinLink);
   const ob=document.getElementById('org-btn'); if(ob) ob.style.display='';
   const sb=document.getElementById('stats-btn'); if(sb) sb.style.display = u.uid==='staff-tasks' ? '' : 'none';
   curList=null; tasksRef=listTasksRef(null); tasksStarted=true; subscribeTasks(); renderLists();
@@ -2663,7 +2693,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03c';
+const APP_VERSION='2026-11-03d';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
