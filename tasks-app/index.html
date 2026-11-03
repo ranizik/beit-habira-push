@@ -1548,6 +1548,7 @@ async function handleOrgJoinLink(){
   const j=await orgApi('join',{orgId,token});
   showToast(j&&j.ok?(j.already?'כבר חבר/ה בארגון "'+j.name+'"':'הצטרפת לארגון "'+j.name+'" ✓'):((j&&j.error)||'ההצטרפות נכשלה'));
   loadOrg();
+  if(j&&j.ok) setTimeout(checkAccess,800); // עובד חדש של ארגון נכנס מיד, בלי מסך "ממתין לאישור"
 }
 const ORG_ROLE={owner:'👑 בעלים',manager:'⭐ מנהל/ת',member:'עובד/ת'};
 let orgTab='people';
@@ -2790,7 +2791,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03k';
+const APP_VERSION='2026-11-03l';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
