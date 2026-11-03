@@ -106,7 +106,7 @@ test('קטגוריה ודחיפות מהמשפט', () => {
   assert.deepEqual(cat(cats, 'קטגוריה עבודה להזמין קולה'), ['להזמין קולה', 'עבודה']);
   assert.deepEqual(cat(cats, 'לקנות מתנה לבית של אמא'), ['לקנות מתנה לבית של אמא', '']);
   const priBlock = grab(/  const PRI_RULES=[\s\S]*?break; } }\n/, 'דחיפות');
-  const pri = new Function('name', 'let autoPri="";' + priBlock + ';return [name.replace(/\\s+/g," ").trim(),autoPri];');
+  const pri = new Function('name', 'let autoPri="";const plang="he";' + priBlock + ';return [name.replace(/\\s+/g," ").trim(),autoPri];');
   assert.deepEqual(pri('להזמין קולה דחוף'), ['להזמין קולה', 'high']);
   assert.deepEqual(pri('לסדר מחסן לא דחוף'), ['לסדר מחסן', 'low']);
   assert.deepEqual(pri('לסדר מחסן בינוני'), ['לסדר מחסן', 'med']);
