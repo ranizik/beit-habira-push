@@ -13,19 +13,20 @@ self.addEventListener('push', (event) => {
   const n = payload.notification || {};
   const data = payload.data || {};
   // תזכורת למשימה עם שעה: כפתורי "בוצע" / "עוד 30 דק׳" (עובדים בלי לפתוח את האפליקציה)
-  const actions = data.act ? [{ action: 'done', title: '✅ בוצע' }, { action: 'snooze', title: '⏰ עוד 30 דק׳' }] : [];
+  const RTL = !data.lang || data.lang === 'he' || data.lang === 'ar'; // השרת שולח את שפת המשתמש ואת שמות הכפתורים
+  const actions = data.act ? [{ action: 'done', title: data.l1 || '✅ בוצע' }, { action: 'snooze', title: data.l2 || '⏰ עוד 30 דק׳' }] : [];
   event.waitUntil(self.registration.showNotification(n.title || data.title || 'תכל׳ס', {
     actions,
     body: n.body || data.body || '',
     icon: ICON,
     badge: ICON,
-    dir: 'rtl',
-    lang: 'he',
+    dir: RTL ? 'rtl' : 'ltr',
+    lang: data.lang || 'he',
     tag: data.taskId ? 'task-' + data.taskId : undefined,
     renotify: true,
     requireInteraction: true,
     vibrate: [200, 100, 200],
-    data: { link: data.link || BASE, act: data.act || '' },
+    data: { link: data.link || BASE, act: data.act || '', l3: data.l3 || '', l4: data.l4 || '', rtl: RTL },
   }));
 });
 
@@ -35,7 +36,7 @@ self.addEventListener('notificationclick', (event) => {
   if (act && (event.action === 'done' || event.action === 'snooze')) {
     event.waitUntil(fetch('https://beit-habira-api.onrender.com/tasks/nag/act', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t: act, a: event.action }),
-    }).then((r) => r.ok ? self.registration.showNotification(event.action === 'done' ? '✅ סומן כבוצע' : '⏰ אזכיר שוב בעוד 30 דקות', { body: event.notification.title.replace(/^[^:]*:\s*/, ''), icon: ICON, dir: 'rtl', tag: 'ack', requireInteraction: false, silent: true }) : null).catch(() => {}));
+    }).then((r) => r.ok ? self.registration.showNotification(event.action === 'done' ? (event.notification.data.l3 || '✅ סומן כבוצע') : (event.notification.data.l4 || '⏰ אזכיר שוב בעוד 30 דקות'), { body: event.notification.title.replace(/^[^:]*:\s*/, ''), icon: ICON, dir: event.notification.data.rtl === false ? 'ltr' : 'rtl', tag: 'ack', requireInteraction: false, silent: true }) : null).catch(() => {}));
     return;
   }
   const link = (event.notification.data && event.notification.data.link) || BASE;

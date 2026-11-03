@@ -1,0 +1,556 @@
+o
+o Chrome) e inténtalo de nuevo
+o Enter). Todas las reglas del dictado también funcionan al escribir
+o en
+o por voz
+o acceso de administrador
+o escribe una tarea
+o correo de un usuario de Tachles
+Di la tarea y deja de hablar. Tras unos 2 segundos se añade sola
+por la tarde
+después
+iPhone (solo
+Cómo funciona
+Cómo se usa
+¿Cómo te llamas
+No tienes acceso a esta lista
+Sin permiso - vuelve a iniciar sesión
+No hay conexión con el calendario
+No hay conexión con el servidor
+Por ahora no hay un espacio de trabajo empresarial separado ni gestión centralizada de empleados – el trabajo en equipo se hace mediante las listas
+No hay adónde mover - crea primero una lista compartida
+No hay tareas para hoy
+No hay tareas — pulsa el micrófono y di la primera
+Confirmar y continuar
+Si no dijiste la urgencia, aparecerá una ventanita
+Opcional – una tarea con hora que no has marcado
+Lo dijiste – quedó anotado
+Android
+yo
+Queda prohibido copiar, duplicar, distribuir, modificar o usar el código, el diseño, el nombre o el logotipo, total o parcialmente, sin autorización previa y por escrito del titular de los derechos
+Queda prohibido copiar, duplicar, distribuir, modificar, descompilar, vender o crear obras derivadas de la aplicación o de cualquier parte de ella, sin autorización previa y por escrito del titular de los derechos
+Una app de tareas: pulsa el micrófono, di una frase – y la tarea queda guardada con fecha, hora y urgencia. A la hora fijada llega un recordatorio al móvil
+También puedes escribir, gestionar
+Permitir notificaciones
+Puedes combinar
+Hasta 3 recordatorios con antelación
+Quiero recibir novedades y ofertas de Tachles
+Quiero recibir novedades y ofertas de Tachles (opcional
+Aprueba también en Google el acceso al calendario
+ayer
+a las
+el 15 de noviembre
+En 🔔 elige cuándo recordar (personal para cada usuario
+en rojo
+en rojo) · Hoy · Mañana · Más adelante · Sin fecha
+Responsable
+Responsable: Dani
+Quién se encarga
+Responsable: Noga
+Responsable: sin asignar
+Atrasada
+En iPhone: Compartir
+de la mañana
+Comprobar si me aprobaron
+Prueba – así se verá un recordatorio
+Si cambias de móvil o borras los datos del navegador, no podrás volver a ella
+Más adelante
+La notificación tiene botones
+Comprobando
+Elige la cuenta
+Hecha
+Hechas
+Buenos días
+Selección múltiple
+Elegir
+Seleccionar todo
+Elige cuándo recibir un recordatorio de una tarea con fecha/hora. El ajuste es personal y se guarda en tu cuenta
+Elige un tema o busca
+Deshacer
+el jueves a las tres y media
+Cancelar
+Media
+Casa
+En cada lista compartida todos los miembros tienen los mismos permisos: todos ven todas las tareas, añaden, editan, marcan como hechas y borran
+Sin Google · vincula una cuenta como respaldo
+Sin fecha
+Sin respuesta en 8 segundos, la tarea queda como no urgente
+De noche (22:00–07:00) el insistidor está en silencio
+En este dispositivo
+en
+en 3 días
+en una semana
+Problemas frecuentes
+por enlace
+en una lista compartida
+en la lista de categorías
+en la fila
+a las
+a la hora que elijas (p. ej. 09:00 o
+a la hora de la tarea
+al final de la lista
+A veces un usuario nuevo espera aprobación – aparecerá una pantalla
+Google bloquea el inicio de sesión desde WhatsApp/Facebook. Abre el enlace en Chrome o Safari (⋯ ← Abrir en el navegador) e inténtalo de nuevo
+Google mostrará una pantalla
+Google no permite iniciar sesión desde WhatsApp/Facebook. Pulsa ⋯ o el icono de la brújula y elige
+Desplázate y elige
+También como evento en el calendario
+también desde el calendario
+Urgente
+Urgentes
+Urgencia
+urgencia, categoría, fecha y hora
+min
+El responsable recibe una notificación y, si hay hora, también el insistidor
+Los eventos se quitaron del calendario
+La app está disponible por ahora en hebreo
+La app recibe del navegador solo el texto reconocido
+Entendido
+Entendido, iniciar sesión
+Solicitud enviada
+Tu solicitud se envió para su aprobación
+Ajustes
+Ajustes e idioma
+Es la hora
+El acceso a Tachles está bloqueado por ahora
+El navegador no admite la grabación
+El navegador no admite notificaciones
+No se pudo mover
+No se pudo unir
+El permiso es solo para tareas
+No se pudo iniciar sesión
+No se pudo iniciar sesión (control de seguridad) - pulsa otra vez en iniciar sesión con
+No se pudo iniciar sesión – vuelve a entrar con
+No se registraron las notificaciones
+añadió
+Añadir
+Añadir a la pantalla de inicio
+Añadir tarea
+Te diste de baja de las novedades
+Movida a
+Invitar
+La conexión está cifrada y hay una copia de seguridad cada noche
+No se pudo conectar
+La renovación y el pago se hacen directamente con el operador de la app – no hay pagos dentro de la app
+Cambiar de cuenta
+La cuenta está disponible desde cualquier dispositivo
+Cuenta vinculada a
+Hoy
+Calendario cambiado
+Calendario cambiado correctamente
+El calendario ya está conectado. ¿Cambiar a otra cuenta de Google
+El calendario está conectado de forma permanente
+Hola Rani, me gustaría seguir usando Tachles
+Hola Rani, me registré en Tachles – agradecería la aprobación
+Hola, tengo una pregunta sobre Tachles
+Primeros pasos
+Historial
+Todo
+No se pudo borrar
+el micrófono rojo
+El micrófono no funciona
+La suscripción terminó
+No se encontró la tarea – actualiza la app
+Tarea añadida ✓ — pulsa 📅 para añadirla al calendario
+Tarea añadida, pero no al calendario
+Tarea borrada
+Tus tareas se pasaron a tu cuenta de Google
+Tus tareas y listas están aquí, todo está guardado
+Tus tareas y listas están guardadas, y desde ahora puedes entrar a ellas desde cualquier dispositivo. Si ya tienes una cuenta de Tachles con esta cuenta de Google – las tareas pasarán a ella
+Las tareas aparecerán también en el calendario de Samsung
+Las tareas quedarán con el resto de los miembros
+Las tareas se guardarán en la cuenta en este dispositivo. Puedes vincular Google en cualquier momento para no perderlas al cambiar de móvil
+Las tareas no se borran
+Las tareas se ordenan por
+Mis tareas desaparecieron
+Las tareas quedan para los demás
+Tus tareas se guardan para darte el servicio y no se transfieren a terceros. La app se ofrece tal cual (AS IS), sin responsabilidad por daños derivados de su uso, como un recordatorio que no llegó
+Tus tareas están guardadas y te esperan
+Las tareas están guardadas en este dispositivo. Para no perderlas al cambiar de móvil – vincula una cuenta de Google (toma un momento
+Continuar
+Continuar a beit-habira-api.onrender.com (no seguro
+Continuar sin
+Están guardadas en el servidor. Inicia sesión con la misma cuenta
+La prueba terminó
+Ocultar tareas hechas
+Mover
+Mover a otra lista
+Mover tarea
+Mover a otra lista
+Copia el enlace y envíalo
+Activar
+Activar recordatorios
+Unirse a la lista de tareas
+se unió
+se unió por enlace
+Te uniste a la lista
+No se pudo añadir
+Enlace copiado - pégalo en WhatsApp
+Las grabaciones de voz no se guardan
+el cuadrado junto a la tarea
+Permisos en una lista compartida
+La lista
+Lista creada ✓ - pulsa
+No se pudo restaurar
+El uso de la app está permitido solo para uso personal, para usuarios aprobados. El titular de los derechos puede bloquear o terminar el acceso en cualquier momento
+Tu nombre
+Recordatorios guardados
+Conectar calendario
+Cerrar sesión
+Cerrar sesión
+Progreso
+Instalar app
+Reinstalar
+Instalar en la pantalla de inicio
+Notificaciones
+Notificaciones e insistidor
+Notificaciones activas en este dispositivo
+Notificaciones activas
+¡Notificaciones activas! Recibirás un recordatorio la noche anterior y a la hora de la tarea
+y
+y elige una cuenta de Google (si aparece
+y la tarea se anota sola
+WhatsApp
+Y hay botones rápidos: Hoy · Mañana · Pasado mañana · En una semana
+y aprobar
+y pulsa
+y al calendario
+y borrar el icono viejo
+y ver solo lo que tiene a su cargo
+y añades a las personas – con un enlace de invitación, o por el correo de alguien que ya usa la app
+e inténtalo de nuevo
+y abre la app desde allí
+Es normal – la app está en proceso de verificación
+Reconocido
+Vincular
+Vincular calendario
+Vincular al calendario
+Miembro
+Vinculación de cuenta
+Conexión al calendario
+Conexión al calendario de Google y Samsung
+Buscar
+Buscar en la ayuda
+Buscar tarea
+Jueves
+Media hora
+Cargando
+1 día
+Un día antes
+Un día antes, a las
+Calendario
+Calendario de Google / Samsung
+Calendario de Google conectado
+Calendario de Samsung
+Creas una lista (p. ej.
+puede elegir en 🔔 si recibir un aviso sonoro
+días
+salió de la lista
+Saliste de la lista
+Salir
+Crear una tarea por voz
+Crear una tarea escribiendo
+creó la lista
+verde = hoy, naranja = esta semana) + historial
+Hay que aceptar las condiciones
+∅
+Apagado (por defecto) = el recordatorio llega solo desde Tachles, sin duplicados
+Apagado = el recordatorio llega solo desde Tachles, sin duplicados. (Para quien activó
+Apagado – un recordatorio y listo
+Ya está en la lista
+Ya renové – comprobar de nuevo
+Por defecto el insistidor está apagado
+Conviene añadirla de nuevo a la pantalla de inicio (Compartir
+Conviene reinstalar el icono y borrar el viejo
+Para seguir usando Tachles hay que aceptarlas. Tus tareas están guardadas y no cambian
+Para seguir recibiendo recordatorios – vuelve a permitir las notificaciones
+Para continuar – marca las dos casillas
+Para continuar: una suscripción de
+para enviar un enlace
+Para que las tareas aparezcan en el calendario de Samsung (y en cualquier calendario sincronizado con Google), con aviso sonoro a la hora de la tarea
+Escribes en el campo
+Azul noche + coral
+Cada 10 min
+Cada 5 min
+Cada uno puede filtrar
+Cualquier miembro puede añadir más personas (hasta el número de participantes del plan) y salir de la lista cuando quiera – las tareas quedan para los demás
+Cada mes
+Cada media hora
+Cada día
+Cada tarea con fecha entra en Google Tasks (una tarea con check
+Cada usuario ve solo sus propias tareas y las listas de las que es miembro
+Cada cuarto de hora
+Cada semana
+Cada hora
+Cada dos horas
+Varias a la vez
+Entrar
+Entrar y registrarse
+Entrar con
+Botón
+El botón Compartir (cuadrado con una flecha
+El botón 🔔 arriba
+Por ahora Tachles está en
+Cuando termina el período – esperan la renovación
+Al marcarla como hecha, la siguiente se crea sola
+Cuando termina un período de uso aparecerá una pantalla con un botón
+Escribe tu nombre
+Escribe un correo válido
+a
+No se permitió el acceso al micrófono
+No se permitieron las notificaciones
+no verificó la app
+No urgente
+No pude
+No se repite
+No verificada
+No llegan notificaciones
+no está activado en el proyecto en
+no se creó
+No se puede cargar
+No se puede cargar Google – inténtalo de nuevo
+No se encontró. Prueba otra palabra, o contacta con soporte
+No se oyó nada - pulsa el micrófono e inténtalo de nuevo
+No se guardó – inténtalo de nuevo
+permitir el acceso al micrófono. En iPhone solo en
+revisar el stock
+para casa
+invitar a alguien nuevo
+pedir cola para el trabajo mañana a las 10 urgente
+regar las plantas
+Cerrar sesión
+¿Cerrar sesión de todos modos? Tus tareas ya no serán accesibles
+Para instalar en iPhone (en
+llamar al proveedor
+Pulsas
+Pulsas en
+Pulsa el nombre (alguien que ya está contigo en otra lista) o escribe un correo
+¿Vincular primero una cuenta de Google? (Aceptar = vincular
+al mes
+para renovar por WhatsApp
+Pulsar en Casa / Trabajo / Ventas
+Pulsar en el nombre y corregir
+Pulsar en el nombre de la tarea (puedes añadir dirección, teléfono, qué llevar
+Pulsa y habla
+Pulsa para editar
+Pulsa el botón Compartir
+Pulsa otra vez para otra tarea
+junto a la tarea
+Buenas noches
+para todas las tareas o solo las urgentes, cada cuánto (5 min–2 horas) y hasta cuántas veces
+para todas las tareas con hora
+Sin categoría
+Borrar
+Para borrar la cuenta y los datos – contacta con soporte (abajo
+arriba (quien entró sin Google recibirá un aviso – conviene vincular Google primero
+arriba y permites las notificaciones. Los recordatorios llegan incluso con la app cerrada
+para desconectar
+cerrar la app por completo y volver a abrirla
+Para trabajar con empleados o socios usa
+antes
+antes de la tarea
+antes de la tarea (hasta 3, como en un calendario
+Salir de la lista
+Añadir sin enlace
+comprar huevos
+comprar huevos mañana a las 10 para casa
+comprar globos
+ver que funciona
+pagar una factura
+apruebas. Las tareas aparecerán en el calendario con aviso sonoro a la hora de la tarea
+de
+Política de privacidad
+Qué es Tachles
+Reconociendo
+Conectando
+Conectado
+Conectado al calendario
+Borrado
+También busca en los detalles
+Borrar
+Borrar hechas
+Borrar seleccionadas
+Mañana
+Mañana a las
+Pasado mañana
+Quién está activo
+quien activó
+Quien ya está contigo en otra lista se une al instante y recibe una notificación. Puede salir de la lista en cualquier momento
+Ventas
+sigue recordando
+Administrador
+Suscripción, prueba y pago
+Suscripciones y pagos
+marcas
+marcas los permisos
+Redirigiendo a Google
+desde ahora
+Seguimiento de cumplimiento y plazos
+Muestra a los miembros, quién está activo (verde = hoy, naranja = esta semana), cuántas tareas abiertas tiene cada uno, y el historial de altas y salidas
+Escuchando
+Escuchando... habla, y la tarea se añadirá sola cuando termines
+Centro de ayuda
+Algo se ve antiguo
+Asignas cada tarea a un responsable
+Tarea recurrente
+Tarea recurrente (también cada semana / cada mes
+Tarea añadida
+Tarea actualizada
+Una tarea atrasada aparece arriba en
+Tareas
+tareas para hoy
+Tareas añadidas al calendario
+Tareas borradas
+Tareas hechas
+Las tareas marcadas como hechas pasan a
+Turno de mañana
+Los usuarios aprobados la usan gratis
+Participantes
+Participantes · detalles
+Entrando
+Abajo puedes elegir manualmente
+Bajo el saludo – las tareas se guardan
+Cuándo recordar
+Avanzado
+Avanzado ← Continuar). Desde ahora cada tarea con fecha entra en
+seleccionadas
+Insistidor
+Insistidor – si no la marqué
+Insistidor – recordatorio repetido
+Añadida
+Añadida como tarea en Google Calendar
+Añadida desde la app de tareas
+Se creó la siguiente tarea
+Entraste sin
+Entraste sin Google – tras cerrar sesión no podrás volver a tus tareas
+¿Entraste sin Google? En cualquier momento puedes pulsar
+Borrado por error
+Abierto desde WhatsApp
+Borrar fecha y hora
+Se reconoció con un error
+Te suscribiste a las novedades
+sigue siendo privada
+Datos de uso
+Desconectar
+Cerrar
+Total
+Marcada como media
+Marcada como urgente
+Marcar como hecha
+Marcar como abierta
+Trabajo
+Hasta 10 veces
+Hasta 2 veces
+Hasta 3 veces
+Hasta 3: 10 min / 15 min / 30 min / 1 hora / 2 horas / 1 día, como en un calendario
+Hasta 5 veces
+Hasta que la marque como hecha
+Sigue bloqueado – inténtalo en un momento
+Actualizamos los Términos de uso y la Política de privacidad
+funcionan sin abrir la app. De noche (22:00–07:00) hay silencio
+30 min más
+aún no entró
+Ayuda – cómo se usa
+Diseño
+Ahora
+A mi cargo
+con botón de WhatsApp
+con la familia o un equipo, y sincronizar con el calendario
+Buenas noches
+Editar tarea
+Edición y detalles
+Edición, borrado y orden
+activo/a ahora
+Una vez
+Privacidad
+Privacidad y seguridad
+Detalles
+Más detalles (dirección, teléfono, qué llevar
+Abiertas
+abiertas a su cargo
+Abre la app en Chrome / Safari para vincular
+Abrir en
+Abre desde el icono y pulsa
+Solución de problemas
+Salir
+Buenas tardes
+fue añadido/a a la lista
+añadido/a por
+Alta directa – sin enlace
+añadió a
+aviso sonoro también desde el calendario
+Hay que volver a conectar el calendario - pulsa
+Hay que conectar el calendario - pulsa
+¿Necesitas ayuda? Escríbenos por WhatsApp
+Añadir
+Código de administrador
+Código incorrecto
+Primero hay que permitir las notificaciones
+Categoría
+Categoría Casa
+Nueva categoría
+Categorías
+Enlace de invitación
+un enlace pequeño abajo a la izquierda
+He leído la
+He leído y acepto los
+15 minutos
+Un momento
+Un momento, cargando
+¿Quieres acelerarlo? Envíale un mensaje
+cuadrado con flecha hacia arriba) en la parte inferior de la pantalla
+Rani
+Rani Itzik
+Rani Itzik · Todos los derechos reservados
+Rani Itzik. Todos los derechos reservados
+Rani te aprobará pronto, y entonces podrás empezar
+Solo las tareas a mi cargo
+Solo para tareas urgentes
+Solo un nombre. La cuenta se guarda
+lista privada
+Nueva lista
+Lista compartida
+Una lista compartida se actualiza para todos en tiempo real
+Listas compartidas
+la semana que viene
+Error
+Error al guardar
+Restaurado
+Guardando
+Uso con un negocio o equipo
+Compartir y trabajo en equipo
+Enviar notificación de prueba
+Escribe a Rani por WhatsApp
+Mías
+Mías (privada
+tuyo, y puedes cancelarlo en cualquier momento
+Nombre de la tarea
+Nombre de la nueva categoría
+Nombre de la lista compartida (p. ej.: Casa, turno de noche
+Guardar
+Hora
+hora 1–6 sin
+2 horas
+h
+Idioma
+Dos opciones
+Fecha
+¡Gracias! Puedes continuar
+en 7 segundos
+Recordatorios
+Recordatorios y notificaciones
+Un recordatorio y listo
+Recordatorio duplicado del calendario
+Recordatorio para mañana
+Tachles
+Tachles se mudó a una nueva dirección
+Tachles se muda a una nueva dirección
+Tachles – tareas por voz
+Tachles, incluidos el código, el diseño, el nombre, el logotipo y el contenido, es propiedad de Rani Itzik y está protegido por derechos de autor
+siempre es privada y solo tú la ves. Por ahora no hay roles ni permisos distintos para distintos miembros
+Términos de uso
+Términos de uso
+Menú
+El período de prueba de Tachles terminó
+Período piloto
+El período de uso de Tachles terminó

@@ -278,8 +278,8 @@ const OLD_HOST = /(^|\.)beit-habira\.com$/i.test(location.hostname); // בכתו
 // שפה מופעלת רק כשהתרגום שלה הושלם (LANG_READY מתעדכן אוטומטית בבנייה).
 // זיהוי תאריכים/שעות בדיבור: כרגע בעברית בלבד. הרחבה עתידית: PARSERS[lang] (ראה addTask).
 const LANGS={he:{n:'עברית',dir:'rtl',loc:'he-IL',sr:'he-IL'},en:{n:'English',dir:'ltr',loc:'en-US',sr:'en-US'},ar:{n:'العربية',dir:'rtl',loc:'ar',sr:'ar-SA'},ru:{n:'Русский',dir:'ltr',loc:'ru-RU',sr:'ru-RU'},fr:{n:'Français',dir:'ltr',loc:'fr-FR',sr:'fr-FR'},es:{n:'Español',dir:'ltr',loc:'es-ES',sr:'es-ES'}};
-const LANG_READY=['he','en']; // i18n:ready (נכתב ע״י build.py)
-const I18N_V='4dda64d2'; // i18n:version (נכתב ע״י build.py)
+const LANG_READY=['he','en','ar','ru','fr','es']; // i18n:ready (נכתב ע״י build.py)
+const I18N_V='c4c42c5a'; // i18n:version (נכתב ע״י build.py)
 let curLang=(()=>{ try{ return localStorage.getItem('tk_lang')||'he'; }catch(e){ return 'he'; } })();
 if(!LANGS[curLang]||!LANG_READY.includes(curLang)) curLang='he';
 const LOC=()=>(LANGS[curLang]||LANGS.he).loc;
@@ -669,7 +669,7 @@ function requestNotify() {
     if (await registerPush(false)) {
       showToast('התראות מופעלות במכשיר הזה ✓');
       const reg = await navigator.serviceWorker.getRegistration(APP_BASE);
-      if (reg) reg.showNotification('תכל׳ס', {body: 'התראות פעילות! תקבל תזכורת בערב שלפני ובשעת המשימה.', icon: APP_BASE+'icon-v3-192.png', dir: 'rtl'});
+      if (reg) reg.showNotification(tr('תכל׳ס'), {body: tr('התראות פעילות! תקבל תזכורת בערב שלפני ובשעת המשימה.'), icon: APP_BASE+'icon-v3-192.png', dir: (LANGS[curLang]||LANGS.he).dir});
     }
   });
 }
@@ -724,7 +724,7 @@ async function notifSettings(){
     if(r&&r.ok){ showToast('התזכורות נשמרו ✓'); ov.remove(); } else showToast('שגיאה בשמירה');
     if(HAS_NOTIF&&Notification.permission!=='granted') requestNotify();
   };
-  document.getElementById('n-test').onclick=async()=>{ const ok=await registerPush(false); const reg=await navigator.serviceWorker.getRegistration(APP_BASE); if(reg) reg.showNotification('תכל׳ס',{body:'בדיקה – ככה תיראה תזכורת ✓',icon:APP_BASE+'icon-v3-192.png',dir:'rtl'}); else if(!ok) showToast('קודם צריך לאשר התראות'); };
+  document.getElementById('n-test').onclick=async()=>{ const ok=await registerPush(false); const reg=await navigator.serviceWorker.getRegistration(APP_BASE); if(reg) reg.showNotification(tr('תכל׳ס'),{body:tr('בדיקה – ככה תיראה תזכורת ✓'),icon:APP_BASE+'icon-v3-192.png',dir:(LANGS[curLang]||LANGS.he).dir}); else if(!ok) showToast('קודם צריך לאשר התראות'); };
 }
 
 // ── Hebrew parser ──
@@ -838,6 +838,206 @@ function parseHebrewDateTime(text) {
   if (rep && !date) date = new Date(now);
   return {cleanText: clean.trim().replace(/\s+/g,' '), date, time, rep};
 }
+// ── זיהוי תאריך/שעה/חזרתיות/דחיפות/אחראי בשפות נוספות (en/ar/ru/fr/es) – אותה תוצאה כמו המפענח העברי ──
+// טקסט עם אותיות עבריות תמיד עובר במפענח העברי (גם כשהממשק בשפה אחרת)
+const PARSE_LANG={
+  en:{
+    today:/\btoday\b|\btonight\b/, tomorrow:/\btomorrow\b/, after:/\b(?:the\s+)?day\s+after\s+tomorrow\b/,
+    dows:[['sunday'],['monday'],['tuesday'],['wednesday'],['thursday'],['friday'],['saturday']],
+    dowPre:'(?:on\\s+|next\\s+|this\\s+)?',
+    months:[['january','jan'],['february','feb'],['march','mar'],['april','apr'],['may'],['june','jun'],['july','jul'],['august','aug'],['september','sep','sept'],['october','oct'],['november','nov'],['december','dec']],
+    datePre:'(?:on\\s+(?:the\\s+)?)?', ord:'(?:st|nd|rd|th)?', of:'(?:\\s+of)?',
+    inDays:/\bin\s+(\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten)\s+(day|days|week|weeks|month|months)\b/, nextWeek:/\bnext\s+week\b/, nextMonth:/\bnext\s+month\b/,
+    nums:{a:1,an:1,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12},
+    atPre:'(?:at|by|around)', hourWords:'one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve',
+    am:/\b(?:am|a\.m\.|in\s+the\s+morning|morning)\b/, pm:/\b(?:pm|p\.m\.|in\s+the\s+(?:afternoon|evening)|tonight|at\s+night|evening|afternoon)\b/,
+    noon:/\b(?:at\s+)?noon\b|\bmidday\b/, half:/(?:\bat\s+)?\bhalf\s+past\s+/, quarterPast:/(?:\bat\s+)?\bquarter\s+past\s+/, quarterTo:/(?:\bat\s+)?\bquarter\s+to\s+/,
+    halfSuffix:null, quarterSuffix:null,
+    rep:[[/\bevery\s+day\b|\bdaily\b|\beach\s+day\b/,'daily'],[/\bevery\s+week\b|\bweekly\b/,'weekly'],[/\bevery\s+month\b|\bmonthly\b/,'monthly']],
+    repDow:/\bevery\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)s?\b/,
+    pri:[[/(^|\s)(?:not\s+urgent|no\s+rush|low\s+priority|whenever)(?=\s|$|[,.!])/,'low'],[/(^|\s)(?:medium\s+priority|normal\s+priority)(?=\s|$|[,.!])/,'med'],[/(^|\s)(?:very\s+urgent|urgent(?:ly)?|asap|high\s+priority|important)(?=\s|$|[,.!])/,'high']],
+    who:/(^|\s)(?:assigned\s+to|assign\s+to|responsible:?)\s+(\S+(?:\s+\S+)?)/,
+    catPre:['for','at','in','to','category'],
+  },
+  ar:{
+    today:/(^|\s)(?:اليوم|الليلة)(?=\s|$)/, tomorrow:/(^|\s)(?:غدا|غدًا|غداً|بكرة|بكره)(?=\s|$)/, after:/(^|\s)(?:بعد\s+(?:غد|غدا|بكرة|بكره))(?=\s|$)/,
+    dows:[['الأحد','الاحد'],['الاثنين','الإثنين','الأثنين'],['الثلاثاء'],['الأربعاء','الاربعاء'],['الخميس'],['الجمعة','الجمعه'],['السبت']],
+    dowPre:'(?:يوم\\s+)?',
+    months:[['يناير','كانون الثاني'],['فبراير','شباط'],['مارس','آذار'],['أبريل','ابريل','نيسان'],['مايو','أيار'],['يونيو','حزيران'],['يوليو','تموز'],['أغسطس','اغسطس','آب'],['سبتمبر','أيلول'],['أكتوبر','اكتوبر','تشرين الأول'],['نوفمبر','تشرين الثاني'],['ديسمبر','كانون الأول']],
+    datePre:'(?:في\\s+)?', ord:'', of:'(?:\\s+من)?',
+    inDays:/(^|\s)بعد\s+(\d+|يوم|يومين|أسبوع|اسبوع|أسبوعين|شهر)(?:\s+(أيام|ايام|يوم|أسابيع|اسابيع|أسبوع|شهور|أشهر))?(?=\s|$)/, nextWeek:/الأسبوع\s+(?:القادم|الجاي|المقبل)|الاسبوع\s+(?:القادم|الجاي|المقبل)/, nextMonth:/الشهر\s+(?:القادم|الجاي|المقبل)/,
+    nums:{'يوم':1,'يومين':2,'أسبوع':1,'اسبوع':1,'أسبوعين':2,'شهر':1},
+    atPre:'(?:الساعة|الساعه|في\\s+الساعة|ع\\s*الساعة)', hourWords:'الحادية\\s+عشرة|الثانية\\s+عشرة|الواحدة|الثانية|الثالثة|الرابعة|الخامسة|السادسة|السابعة|الثامنة|التاسعة|العاشرة|واحدة|ثنتين|ثلاثة|أربعة|خمسة|ستة|سبعة|ثمانية|تسعة|عشرة',
+    am:/(^|\s)(?:صباحا|صباحًا|صباحاً|الصبح|في\s+الصباح|الفجر)(?=\s|$)/, pm:/(^|\s)(?:مساء|مساءً|مساءا|المسا|بالليل|ليلا|ليلًا|العصر|بعد\s+الظهر)(?=\s|$)/,
+    noon:/(^|\s)(?:الظهر|الظهيرة)(?=\s|$)/, half:null, quarterPast:null, quarterTo:null,
+    halfSuffix:/\s+(?:و\s*نص|ونص|والنصف|و\s*النصف)(?=\s|$)/, quarterSuffix:/\s+(?:و\s*ربع|وربع|والربع)(?=\s|$)/,
+    rep:[[/كل\s+يوم(?=\s|$)|يوميا|يوميًا/,'daily'],[/كل\s+(?:أسبوع|اسبوع)(?=\s|$)|أسبوعيا|اسبوعيا/,'weekly'],[/كل\s+شهر(?=\s|$)|شهريا/,'monthly']],
+    repDow:/كل\s+(?:يوم\s+)?(الأحد|الاحد|الاثنين|الإثنين|الثلاثاء|الأربعاء|الاربعاء|الخميس|الجمعة|السبت)/,
+    pri:[[/(^|\s)(?:غير\s+عاجل|مش\s+مستعجل|مو\s+مستعجل|ليس\s+عاجلا|أولوية\s+منخفضة)(?=\s|$)/,'low'],[/(^|\s)(?:أولوية\s+متوسطة)(?=\s|$)/,'med'],[/(^|\s)(?:عاجل\s+جدا|عاجل|مستعجل|ضروري|مهم\s+جدا|مهم|أولوية\s+عالية)(?=\s|$)/,'high']],
+    who:/(^|\s)(?:مسؤولية|بمسؤولية|المسؤول|المسؤولة|على)\s+(\S+(?:\s+\S+)?)/,
+    catPre:['لل','ل','في','فئة'], catJoin:true,
+  },
+  ru:{
+    today:/(^|\s)(?:сегодня|вечером\s+сегодня)(?=\s|$|[,.])/, tomorrow:/(^|\s)завтра(?=\s|$|[,.])/, after:/(^|\s)послезавтра(?=\s|$|[,.])/,
+    dows:[['воскресенье','воскресение'],['понедельник'],['вторник'],['среду','среда'],['четверг'],['пятницу','пятница'],['субботу','суббота']],
+    dowPre:'(?:в\\s+|во\\s+|в\\s+следующ\\S*\\s+|в\\s+эт\\S*\\s+)?',
+    months:[['января','январь'],['февраля','февраль'],['марта','март'],['апреля','апрель'],['мая','май'],['июня','июнь'],['июля','июль'],['августа','август'],['сентября','сентябрь'],['октября','октябрь'],['ноября','ноябрь'],['декабря','декабрь']],
+    datePre:'', ord:'(?:-?го|-?е)?', of:'',
+    inDays:/(^|\s)через\s+(\d+|день|два|две|три|четыре|пять|шесть|семь|неделю|месяц)(?:\s+(дня|дней|день|недели|недель|неделю|месяца|месяцев))?(?=\s|$|[,.])/, nextWeek:/на\s+следующей\s+неделе/, nextMonth:/в\s+следующем\s+месяце/,
+    nums:{'день':1,'два':2,'две':2,'три':3,'четыре':4,'пять':5,'шесть':6,'семь':7,'неделю':1,'месяц':1},
+    atPre:'(?:в|к|около)', hourWords:'час|один|два|три|четыре|пять|шесть|семь|восемь|девять|десять|одиннадцать|двенадцать',
+    am:/(^|\s)(?:утра|утром)(?=\s|$|[,.])/, pm:/(^|\s)(?:дня|вечера|вечером|днём|днем|ночи)(?=\s|$|[,.])/,
+    noon:/(^|\s)(?:в\s+)?полдень(?=\s|$|[,.])/, half:null, quarterPast:null, quarterTo:null,
+    halfSuffix:/\s+с\s+половиной(?=\s|$|[,.])/, quarterSuffix:null, hourSuffix:/\s+(?:час(?:а|ов)?)(?=\s|$|[,.])/,
+    rep:[[/(^|\s)(?:каждый\s+день|ежедневно)(?=\s|$|[,.])/,'daily'],[/(^|\s)(?:каждую\s+неделю|еженедельно)(?=\s|$|[,.])/,'weekly'],[/(^|\s)(?:каждый\s+месяц|ежемесячно)(?=\s|$|[,.])/,'monthly']],
+    repDow:/(?:каждый|каждую|каждое|по)\s+(понедельник|вторник|среду|четверг|пятницу|субботу|воскресенье|понедельникам|вторникам|средам|четвергам|пятницам|субботам|воскресеньям)/,
+    pri:[[/(^|\s)(?:не\s+срочно|не\s+горит|низкий\s+приоритет)(?=\s|$|[,.!])/,'low'],[/(^|\s)(?:средний\s+приоритет)(?=\s|$|[,.!])/,'med'],[/(^|\s)(?:очень\s+срочно|срочно|срочная|срочный|важно|высокий\s+приоритет)(?=\s|$|[,.!])/,'high']],
+    who:/(^|\s)(?:ответственный|ответственная|поручить|назначить)\s+(\S+(?:\s+\S+)?)/,
+    catPre:['для','на','в','категория'],
+  },
+  fr:{
+    today:/(^|\s)(?:aujourd'hui|aujourd’hui|ce\s+soir)(?=\s|$|[,.])/, tomorrow:/(^|\s)demain(?=\s|$|[,.])/, after:/(^|\s)après-demain|apres-demain|après\s+demain(?=\s|$|[,.])/,
+    dows:[['dimanche'],['lundi'],['mardi'],['mercredi'],['jeudi'],['vendredi'],['samedi']],
+    dowPre:'(?:ce\\s+)?',
+    months:[['janvier'],['février','fevrier'],['mars'],['avril'],['mai'],['juin'],['juillet'],['août','aout'],['septembre'],['octobre'],['novembre'],['décembre','decembre']],
+    datePre:'(?:le\\s+)?', ord:'(?:er)?', of:'',
+    inDays:/(^|\s)dans\s+(\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix)\s+(jour|jours|semaine|semaines|mois)(?=\s|$|[,.])/, nextWeek:/la\s+semaine\s+prochaine/, nextMonth:/le\s+mois\s+prochain/,
+    nums:{un:1,une:1,deux:2,trois:3,quatre:4,cinq:5,six:6,sept:7,huit:8,neuf:9,dix:10},
+    atPre:'(?:à|a|vers)', hourWords:'une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze',
+    am:/(^|\s)(?:du\s+matin|le\s+matin|ce\s+matin)(?=\s|$|[,.])/, pm:/(^|\s)(?:de\s+l'après-midi|de\s+l’après-midi|du\s+soir|le\s+soir|ce\s+soir|cet\s+après-midi)(?=\s|$|[,.])/,
+    noon:/(^|\s)(?:à\s+)?midi(?=\s|$|[,.])/, half:null, quarterPast:null, quarterTo:null,
+    halfSuffix:/\s+et\s+demie?(?=\s|$|[,.])/, quarterSuffix:/\s+et\s+quart(?=\s|$|[,.])/, hourSuffix:/\s*(?:h|heures?)(?=\s|$|[,.]|\d)/,
+    rep:[[/(^|\s)(?:tous\s+les\s+jours|chaque\s+jour|quotidiennement)(?=\s|$|[,.])/,'daily'],[/(^|\s)(?:toutes\s+les\s+semaines|chaque\s+semaine)(?=\s|$|[,.])/,'weekly'],[/(^|\s)(?:tous\s+les\s+mois|chaque\s+mois)(?=\s|$|[,.])/,'monthly']],
+    repDow:/(?:chaque|tous\s+les)\s+(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)s?/,
+    pri:[[/(^|\s)(?:pas\s+urgent|rien\s+ne\s+presse|priorité\s+basse)(?=\s|$|[,.!])/,'low'],[/(^|\s)(?:priorité\s+moyenne)(?=\s|$|[,.!])/,'med'],[/(^|\s)(?:très\s+urgent|urgent|urgente|important|importante|priorité\s+haute)(?=\s|$|[,.!])/,'high']],
+    who:/(^|\s)(?:responsable|assigné\s+à|assignée\s+à|attribué\s+à)\s+(\S+(?:\s+\S+)?)/,
+    catPre:['pour','au','à','a','catégorie'],
+  },
+  es:{
+    today:/(^|\s)(?:hoy|esta\s+noche)(?=\s|$|[,.])/, tomorrow:/(^|\s)mañana(?!\s+de\s+la)(?=\s|$|[,.])/, after:/(^|\s)pasado\s+mañana(?=\s|$|[,.])/,
+    dows:[['domingo'],['lunes'],['martes'],['miércoles','miercoles'],['jueves'],['viernes'],['sábado','sabado']],
+    dowPre:'(?:el\\s+|este\\s+|el\\s+próximo\\s+|el\\s+proximo\\s+)?',
+    months:[['enero'],['febrero'],['marzo'],['abril'],['mayo'],['junio'],['julio'],['agosto'],['septiembre','setiembre'],['octubre'],['noviembre'],['diciembre']],
+    datePre:'(?:el\\s+)?', ord:'', of:'(?:\\s+de)?',
+    inDays:/(^|\s)(?:en|dentro\s+de)\s+(\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+(día|días|dia|dias|semana|semanas|mes|meses)(?=\s|$|[,.])/, nextWeek:/la\s+(?:semana\s+que\s+viene|próxima\s+semana|proxima\s+semana)/, nextMonth:/el\s+(?:mes\s+que\s+viene|próximo\s+mes|proximo\s+mes)/,
+    nums:{un:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10},
+    atPre:'(?:a\\s+las|a\\s+la|sobre\\s+las|hacia\\s+las)', hourWords:'una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce',
+    am:/(^|\s)(?:de\s+la\s+mañana|por\s+la\s+mañana)(?=\s|$|[,.])/, pm:/(^|\s)(?:de\s+la\s+tarde|de\s+la\s+noche|por\s+la\s+tarde|por\s+la\s+noche|esta\s+noche|esta\s+tarde)(?=\s|$|[,.])/,
+    noon:/(^|\s)(?:al\s+)?mediodía|mediodia(?=\s|$|[,.])/, half:null, quarterPast:null, quarterTo:null,
+    halfSuffix:/\s+y\s+media(?=\s|$|[,.])/, quarterSuffix:/\s+y\s+cuarto(?=\s|$|[,.])/,
+    rep:[[/(^|\s)(?:todos\s+los\s+días|todos\s+los\s+dias|cada\s+día|cada\s+dia|a\s+diario)(?=\s|$|[,.])/,'daily'],[/(^|\s)(?:todas\s+las\s+semanas|cada\s+semana|semanalmente)(?=\s|$|[,.])/,'weekly'],[/(^|\s)(?:todos\s+los\s+meses|cada\s+mes|mensualmente)(?=\s|$|[,.])/,'monthly']],
+    repDow:/(?:cada|todos\s+los)\s+(lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)s?/,
+    pri:[[/(^|\s)(?:no\s+urgente|no\s+es\s+urgente|sin\s+prisa|prioridad\s+baja)(?=\s|$|[,.!])/,'low'],[/(^|\s)(?:prioridad\s+media)(?=\s|$|[,.!])/,'med'],[/(^|\s)(?:muy\s+urgente|urgente|importante|prioridad\s+alta)(?=\s|$|[,.!])/,'high']],
+    who:/(^|\s)(?:responsable|a\s+cargo\s+de|asignado\s+a|asignada\s+a|asignar\s+a)\s+(\S+(?:\s+\S+)?)/,
+    catPre:['para','en','de','categoría'],
+  },
+};
+const P_ESC=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function parseIntl(text, lang){
+  const L=PARSE_LANG[lang]; if(!L) return {date:null,time:null,rep:'',cleanText:text};
+  let t=' '+String(text).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\s+/g,' ').trim()+' ';
+  const low=s=>lang==='ar'?s:s.toLowerCase();
+  let s=low(t); // מחפשים בגרסה מוקטנת ומוחקים מהמקור באותם מיקומים
+  const cut=(m)=>{ if(!m) return; const i=m.index+(m[1]&&/^\s+$/.test(m[1])?m[1].length:0), len=m[0].length-(i-m.index); t=t.slice(0,i)+' '.repeat(len)+t.slice(i+len); s=s.slice(0,i)+' '.repeat(len)+s.slice(i+len); };
+  const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const addDays=n=>{ const d=new Date(today); d.setDate(d.getDate()+n); return d; };
+  let date=null, time=null, rep='', m;
+  const word=r=>new RegExp('(^|\\s)'+r+'(?=\\s|$|[,.!?])');
+  const num=x=>/^\d+$/.test(x)?+x:(L.nums[x]||null);
+  // חזרתיות
+  if((m=s.match(L.repDow))){ rep='weekly'; const dn=m[1]; L.dows.forEach((names,i)=>{ if(names.some(n=>dn.startsWith(n.slice(0,4)))){ let diff=i-now.getDay(); if(diff<0) diff+=7; date=addDays(diff); } }); cut(m); }
+  else for(const [re,r] of L.rep){ if((m=s.match(re))){ rep=r; cut(m); break; } }
+  // בוקר/ערב/צהריים – לפני התאריך ("de la mañana" אינו "מחר")
+  let isAm=false, isPm=false;
+  if((m=s.match(L.noon))){ time='12:00'; cut(m); }
+  if((m=s.match(L.am))){ isAm=true; cut(m); }
+  if((m=s.match(L.pm))){ isPm=true; if(/tonight|ce\s+soir|esta\s+noche|بالليل|الليلة/.test(m[0])) date=new Date(today); cut(m); }
+  // תאריך
+  if(date){}
+  else if((m=s.match(L.after))){ date=addDays(2); cut(m); }
+  else if((m=s.match(L.tomorrow))){ date=addDays(1); cut(m); }
+  else if((m=s.match(L.today))){ date=new Date(today); if(/tonight|ce\s+soir|esta\s+noche|الليلة/.test(m[0])) isPm=true; cut(m); }
+  if(!date){
+    for(let i=0;i<7&&!date;i++){ for(const n of L.dows[i]){ if((m=s.match(word(L.dowPre+P_ESC(n))))){ let diff=i-now.getDay(); if(diff<=0) diff+=7; if(/next|следующ|próximo|proximo/.test(m[0])&&diff<7&&lang==='en') diff+=0; date=addDays(diff); cut(m); break; } } }
+  }
+  if(!date){
+    const mNames=L.months.map((ns,i)=>ns.map(n=>[n,i])).flat().sort((a,b)=>b[0].length-a[0].length);
+    const alt=mNames.map(x=>P_ESC(x[0])).join('|'), idx=n=>mNames.find(x=>x[0]===n)[1];
+    const mk=(dd,mon,yy)=>{ let y=yy?+yy:today.getFullYear(); let d=new Date(y,idx(mon),+dd); if(!yy&&d<today) d=new Date(y+1,idx(mon),+dd); return (+dd>=1&&+dd<=31)?d:null; };
+    if((m=s.match(new RegExp('(^|\\s)'+L.datePre+'(\\d{1,2})'+L.ord+L.of+'\\s+('+alt+')\\.?(?:\\s+(\\d{4}))?(?=\\s|$|[,.])')))){ date=mk(m[2],m[3],m[4]); if(date) cut(m); }
+    else if((m=s.match(new RegExp('(^|\\s)(?:on\\s+)?('+alt+')\\.?\\s+(\\d{1,2})'+L.ord+'(?:,?\\s+(\\d{4}))?(?=\\s|$|[,.])')))){ date=mk(m[3],m[2],m[4]); if(date) cut(m); }
+    else if((m=s.match(/(^|\s)(?:on\s+|le\s+|el\s+)?(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?=\s|$|[,])/))){
+      let a=+m[2], b=+m[3]; if(lang==='en'&&a<=12&&b>12){ [a,b]=[b,a]; } // 11/15 = 15 בנובמבר
+      if(a>=1&&a<=31&&b>=1&&b<=12){ let y=m[4]?(+m[4]<100?2000+ +m[4]:+m[4]):today.getFullYear(); let d=new Date(y,b-1,a); if(!m[4]&&d<today) d=new Date(y+1,b-1,a); date=d; cut(m); }
+    }
+  }
+  if(!date&&(m=s.match(L.inDays))){
+    const g=m.slice(1).filter(x=>x!==undefined&&!/^\s*$/.test(x)); const n=num(g[0])||1; const unit=(g[1]||g[0]||'');
+    const mult=/week|недел|semaine|semana|أسبوع|اسبوع/.test(unit)?7:/month|месяц|mois|mes|شهر/.test(unit)?30:1;
+    if(/أسبوعين|اسبوعين|يومين/.test(g[0])) date=addDays(2*(/يومين/.test(g[0])?1:7)); else date=addDays(n*mult); cut(m);
+  }
+  if(!date&&(m=s.match(L.nextWeek))){ date=addDays(7); cut(m); }
+  if(!date&&(m=s.match(L.nextMonth))){ const d=new Date(today); d.setMonth(d.getMonth()+1); date=d; cut(m); }
+  // שעה
+  if(!time){
+    const HW=L.hourWords, hw=x=>{ if(/^\d+$/.test(x)) return +x; const list=HW.split('|').map(v=>v.replace(/\\s\+/g,' ')); const i=list.indexOf(x.replace(/\s+/g,' ')); if(i<0) return null; if(lang==='ar'){ const base=[11,12,1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10]; return base[i]; } if(lang==='ru'&&i===0) return 1; return lang==='ru'?i:i+1; };
+    const H='(\\d{1,2}|'+HW+')';
+    let hh=null, mm=0;
+    if(L.half&&(m=s.match(new RegExp(L.half.source+H+'(?=\\s|$)')))){ hh=hw(m[1]); mm=30; cut(m); }
+    else if(L.quarterPast&&(m=s.match(new RegExp(L.quarterPast.source+H+'(?=\\s|$)')))){ hh=hw(m[1]); mm=15; cut(m); }
+    else if(L.quarterTo&&(m=s.match(new RegExp(L.quarterTo.source+H+'(?=\\s|$)')))){ hh=hw(m[1]); if(hh!=null){ hh=hh===1?12:hh-1; mm=45; } cut(m); }
+    else if((m=s.match(/(^|\s)(?:at\s+|à\s+|a\s+las\s+|a\s+la\s+|в\s+|الساعة\s+)?(\d{1,2})[:.h](\d{2})(?:\s*h)?(?=\s|$|[,.!]|[ap]m)/))){ hh=+m[2]; mm=+m[3]; cut(m); }
+    else if(lang==='en'&&(m=s.match(/(^|\s)(?:at\s+)?(\d{1,2})\s*(am|pm|a\.m\.|p\.m\.)(?=\s|$|[,.!])/))){ hh=+m[2]; if(/p/.test(m[3])) isPm=true; else isAm=true; cut(m); }
+    else if(lang==='fr'&&(m=s.match(/(^|\s)(?:à\s+|a\s+|vers\s+)?(\d{1,2})\s*h(?:eures?)?(?:\s*(\d{2}))?(?=\s|$|[,.!])/))){ hh=+m[2]; mm=m[3]?+m[3]:0; cut(m); }
+    else if((m=s.match(new RegExp('(^|\\s)'+L.atPre+'\\s+'+H+'(?:\\s+(\\d{2}))?'+(L.hourSuffix?'(?:'+L.hourSuffix.source+')?':'')+'(?=\\s|$|[,.!])')))){ hh=hw(m[2]); if(m[3]) mm=+m[3]; cut(m); }
+    if(hh!=null){
+      // "ونص" / "et demie" / "y media" אחרי השעה
+      const rest=s;
+      if(L.halfSuffix&&(m=rest.match(L.halfSuffix))&&mm===0){ mm=30; cut(m); }
+      else if(L.quarterSuffix&&(m=rest.match(L.quarterSuffix))&&mm===0){ mm=15; cut(m); }
+      if(hh>=0&&hh<=23&&mm>=0&&mm<=59){
+        if(isPm&&hh<12) hh+=12; else if(isAm&&hh===12) hh=0;
+        else if(!isAm&&!isPm&&hh>=1&&hh<=6) hh+=12; // כמו בעברית: 1–6 בלי "בבוקר" = אחר הצהריים
+        time=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+      }
+    }
+  }
+  const cleanText=t.replace(/\s+/g,' ').replace(/\s+([,.!?])/g,'$1').replace(/^[\s,.\-–]+|[\s,\-–]+$/g,'').trim();
+  return {date,time,rep,cleanText};
+}
+// דחיפות / קטגוריה / אחראי בשפה הנוכחית
+function intlPri(name, lang){
+  const L=PARSE_LANG[lang]; if(!L) return {name,pri:''};
+  const s=lang==='ar'?name:name.toLowerCase();
+  for(const [re,p] of L.pri){ const m=s.match(re); if(m&&(name.slice(0,m.index)+name.slice(m.index+m[0].length)).trim()){ return {name:(name.slice(0,m.index)+(m[1]||' ')+name.slice(m.index+m[0].length)).replace(/\s+/g,' ').trim(),pri:p}; } }
+  return {name,pri:''};
+}
+function intlCat(name, lang, cats){
+  const L=PARSE_LANG[lang]; if(!L) return {name,cat:''};
+  const s=lang==='ar'?name:name.toLowerCase();
+  const opts=cats.map(c=>[c,(typeof tr==='function'?tr(c):c)]).flatMap(([c,d])=>[[c,d],[c,c]]).filter(x=>x[1]).sort((a,b)=>b[1].length-a[1].length);
+  for(const [c,d] of opts){
+    let dd=P_ESC(lang==='ar'?d:d.toLowerCase());
+    if(lang==='ru') dd=dd.replace(/[аяоеиыуюь]$/,'')+'[а-яё]{0,3}'; // יחסות: дом → дома, работа → работы
+    const pre=L.catPre.map(P_ESC).join('|');
+    const re=L.catJoin?new RegExp('(^|\\s)(?:(?:'+pre+')\\s*|ال)?'+dd.replace(/^ال/,'(?:ال)?')+'(?=\\s|$|[,.!])'):new RegExp('(^|\\s)(?:(?:'+pre+')\\s+(?:the\\s+|la\\s+|le\\s+|el\\s+|l\'|los\\s+|las\\s+)?)'+dd+'(?=\\s|$|[,.!])');
+    const m=s.match(re);
+    if(m){ const rest=(name.slice(0,m.index)+(m[1]||'')+name.slice(m.index+m[0].length)).replace(/\s+/g,' ').trim(); if(rest) return {name:rest,cat:c}; }
+  }
+  return {name,cat:''};
+}
+function intlWho(name, lang, members){
+  const L=PARSE_LANG[lang]; if(!L||!members.length) return {name,who:null};
+  const m=name.match(L.who); if(!m) return {name,who:null};
+  const words=m[2].split(' ');
+  for(const n of [words.join(' '),words[0]]){
+    const hit=members.find(x=>x.name.toLowerCase()===n.toLowerCase()||x.name.split(' ')[0].toLowerCase()===n.toLowerCase());
+    if(hit){ const full=m[0].slice(0,m[0].length-m[2].length)+n; return {name:name.replace(full,' ').replace(/\s+/g,' ').trim(),who:{uid:hit.uid,name:hit.name}}; }
+  }
+  return {name,who:null};
+}
+const PARSE_LANG_OF=text=>HEB_CH.test(text)?'he':(PARSE_LANG[curLang]?curLang:'he');
+function parseDateTime(text){ const l=PARSE_LANG_OF(text); return l==='he'?parseHebrewDateTime(text):parseIntl(text,l); }
 
 
 // ── ❓ מדריך שימוש בתוך האפליקציה ──
@@ -1076,7 +1276,7 @@ function setupMic() {
   recognition.onend=()=>{
     clearTimeout(micSilence); clearTimeout(micMax);
     // בחלק מהטלפונים (במיוחד אייפון) לא מגיעה תוצאה "סופית" - משתמשים בתוצאה האחרונה
-    if(!micGotFinal&&micLastInterim) applyParsed(parseHebrewDateTime(micLastInterim));
+    if(!micGotFinal&&micLastInterim) applyParsed(parseDateTime(micLastInterim));
     const heard=(micGotFinal||micLastInterim)&&!micErr;
     stopMic();
     // הוספה אוטומטית - בלי ללחוץ "הוסף"
@@ -1101,9 +1301,9 @@ function scheduleLocal(t) {
   const msBefore = dayBefore.getTime() - now;
   if(msBefore > 0) {
     timers.push(setTimeout(()=>{
-      new Notification('תזכורת למחר: ' + t.name, {
-        body: 'מחר' + (t.time ? ' בשעה ' + t.time : ''),
-        icon: APP_BASE+'icon-v3-192.png', dir: 'rtl', requireInteraction: true
+      new Notification(tr('תזכורת למחר')+': ' + t.name, {
+        body: tr('מחר' + (t.time ? ' בשעה ' : '')) + (t.time ? ' ' + t.time : ''),
+        icon: APP_BASE+'icon-v3-192.png', dir: (LANGS[curLang]||LANGS.he).dir, requireInteraction: true
       });
     }, msBefore));
   }
@@ -1114,9 +1314,9 @@ function scheduleLocal(t) {
     const msTask = taskTime - now;
     if(msTask > 0) {
       timers.push(setTimeout(()=>{
-        new Notification('הגיע הזמן: ' + t.name, {
-          body: 'עכשיו!',
-          icon: APP_BASE+'icon-v3-192.png', dir: 'rtl', requireInteraction: true
+        new Notification(tr('הגיע הזמן')+': ' + t.name, {
+          body: tr('עכשיו')+'!',
+          icon: APP_BASE+'icon-v3-192.png', dir: (LANGS[curLang]||LANGS.he).dir, requireInteraction: true
         });
       }, msTask));
     }
@@ -2159,7 +2359,8 @@ function addTask(auto){
   if(!name)return;
   // מזהה תאריך/שעה גם בטקסט שהוקלד או הוכתב דרך המקלדת, ומוציא אותם משם המשימה
   let date=document.getElementById('f-date').value, time=document.getElementById('f-time').value;
-  const parsed=parseHebrewDateTime(name);
+  const plang=PARSE_LANG_OF(name); // שפת המשפט: עברית או שפת הממשק
+  const parsed=parseDateTime(name);
   const repParsed=parsed.rep||pendingRep||''; pendingRep='';
   if((parsed.date||parsed.time)&&parsed.cleanText){
     name=parsed.cleanText;
@@ -2170,7 +2371,8 @@ function addTask(auto){
   // קטגוריה מתוך המשפט: "לקנות ביצים לבית" → משימה "לקנות ביצים" בקטגוריה בית (רק בסוף המשפט, עם ל/ב)
   let autoCat='';
   const fcSel=document.getElementById('f-cat');
-  if(!(fcSel&&fcSel.value&&fcSel.value!=='__new')){
+  if(plang!=='he'&&!(fcSel&&fcSel.value&&fcSel.value!=='__new')){ const r=intlCat(name,plang,allCats()); name=r.name; autoCat=r.cat; }
+  else if(!(fcSel&&fcSel.value&&fcSel.value!=='__new')){
     // סדר עדיפות: "קטגוריה עבודה" בכל מקום ← "...לבית" בסוף ← "לבית ..." בהתחלה ← "...לבית..." באמצע (לא לפני "של")
     const cats=allCats().slice().sort((a,b)=>b.length-a.length).map(c=>[c,c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')]);
     const tries=[
@@ -2198,7 +2400,8 @@ function addTask(auto){
     [/(\s)(?:בינוני|רגיל)$/,'med'],
     [/(\s)נמוך$/,'low']
   ];
-  for(const [re,p] of PRI_RULES){ if(re.test(name)&&name.replace(re,'$1').trim()){ autoPri=p; name=name.replace(re,'$1'); break; } }
+  if(plang!=='he'){ const r=intlPri(name,plang); name=r.name; autoPri=r.pri; }
+  else for(const [re,p] of PRI_RULES){ if(re.test(name)&&name.replace(re,'$1').trim()){ autoPri=p; name=name.replace(re,'$1'); break; } }
   name=name.replace(/\s+/g,' ').trim(); if(!name) return;
   const id='task_'+Date.now();
   const task={id,name,pri:document.getElementById('f-pri').value,date,time,done:false,created:Date.now()};
@@ -2206,7 +2409,7 @@ function addTask(auto){
   if(curList && curUser) task.byUid=curUser.uid;
   if(curList && curUser) task.by=(myLists[curList]&&myLists[curList].members&&myLists[curList].members[curUser.uid]&&myLists[curList].members[curUser.uid].name)||'';
   if(curList){
-    const pw=parseWho(task.name); if(pw.who&&pw.name){ task.name=pw.name; task.who=pw.who; }
+    const pw=plang!=='he'?intlWho(task.name,plang,listMembers()):parseWho(task.name); if(pw.who&&pw.name){ task.name=pw.name; task.who=pw.who; }
     const fw=document.getElementById('f-who'); const sel=fw&&fw.value&&listMembers().find(m=>m.uid===fw.value);
     if(sel) task.who={uid:sel.uid,name:sel.name};
   }
@@ -2458,7 +2661,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03a';
+const APP_VERSION='2026-11-03b';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
