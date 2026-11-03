@@ -333,7 +333,7 @@ setInterval(()=>{ const n=document.getElementById('notif-btn'), d=document.getEl
 // זיהוי תאריכים/שעות בדיבור: כרגע בעברית בלבד. הרחבה עתידית: PARSERS[lang] (ראה addTask).
 const LANGS={he:{n:'עברית',dir:'rtl',loc:'he-IL',sr:'he-IL'},en:{n:'English',dir:'ltr',loc:'en-US',sr:'en-US'},ar:{n:'العربية',dir:'rtl',loc:'ar',sr:'ar-SA'},ru:{n:'Русский',dir:'ltr',loc:'ru-RU',sr:'ru-RU'},fr:{n:'Français',dir:'ltr',loc:'fr-FR',sr:'fr-FR'},es:{n:'Español',dir:'ltr',loc:'es-ES',sr:'es-ES'}};
 const LANG_READY=['he','en','ar','ru','fr','es']; // i18n:ready (נכתב ע״י build.py)
-const I18N_V='3ea8b5b0'; // i18n:version (נכתב ע״י build.py)
+const I18N_V='5b5fd1d2'; // i18n:version (נכתב ע״י build.py)
 let curLang=(()=>{ try{ return localStorage.getItem('tk_lang')||'he'; }catch(e){ return 'he'; } })();
 if(!LANGS[curLang]||!LANG_READY.includes(curLang)) curLang='he';
 const LOC=()=>(LANGS[curLang]||LANGS.he).loc;
@@ -1578,7 +1578,7 @@ async function showOrg(tab){
     return;
   }
   const mgr=orgMgr(), owner=j.role==='owner';
-  const head='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><b style="font-size:16px" data-notr>'+escA(O.name)+'</b><span style="font-size:12px;background:#ECEBFA;color:#3730A3;border-radius:6px;padding:1px 8px">'+ORG_ROLE[j.role]+'</span></div>';
+  const head='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><b style="font-size:16px" data-notr>'+escA(O.name)+'</b><span style="font-size:12px;background:#ECEBFA;color:#3730A3;border-radius:6px;padding:1px 8px">'+ORG_ROLE[j.role]+'</span>'+(owner?'<button class="cat-chip" id="org-ren" style="margin-inline-start:auto">✏️ שנה שם</button>':'')+'</div>';
   if(!mgr){
     body.innerHTML=head+'<div style="font-weight:700;margin:8px 0 4px">הרשימות שלי בארגון</div>'
       +(j.lists.length?j.lists.map(l=>'<div style="padding:8px 0;border-bottom:1px solid #EEEDF7">📋 <span data-notr>'+escA(l.name)+'</span></div>').join(''):'<div style="color:#5B5B76">עדיין לא צורפת לרשימה.</div>')
@@ -1591,6 +1591,8 @@ async function showOrg(tab){
   const T=(k,l)=>'<button data-otab="'+k+'" style="flex:1;height:36px;border:0;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer;background:'+(orgTab===k?'#1E1B4B':'#ECEBFA')+';color:'+(orgTab===k?'#fff':'#1E1B4B')+'">'+l+'</button>';
   body.innerHTML=head+'<div style="display:flex;gap:6px;margin-bottom:10px">'+T('people','👥 עובדים')+T('lists','📋 רשימות')+T('report','📊 דוח')+'</div><div id="org-pane"></div>';
   body.querySelectorAll('[data-otab]').forEach(b=>b.onclick=()=>showOrg(b.getAttribute('data-otab')));
+  const ren=document.getElementById('org-ren'); if(ren) ren.onclick=async()=>{ const n=(prompt('שם העסק:',O.name)||'').trim(); if(!n||n===O.name) return;
+    const r=await orgApi('rename',{name:n}); showToast(r&&r.ok?'השם עודכן ✓':((r&&r.error)||'שגיאה')); showOrg(); };
   const pane=document.getElementById('org-pane');
   const nameOf=uid=>{ const m=j.members.find(x=>x.uid===uid); return m?m.name:''; };
   if(orgTab==='people'){
@@ -1614,10 +1616,12 @@ async function showOrg(tab){
   else if(orgTab==='lists'){
     const picks=(sel)=>'<div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0">'+j.members.map(m=>'<label style="display:flex;gap:4px;align-items:center;background:#fff;border:1px solid #E2E1F0;border-radius:999px;padding:4px 10px;font-size:13px;cursor:pointer"><input type="checkbox" value="'+escA(m.uid)+'"'+(sel.includes(m.uid)?' checked':'')+(m.me?' checked disabled':'')+' style="margin:0"> <span data-notr>'+escA(m.name)+'</span></label>').join('')+'</div>';
     pane.innerHTML=(j.lists.length?j.lists.map(l=>'<div style="padding:10px 0;border-bottom:1px solid #EEEDF7"><div style="display:flex;align-items:center;gap:8px"><b style="flex:1" data-notr>📋 '+escA(l.name)+'</b><span style="font-size:12px;color:#5B5B76">'+l.members.length+' משתתפים</span>'
-        +'<button class="cat-chip" data-edit="'+escA(l.id)+'">חברים</button>'+(owner?'<button class="cat-chip" data-del="'+escA(l.id)+'" style="color:#B42318">מחק</button>':'')+'</div>'
+        +'<button class="cat-chip" data-lren="'+escA(l.id)+'">✏️ שם</button><button class="cat-chip" data-edit="'+escA(l.id)+'">חברים</button>'+(owner?'<button class="cat-chip" data-del="'+escA(l.id)+'" style="color:#B42318">מחק</button>':'')+'</div>'
         +'<div data-ed="'+escA(l.id)+'" style="display:none">'+picks(l.members)+'<button class="btn-save" data-save="'+escA(l.id)+'" style="padding:6px 14px">שמור</button> <span style="font-size:12px;color:#5B5B76">מי שמוסר – המשימות הפתוחות שלו ברשימה עוברות אליך</span></div></div>').join(''):'<div style="color:#5B5B76">עדיין אין רשימות לעסק.</div>')
       +box('<div style="font-weight:700">➕ רשימה חדשה לעסק</div><input id="org-lname" type="text" maxlength="40" placeholder="למשל: משמרת ערב" style="width:100%;box-sizing:border-box;margin:6px 0">'
         +'<div style="font-size:12px;color:#5B5B76">מי ברשימה:</div>'+picks([])+'<button class="btn-save" id="org-lcreate">צור רשימה</button>');
+    pane.querySelectorAll('[data-lren]').forEach(b=>b.onclick=async()=>{ const l=j.lists.find(x=>x.id===b.getAttribute('data-lren')); const n=(prompt('שם הרשימה:',l.name)||'').trim(); if(!n||n===l.name) return;
+      const r=await orgApi('list-rename',{listId:l.id,name:n}); if(r&&r.ok&&myLists[l.id]) myLists[l.id].name=n; showToast(r&&r.ok?'השם עודכן ✓':((r&&r.error)||'שגיאה')); renderLists(); showOrg(); });
     pane.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{ const e=pane.querySelector('[data-ed="'+b.getAttribute('data-edit')+'"]'); e.style.display=e.style.display==='none'?'':'none'; });
     pane.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{ const id=b.getAttribute('data-save'), l=j.lists.find(x=>x.id===id);
       const sel=[...pane.querySelectorAll('[data-ed="'+id+'"] input:checked')].map(i=>i.value);
@@ -2786,7 +2790,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03j';
+const APP_VERSION='2026-11-03k';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
