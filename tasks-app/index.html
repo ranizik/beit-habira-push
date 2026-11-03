@@ -12,6 +12,11 @@
 <meta name="author" content="רני איציק"/>
 <meta name="copyright" content="© 2026 רני איציק. כל הזכויות שמורות."/>
 <title>תכל׳ס – משימות בקול</title>
+<script>
+// שפה: נקבעת לפני הציור הראשון (מונע הבהוב). המילון נטען בהמשך (i18n)
+(function(){ try{ var l=localStorage.getItem('tk_lang')||'he'; if(l!=='he'){ var d=(l==='ar')?'rtl':'ltr'; var h=document.documentElement; h.lang=l; h.dir=d; h.style.setProperty('--dir',d); h.classList.add('i18n-wait'); setTimeout(function(){ h.classList.remove('i18n-wait'); },3000); } }catch(e){} })();
+</script>
+<style>html.i18n-wait body{visibility:hidden}</style>
 <link rel="manifest" href="manifest-v3.json"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="mobile-web-app-capable" content="yes"/>
@@ -64,7 +69,7 @@ tr.row-selected td{background:#dbe9ff !important;}
 .table-wrap{overflow-x:auto;padding:12px;}
 table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid #b0b0b0;border-radius:4px;overflow:hidden;min-width:480px;}
 thead tr{background:#217346;color:#fff;}
-thead th{padding:9px 10px;text-align:right;font-weight:600;font-size:12px;border-right:1px solid #1a5c38;}
+thead th{padding:9px 10px;text-align:start;font-weight:600;font-size:12px;border-right:1px solid #1a5c38;}
 thead th:last-child{border-right:none;}
 tbody tr{border-bottom:1px solid #d0d0d0;}
 tbody tr:last-child{border-bottom:none;}
@@ -94,7 +99,7 @@ tbody td:last-child{border-right:none;}
 .row-num{color:#aaa;font-size:11px;text-align:center;}
 .empty{text-align:center;padding:32px;color:#aaa;font-size:14px;}
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;}
-.modal{background:#fff;border-radius:8px;padding:20px;width:90%;max-width:380px;direction:rtl;}
+.modal{background:#fff;border-radius:8px;padding:20px;width:90%;max-width:380px;direction:var(--dir,rtl);}
 .modal h3{font-size:16px;color:#217346;margin-bottom:14px;}
 .modal input,.modal select{width:100%;padding:8px 10px;border:1px solid #b0b0b0;border-radius:4px;font-size:14px;margin-bottom:10px;}
 .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
@@ -143,7 +148,7 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 .btn-mic{width:68px;height:68px;border-radius:50%;padding:0;justify-content:center;background:var(--coral);font-size:30px;box-shadow:0 0 0 7px #FFE4E5;flex-shrink:0;}
 .btn-mic.recording{background:#E11D48;box-shadow:0 0 0 7px #FECDD3;}
 .mic-status{font-size:14px;color:var(--muted);line-height:1.4;}
-.mic-status::before{content:"לחץ ודבר";display:block;font-size:17px;font-weight:700;color:var(--ink);margin-bottom:2px;}
+.mic-status::before{content:var(--mic-lbl,"לחץ ודבר");display:block;font-size:17px;font-weight:700;color:var(--ink);margin-bottom:2px;}
 .toolbar input[type=text]{height:46px;border:1.5px solid var(--line);border-radius:14px;background:#F8F8FD;font-size:16px;font-family:inherit;padding:0 14px;}
 .toolbar select,.toolbar input[type=date],.toolbar input[type=time]{height:38px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-size:14px;font-family:inherit;color:var(--ink);flex:1;min-width:0;}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;}
@@ -206,6 +211,8 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 <div class="header">
   <img class="logo" src="icon-v3-192.png" alt=""/>
   <div class="brand"><h1>תכל׳ס</h1><small>אמרת – זה נרשם</small></div>
+  <button class="notif-status" id="lang-btn" onclick="showLangPicker()" title="שפה" aria-label="שפה">🌐</button>
+  <button class="notif-status" id="org-btn" onclick="showOrg()" title="תכל׳ס לעסקים" aria-label="תכל׳ס לעסקים" style="display:none">🏢</button>
   <button class="notif-status" id="help-btn" onclick="showHelp()" aria-label="עזרה – איך משתמשים" title="איך משתמשים">❓</button>
   <button class="notif-status" id="notif-btn" onclick="requestNotify()">🔔 התראות</button>
   <button class="notif-status" id="gcal-status" onclick="gcalButton()">📅 חבר יומן</button>
@@ -265,6 +272,110 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 const APP_URL = 'https://tachlesapps.com/';
 const APP_BASE = new URL('./', location.href).pathname; // '/' בכתובת החדשה, '/tasks/' בישנה
 const OLD_HOST = /(^|\.)beit-habira\.com$/i.test(location.hostname); // בכתובת הישנה: מעבירים את המשתמש (מחובר) לכתובת החדשה
+
+// ── שפות (i18n) ──
+// המילונים: lang/<שפה>.json, ממופים לפי הטקסט העברי שבממשק (נבנים ע״י tools/i18n/build.py).
+// שפה מופעלת רק כשהתרגום שלה הושלם (LANG_READY מתעדכן אוטומטית בבנייה).
+// זיהוי תאריכים/שעות בדיבור: כרגע בעברית בלבד. הרחבה עתידית: PARSERS[lang] (ראה addTask).
+const LANGS={he:{n:'עברית',dir:'rtl',loc:'he-IL',sr:'he-IL'},en:{n:'English',dir:'ltr',loc:'en-US',sr:'en-US'},ar:{n:'العربية',dir:'rtl',loc:'ar',sr:'ar-SA'},ru:{n:'Русский',dir:'ltr',loc:'ru-RU',sr:'ru-RU'},fr:{n:'Français',dir:'ltr',loc:'fr-FR',sr:'fr-FR'},es:{n:'Español',dir:'ltr',loc:'es-ES',sr:'es-ES'}};
+const LANG_READY=['he','en']; // i18n:ready (נכתב ע״י build.py)
+const I18N_V='4dda64d2'; // i18n:version (נכתב ע״י build.py)
+let curLang=(()=>{ try{ return localStorage.getItem('tk_lang')||'he'; }catch(e){ return 'he'; } })();
+if(!LANGS[curLang]||!LANG_READY.includes(curLang)) curLang='he';
+const LOC=()=>(LANGS[curLang]||LANGS.he).loc;
+let I18N=null, I18N_MAX=0;
+const HEB_CH=/[֐-׿]/, HEB_RUN=/[֐-׿](?:[^<>{}`'"\n\\]*[֐-׿])?/g;
+const GLUE=/(^|[\s(\-])[בלוכמהש]$/; // מפתח שנגמר באות-שימוש בודדת ("הועבר ל") נצמד למילה שאחריו
+function trRun(r){
+  const d=I18N; if(d[r]!=null) return d[r];
+  let out='', i=0;
+  while(i<r.length){
+    if(!HEB_CH.test(r[i])){ out+=r[i++]; continue; }
+    let hit=false;
+    for(let L=Math.min(I18N_MAX,r.length-i);L>0;L--){
+      const nx=r[i+L], s=r.substr(i,L);
+      if(nx!==undefined&&HEB_CH.test(nx)&&!GLUE.test(s)) continue;
+      const v=d[s]; if(v==null) continue;
+      out+=v+(nx!==undefined&&HEB_CH.test(nx)&&v?' ':''); i+=L; hit=true; break;
+    }
+    if(!hit){ let j=i; while(j<r.length&&HEB_CH.test(r[j])) j++; out+=r.slice(i,j); i=j; }
+  }
+  return out;
+}
+function tr(str){
+  if(!I18N||str==null) return str; str=String(str); if(!HEB_CH.test(str)) return str;
+  if(str.indexOf('סה"כ')>=0&&I18N['סה"כ']!=null) str=str.split('סה"כ').join(I18N['סה"כ']);
+  return str.replace(HEB_RUN,m=>trRun(m));
+}
+const NO_TR='[data-notr],script,style,textarea';
+function trAttrs(el){
+  for(const a of ['placeholder','title','aria-label']){ const v=el.getAttribute(a); if(v&&HEB_CH.test(v)){ const t=tr(v); if(t!==v) el.setAttribute(a,t); } }
+  if(el.tagName==='INPUT'&&(el.type==='button'||el.type==='submit')&&HEB_CH.test(el.value)) el.value=tr(el.value);
+}
+function trNode(n){
+  if(!I18N||!n) return;
+  if(n.nodeType===3){ const v=n.nodeValue; if(v&&HEB_CH.test(v)){ const p=n.parentElement; if(p&&p.closest(NO_TR)) return; const t=tr(v); if(t!==v) n.nodeValue=t; } return; }
+  if(n.nodeType!==1||n.matches(NO_TR)) return;
+  trAttrs(n);
+  for(let c=n.firstChild;c;c=c.nextSibling) trNode(c);
+}
+function applyLangDir(){
+  const L=LANGS[curLang]||LANGS.he, h=document.documentElement;
+  h.lang=curLang; h.dir=L.dir; h.style.setProperty('--dir',L.dir);
+}
+function startI18n(dict){
+  I18N=dict||{}; I18N_MAX=Object.keys(I18N).reduce((m,k)=>Math.max(m,k.length),0);
+  applyLangDir();
+  document.title=tr(document.title);
+  document.documentElement.style.setProperty('--mic-lbl',JSON.stringify(tr('לחץ ודבר'))); // טקסט שב-CSS
+  trNode(document.body);
+  new MutationObserver(ms=>{ for(const m of ms){
+    if(m.type==='characterData') trNode(m.target);
+    else if(m.type==='attributes'){ if(!m.target.closest(NO_TR)) trAttrs(m.target); }
+    else m.addedNodes.forEach(trNode);
+  } }).observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});
+  ['alert','confirm','prompt'].forEach(k=>{ const o=window[k].bind(window); window[k]=(m,...a)=>o(m==null?m:tr(m),...a); });
+  document.documentElement.classList.remove('i18n-wait');
+}
+(function loadI18n(){
+  if(LANG_READY.length<2){ const lb=document.getElementById('lang-btn'); if(lb) lb.style.display='none'; } // אין עדיין שפה נוספת מוכנה
+  if(curLang==='he'){ document.documentElement.classList.remove('i18n-wait'); return; }
+  const key='tk_i18n_'+curLang+'_'+I18N_V;
+  let cached=null; try{ cached=JSON.parse(localStorage.getItem(key)||'null'); }catch(e){}
+  if(cached){ startI18n(cached); return; }
+  fetch('lang/'+curLang+'.json?v='+I18N_V).then(r=>r.json()).then(d=>{
+    try{ Object.keys(localStorage).filter(k=>k.startsWith('tk_i18n_')).forEach(k=>localStorage.removeItem(k)); localStorage.setItem(key,JSON.stringify(d)); }catch(e){}
+    startI18n(d);
+  }).catch(()=>{ curLang='he'; applyLangDir(); document.documentElement.classList.remove('i18n-wait'); });
+})();
+async function langPref(lang){ // שומר בשרת - לתזכורות בשפה שנבחרה
+  try{ if(!curUser) return null; const t=await curUser.getIdToken();
+    const r=await fetch(STAFF_API+'/tasks/prefs',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(lang?{lang}:{})});
+    return await r.json(); }catch(e){ return null; }
+}
+async function setLang(l){
+  if(!LANGS[l]||!LANG_READY.includes(l)) return;
+  try{ localStorage.setItem('tk_lang',l); }catch(e){}
+  await Promise.race([langPref(l),new Promise(r=>setTimeout(r,1500))]);
+  location.reload();
+}
+function showLangPicker(){
+  document.getElementById('lang-modal')?.remove();
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='lang-modal'; ov.style.zIndex='10002';
+  ov.innerHTML='<div class="modal" style="max-width:340px"><h3 style="margin-bottom:12px">🌐 <span data-notr>Language · שפה</span></h3>'
+    +Object.entries(LANGS).filter(([k])=>LANG_READY.includes(k)).map(([k,v])=>'<button type="button" data-lang="'+k+'" data-notr dir="'+v.dir+'" style="display:block;width:100%;margin:6px 0;padding:12px 14px;border-radius:12px;border:2px solid '+(k===curLang?'#E8573F':'#E4E2F3')+';background:'+(k===curLang?'#FFF1EE':'#fff')+';font-family:inherit;font-size:16px;font-weight:'+(k===curLang?'700':'500')+';cursor:pointer;text-align:center">'+v.n+(k===curLang?' ✓':'')+'</button>').join('')
+    +'<div class="modal-btns" style="margin-top:10px"><button class="btn-cancel" type="button" id="lang-close">סגור</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  ov.querySelector('#lang-close').onclick=()=>ov.remove();
+  ov.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{ const l=b.getAttribute('data-lang'); if(l===curLang){ ov.remove(); return; } b.textContent+=' …'; setLang(l); });
+}
+async function syncLangFromServer(){ // מכשיר חדש: אם בחרת שפה בעבר - היא חוזרת
+  let saved=null; try{ saved=localStorage.getItem('tk_lang'); }catch(e){}
+  const r=await langPref(null); if(!r||!r.ok) return;
+  if(!saved&&r.lang&&r.lang!==curLang&&LANG_READY.includes(r.lang)){ try{ localStorage.setItem('tk_lang',r.lang); }catch(e){} location.reload(); }
+  else if(saved&&saved!==r.lang) langPref(curLang);
+}
 const TASKS_APP = firebase.initializeApp({
   apiKey:"AIzaSyA1Pq3qi361K9xDwv6v4Q44d_nLgpZBtRs",
   authDomain: /tachlesapps\.com$/i.test(location.hostname) ? "tachlesapps.com" : "beit-habira.com", // קבצי ההתחברות מתארחים ב-<דומיין>/__/auth - בלי זה התחברות Google לא עובדת באייפון (Safari חוסם)
@@ -569,7 +680,7 @@ async function nagApi(body){ const t=await curUser.getIdToken(); const r=await f
 async function notifSettings(){
   document.getElementById('edit-modal')?.remove();
   const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
-  const BEFORE=[[10,'10 דק׳'],[15,'רבע שעה'],[30,'חצי שעה'],[60,'שעה'],[120,'שעתיים'],[1440,'יום']];
+  const BEFORE=[[10,'10 דק׳'],[15,'רבע שעה'],[30,'חצי שעה'],[60,'שעה אחת'],[120,'שעתיים'],[1440,'יום']];
   const chip=(m,l)=>'<button type="button" class="rb-chip" data-m="'+m+'" style="height:34px;padding:0 12px;border-radius:999px;border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B;font-family:inherit;font-size:13px;cursor:pointer">'+l+'</button>';
   const sec=t=>'<div style="font-weight:700;margin:14px 0 6px">'+t+'</div>';
   const row=(id,html)=>'<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:6px 0;cursor:pointer;flex-wrap:wrap"><input id="'+id+'" type="checkbox" style="width:18px;height:18px;margin:0"> '+html+'</label>';
@@ -771,7 +882,7 @@ const HELP_CONTENT={he:[
   ['📅 חיבור ליומן Google וסמסונג',`<div>לוחצים <b>📅</b> ובוחרים חשבון Google (אם מופיע "לא מאומת": מתקדם ← המשך). מעכשיו כל משימה עם תאריך נכנסת ל-Google Tasks.<br>
   <b>יומן של סמסונג:</b> 📅 ← מסמנים "גם כאירוע ביומן" ← מאשרים. המשימות יופיעו ביומן עם צלצול בשעת המשימה.</div><div style="margin-top:6px">לניתוק: <b>📅</b> ← "נתק".</div>`]]},
  {c:'⚙️ הגדרות',items:[
-  ['⚙️ הגדרות ושפה',`<div>• <b>התראות ונודניק</b> – כפתור 🔔 למעלה.<br>• <b>יומן</b> – כפתור 📅.<br>• <b>קטגוריות</b> – "➕ קטגוריה חדשה" ברשימת הקטגוריות.<br>• <b>שפה</b> – האפליקציה זמינה כרגע בעברית.<br>• <b>התנתקות</b> – ⎋ למעלה (מי שנכנס בלי Google יקבל אזהרה – כדאי לחבר Google קודם).</div>`]]},
+  ['⚙️ הגדרות ושפה',`<div>• <b>התראות ונודניק</b> – כפתור 🔔 למעלה.<br>• <b>יומן</b> – כפתור 📅.<br>• <b>קטגוריות</b> – "➕ קטגוריה חדשה" ברשימת הקטגוריות.<br>• <b>שפה</b> – כפתור 🌐 למעלה: עברית, English, العربية, Русский, Français, Español.<br>• <b>התנתקות</b> – ⎋ למעלה (מי שנכנס בלי Google יקבל אזהרה – כדאי לחבר Google קודם).</div>`]]},
  {c:'💳 מנויים ותשלומים',items:[
   ['💳 מנוי, תקופת ניסיון ותשלום',`<div>• כרגע תכל׳ס ב<b>תקופת הרצה</b> – משתמשים שאושרו משתמשים בחינם.<br>• כשתקופת שימוש מסתיימת יופיע מסך עם כפתור <b>"לחידוש בוואטסאפ"</b>. החידוש והתשלום מתבצעים ישירות מול מפעיל האפליקציה – אין תשלום בתוך האפליקציה.<br>• <b>המשימות לא נמחקות</b> כשהתקופה נגמרת – הן מחכות לחידוש.</div>`]]},
  {c:'🛡️ פרטיות ואבטחה',items:[
@@ -836,7 +947,7 @@ async function consentApi(path,body){
 async function loadConsentPublic(){ const j=await consentApi('public'); if(j&&j.ok) consentPublic={active:!!j.active,docs:j.docs||{}}; return consentPublic; }
 function consentChecksHtml(prefix){
   const a=(k,l)=>'<a href="'+DOC_LINKS[k]+'" target="_blank" rel="noopener" style="color:#4338CA;font-weight:600">'+l+'</a>';
-  const row=(id,html,req)=>'<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:6px 0;cursor:pointer;text-align:right;line-height:1.5"><input id="'+prefix+id+'" type="checkbox" style="width:18px;height:18px;margin:2px 0 0;flex-shrink:0"> <span>'+html+(req?' <span style="color:#B42318">*</span>':'')+'</span></label>';
+  const row=(id,html,req)=>'<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:6px 0;cursor:pointer;text-align:start;line-height:1.5"><input id="'+prefix+id+'" type="checkbox" style="width:18px;height:18px;margin:2px 0 0;flex-shrink:0"> <span>'+html+(req?' <span style="color:#B42318">*</span>':'')+'</span></label>';
   return row('terms','קראתי ואני מסכים/ה ל'+a('terms','תנאי השימוש'),true)+row('privacy','קראתי את '+a('privacy','מדיניות הפרטיות'),true)+row('mkt','אשמח לקבל עדכונים ופרסומים מתכל׳ס (לא חובה)',false);
 }
 const consentChecked=prefix=>({terms:!!document.getElementById(prefix+'terms')?.checked, privacy:!!document.getElementById(prefix+'privacy')?.checked, marketing:!!document.getElementById(prefix+'mkt')?.checked});
@@ -856,7 +967,7 @@ async function checkConsent(){
 function showConsentGate(docs){
   if(document.getElementById('consent-gate')) return;
   const ov=document.createElement('div'); ov.id='consent-gate';
-  ov.style.cssText='position:fixed;inset:0;background:#1E1B4B;z-index:99990;display:flex;align-items:center;justify-content:center;padding:16px;direction:rtl;font-family:Rubik,Arial,sans-serif';
+  ov.style.cssText='position:fixed;inset:0;background:#1E1B4B;z-index:99990;display:flex;align-items:center;justify-content:center;padding:16px;direction:var(--dir,rtl);font-family:Rubik,Arial,sans-serif';
   ov.innerHTML='<div style="background:#fff;border-radius:22px;padding:22px 20px;width:min(380px,94vw);max-height:92vh;overflow:auto;color:#1A1A2E">'
     +'<div style="text-align:center"><img src="icon-v3-192.png" alt="" style="width:60px;height:60px;border-radius:16px"></div>'
     +'<div style="font-size:19px;font-weight:800;text-align:center;margin:8px 0 6px">עדכנו את תנאי השימוש ומדיניות הפרטיות</div>'
@@ -891,7 +1002,7 @@ function applyParsed(parsed) {
   }
   if (parsed.time) document.getElementById('f-time').value = parsed.time;
   const hints=[];
-  if (parsed.date) hints.push(parsed.date.toLocaleDateString('he-IL'));
+  if (parsed.date) hints.push(parsed.date.toLocaleDateString(LOC()));
   if (parsed.time) hints.push(parsed.time);
   pendingRep = parsed.rep || '';
   if (parsed.rep) hints.push({daily:'🔁 כל יום',weekly:'🔁 כל שבוע',monthly:'🔁 כל חודש'}[parsed.rep]);
@@ -938,7 +1049,7 @@ function setupMic() {
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){document.getElementById('mic-btn').style.opacity='0.4';document.getElementById('mic-status').textContent='הדפדפן לא תומך בהקלטה';return;}
   recognition=new SR();
-  recognition.lang='he-IL'; recognition.continuous=true; recognition.interimResults=true; // נעצר רק אחרי שקט ממושך (למטה)
+  recognition.lang=(LANGS[curLang]||LANGS.he).sr; recognition.continuous=true; recognition.interimResults=true; // נעצר רק אחרי שקט ממושך (למטה)
   recognition.onstart=()=>{
     isRecording=true; micGotFinal=false; micLastInterim=''; micErr=false; pendingRep='';
     clearTimeout(micSilence); clearTimeout(micMax);
@@ -1081,7 +1192,7 @@ function parseWho(name){
 
 // ── פרטי רשימה משותפת: משתתפים, מי פעיל, היסטוריית הצטרפות/יציאה, צירוף ישיר בלי קישור ──
 function agoTxt(ms){ if(!ms) return 'עוד לא נכנס/ה'; const m=Math.round((Date.now()-ms)/60000); if(m<5) return 'פעיל/ה עכשיו'; if(m<60) return 'לפני '+m+' דק׳'; const h=Math.round(m/60); if(h<24) return 'לפני '+h+' שע׳'; const d=Math.round(h/24); return d===1?'אתמול':'לפני '+d+' ימים'; }
-const fmtDT=ms=>ms?new Date(ms).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})+' '+new Date(ms).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}):'';
+const fmtDT=ms=>ms?new Date(ms).toLocaleDateString(LOC(),{day:'numeric',month:'numeric'})+' '+new Date(ms).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}):'';
 async function listInfo(focusAdd){
   if(!curList) return;
   document.getElementById('edit-modal')?.remove();
@@ -1095,8 +1206,8 @@ async function listInfo(focusAdd){
   const dot=ms=>{ const h=ms?(Date.now()-ms)/36e5:1e9; return h<24?'#10B981':h<24*7?'#F59E0B':'#C4C3D6'; };
   const rows=j.members.map(m=>'<div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #EEEDF7">'
     +'<span style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:'+dot(m.lastSeen)+'"></span>'
-    +'<div style="flex:1;min-width:0"><div style="font-weight:700">'+escA(m.name)+(m.me?' (אני)':'')+(m.owner?' <span style="font-size:11px;background:#ECEBFA;color:#3730A3;border-radius:6px;padding:1px 6px;font-weight:600">יצר/ה את הרשימה</span>':'')+'</div>'
-    +'<div style="font-size:12px;color:#5B5B76">'+agoTxt(m.lastSeen)+' · הצטרף/ה '+(m.at?new Date(m.at).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'}):'')+(m.via==='added'&&m.by?' (צורף/ה ע״י '+escA(m.by)+')':m.via==='link'?' (בקישור)':'')+'</div>'
+    +'<div style="flex:1;min-width:0"><div style="font-weight:700"><span data-notr>'+escA(m.name)+'</span>'+(m.me?' (אני)':'')+(m.owner?' <span style="font-size:11px;background:#ECEBFA;color:#3730A3;border-radius:6px;padding:1px 6px;font-weight:600">יצר/ה את הרשימה</span>':'')+'</div>'
+    +'<div style="font-size:12px;color:#5B5B76">'+agoTxt(m.lastSeen)+' · הצטרף/ה '+(m.at?new Date(m.at).toLocaleDateString(LOC(),{day:'numeric',month:'numeric'}):'')+(m.via==='added'&&m.by?' (צורף/ה ע״י '+escA(m.by)+')':m.via==='link'?' (בקישור)':'')+'</div>'
     +'<div style="font-size:12px;color:#5B5B76">הוסיף/ה '+m.added+' משימות'+(m.assignedOpen?' · '+m.assignedOpen+' פתוחות באחריותו/ה':'')+'</div></div></div>').join('');
   const inList=new Set(j.members.map(m=>m.uid));
   const cands=((c&&c.contacts)||[]).filter(x=>!inList.has(x.uid));
@@ -1108,7 +1219,8 @@ async function listInfo(focusAdd){
   const icon={create:'🆕',join:'✅',add:'➕',leave:'🚪'};
   const txt=e=>e.type==='create'?escA(e.name)+' יצר/ה את הרשימה':e.type==='join'?escA(e.name)+' הצטרף/ה בקישור':e.type==='add'?escA(e.byName||'')+' צירף/ה את '+escA(e.name):escA(e.name)+' יצא/ה מהרשימה';
   const log=j.log.length?'<div style="margin-top:16px;font-weight:700">📜 היסטוריה</div>'+j.log.map(e=>'<div style="font-size:13px;padding:6px 0;border-bottom:1px solid #EEEDF7;display:flex;gap:8px"><span>'+(icon[e.type]||'•')+'</span><span style="flex:1">'+txt(e)+'</span><span style="color:#8A89A3;font-size:12px;white-space:nowrap">'+fmtDT(e.at)+'</span></div>').join(''):'';
-  body.innerHTML=rows+add+log;
+  body.innerHTML=rows+(isOrgList(curList)?'<div style="font-size:12px;color:#5B5B76;margin-top:12px">🏢 רשימה של '+escA((orgInfo&&orgInfo.org&&orgInfo.org.name)||'הארגון')+' – מנהל הארגון מחליט מי ברשימה.</div>':add)+log;
+  if(isOrgList(curList)) ov.querySelector('.modal-btns button[onclick="shareList()"]')?.remove();
   const doAdd=async(payload,btn)=>{ if(btn) btn.disabled=true; const r=await listsApi('add',{listId:curList,...payload}).catch(e=>({ok:false,error:e.message}));
     if(r&&r.ok){ showToast(r.already?r.name+' כבר ברשימה':'✓ '+r.name+' צורף/ה לרשימה'); listInfo(); } else { showToast((r&&r.error)||'הצירוף נכשל'); if(btn) btn.disabled=false; } };
   body.querySelectorAll('button[data-add]').forEach(b=>b.onclick=()=>doAdd({uid:b.getAttribute('data-add')},b));
@@ -1121,14 +1233,14 @@ function renderLists(){
   const esc=x=>String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let h='<button class="list-tab'+(!curList?' active':'')+'" onclick="switchList(null)"><i class="ti ti-lock"></i> שלי</button>';
   Object.entries(myLists).sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name),'he')).forEach(([id,l])=>{
-    h+='<button class="list-tab'+(curList===id?' active':'')+'" onclick="switchList(\''+id+'\')"><i class="ti ti-users"></i> '+esc(l.name)+'</button>';
+    h+='<button class="list-tab'+(curList===id?' active':'')+'" onclick="switchList(\''+id+'\')"><i class="ti '+(isOrgList(id)?'ti-building':'ti-users')+'"></i> <span data-notr>'+esc(l.name)+'</span></button>';
   });
   h+='<button class="list-tab add" onclick="createList()"><i class="ti ti-plus"></i> רשימה משותפת</button>';
   bar.innerHTML=h;
   const mb=document.getElementById('list-members'), l=curList&&myLists[curList];
   if(l){
     const cnt=l.members?Object.values(l.members).filter(Boolean).length:0;
-    mb.innerHTML='<button class="list-tool" onclick="listInfo()" style="background:#ECEBFA"><i class="ti ti-users"></i> '+cnt+' משתתפים · פרטים</button><span class="list-members-names" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><div class="list-tools"><button class="list-tool" onclick="listInfo(true)"><i class="ti ti-user-plus"></i> צרף</button><button class="list-tool leave" onclick="leaveList()">צא</button></div>';
+    mb.innerHTML='<button class="list-tool" onclick="listInfo()" style="background:#ECEBFA"><i class="ti ti-users"></i> '+cnt+' משתתפים · פרטים</button><span class="list-members-names" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><div class="list-tools">'+(isOrgList(curList)?(orgMgr()?'<button class="list-tool" onclick="showOrg(\'lists\')"><i class="ti ti-building"></i> ניהול</button>':''):'<button class="list-tool" onclick="listInfo(true)"><i class="ti ti-user-plus"></i> צרף</button><button class="list-tool leave" onclick="leaveList()">צא</button>')+'</div>';
     mb.querySelector('.list-members-names').textContent=l.members?Object.values(l.members).map(m=>m&&m.name).filter(Boolean).join(', '):'';
     mb.style.display='flex';
   }
@@ -1141,6 +1253,133 @@ async function listsApi(path, body){
   const j=await r.json().catch(()=>({}));
   if(!r.ok||!j.ok) throw new Error(j.error||('שגיאה '+r.status));
   return j;
+}
+// ── תכל׳ס לעסקים: סביבת ארגון (בעלים / מנהל / עובד) ──
+let orgInfo=null; // {org:{id,name,status}, role, members, lists}
+async function orgApi(path, body){
+  try{ const t=await curUser.getIdToken();
+    const r=await fetch(STAFF_API+'/tasks/org/'+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify(body||{})});
+    const j=await r.json().catch(()=>({})); if(!r.ok&&!j.error) j.error='שגיאה '+r.status; return j; }catch(e){ return {ok:false,error:'אין חיבור לשרת'}; }
+}
+const orgMgr=()=>!!(orgInfo&&orgInfo.org&&orgInfo.org.status==='active'&&(orgInfo.role==='owner'||orgInfo.role==='manager'));
+const isOrgList=id=>!!(orgInfo&&orgInfo.lists&&orgInfo.lists.some(l=>l.id===id));
+async function loadOrg(){ if(!curUser) return; const j=await orgApi('mine'); if(j&&j.ok){ orgInfo=j.org?j:null; renderLists(); } }
+async function handleOrgJoinLink(){
+  let p=new URLSearchParams(location.search).get('org');
+  if(!p){ try{ p=localStorage.getItem('tasks_pending_org'); }catch(e){} }
+  try{ localStorage.removeItem('tasks_pending_org'); }catch(e){}
+  if(!p) return;
+  history.replaceState(null,'',location.pathname);
+  const [orgId,token]=p.split('.');
+  const j=await orgApi('join',{orgId,token});
+  showToast(j&&j.ok?(j.already?'כבר חבר/ה בארגון "'+j.name+'"':'הצטרפת לארגון "'+j.name+'" ✓'):((j&&j.error)||'ההצטרפות נכשלה'));
+  loadOrg();
+}
+const ORG_ROLE={owner:'👑 בעלים',manager:'⭐ מנהל/ת',member:'עובד/ת'};
+let orgTab='people';
+async function showOrg(tab){
+  if(tab) orgTab=tab;
+  document.getElementById('edit-modal')?.remove();
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
+  ov.innerHTML='<div class="modal" style="max-width:560px;max-height:90vh;overflow:auto"><h3 style="margin-bottom:6px">🏢 תכל׳ס לעסקים</h3><div id="org-body" style="font-size:14px">טוען...</div>'
+    +'<div class="modal-btns" style="margin-top:12px"><button class="btn-cancel" onclick="document.getElementById(\'edit-modal\').remove()">סגור</button></div></div>';
+  document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  const j=await orgApi('mine'); const body=document.getElementById('org-body'); if(!body) return;
+  if(!j||!j.ok){ body.textContent=(j&&j.error)||'שגיאה'; return; }
+  orgInfo=j.org?j:null; renderLists();
+  const box=(h,bg)=>'<div style="background:'+(bg||'#F4F3FB')+';border-radius:14px;padding:12px;margin:10px 0">'+h+'</div>';
+  if(!j.org){
+    body.innerHTML='<div style="line-height:1.6">סביבה מסודרת לעסק: <b>אתה מנהל</b> את העובדים ואת הרשימות.</div>'
+      +'<ul style="margin:8px 18px;line-height:1.7;font-size:13px"><li>מצרפים עובדים בקישור או לפי מייל</li><li>יוצרים רשימות לעסק ומחליטים מי בכל רשימה</li><li>ממנים מנהלים</li><li>דוח משימות לפי עובד: פתוחות, באיחור, בוצעו השבוע</li><li>מסירים עובד בלחיצה – המשימות הפתוחות שלו עוברות אליך</li></ul>'
+      +box('<div style="font-weight:700;margin-bottom:6px">פתיחת ארגון</div><div style="display:flex;gap:6px"><input id="org-name" type="text" maxlength="60" placeholder="שם העסק" style="flex:1;margin:0"><button class="btn-save" id="org-req" style="padding:8px 14px">שלח בקשה</button></div><div style="font-size:12px;color:#5B5B76;margin-top:6px">הבקשה נשלחת לרני לאישור.</div>');
+    document.getElementById('org-req').onclick=async e=>{ const n=document.getElementById('org-name').value.trim(); if(n.length<2){ showToast('כתוב את שם העסק'); return; }
+      e.target.disabled=true; const r=await orgApi('request',{name:n}); showToast(r&&r.ok?'הבקשה נשלחה ✓':((r&&r.error)||'שגיאה')); showOrg(); };
+    return;
+  }
+  const O=j.org;
+  if(O.status==='pending'){
+    body.innerHTML=box('<b>'+escA(O.name)+'</b><div style="margin-top:6px">⏳ הבקשה ממתינה לאישור של רני. תקבל התראה כשהארגון יאושר.</div>')
+      +'<button class="btn-cancel" id="org-cancel" style="margin-top:6px">בטל בקשה</button>';
+    document.getElementById('org-cancel').onclick=async()=>{ if(!confirm('לבטל את הבקשה?')) return; await orgApi('leave'); showOrg(); };
+    return;
+  }
+  const mgr=orgMgr(), owner=j.role==='owner';
+  const head='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><b style="font-size:16px" data-notr>'+escA(O.name)+'</b><span style="font-size:12px;background:#ECEBFA;color:#3730A3;border-radius:6px;padding:1px 8px">'+ORG_ROLE[j.role]+'</span></div>';
+  if(!mgr){
+    body.innerHTML=head+'<div style="font-weight:700;margin:8px 0 4px">הרשימות שלי בארגון</div>'
+      +(j.lists.length?j.lists.map(l=>'<div style="padding:8px 0;border-bottom:1px solid #EEEDF7">📋 <span data-notr>'+escA(l.name)+'</span></div>').join(''):'<div style="color:#5B5B76">עדיין לא צורפת לרשימה.</div>')
+      +'<div style="font-size:12px;color:#5B5B76;margin-top:10px">מנהל הארגון מחליט מי בכל רשימה.</div>'
+      +'<button class="btn-cancel" id="org-leave" style="margin-top:12px">עזוב את הארגון</button>';
+    document.getElementById('org-leave').onclick=async()=>{ if(!confirm('לעזוב את "'+O.name+'"? תצא מכל רשימות הארגון, והמשימות הפתוחות שבאחריותך יעברו לבעל הארגון.')) return;
+      const r=await orgApi('leave'); showToast(r&&r.ok?'עזבת את הארגון':((r&&r.error)||'שגיאה')); showOrg(); };
+    return;
+  }
+  const T=(k,l)=>'<button data-otab="'+k+'" style="flex:1;height:36px;border:0;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer;background:'+(orgTab===k?'#1E1B4B':'#ECEBFA')+';color:'+(orgTab===k?'#fff':'#1E1B4B')+'">'+l+'</button>';
+  body.innerHTML=head+'<div style="display:flex;gap:6px;margin-bottom:10px">'+T('people','👥 עובדים')+T('lists','📋 רשימות')+T('report','📊 דוח')+'</div><div id="org-pane"></div>';
+  body.querySelectorAll('[data-otab]').forEach(b=>b.onclick=()=>showOrg(b.getAttribute('data-otab')));
+  const pane=document.getElementById('org-pane');
+  const nameOf=uid=>{ const m=j.members.find(x=>x.uid===uid); return m?m.name:''; };
+  if(orgTab==='people'){
+    pane.innerHTML='<div style="font-size:12px;color:#5B5B76;margin-bottom:6px">'+j.members.length+(j.limit&&j.limit<1e9?' / '+j.limit:'')+' בארגון</div>'
+      +j.members.map(m=>'<div style="display:flex;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid #EEEDF7"><div style="flex:1;min-width:0"><b data-notr>'+escA(m.name)+'</b>'+(m.me?' (אני)':'')+'<div style="font-size:12px;color:#5B5B76">'+ORG_ROLE[m.role]+'</div></div>'
+        +(owner&&m.role!=='owner'?'<button class="cat-chip" data-role="'+escA(m.uid)+'" data-to="'+(m.role==='manager'?'member':'manager')+'">'+(m.role==='manager'?'הפוך לעובד':'הפוך למנהל')+'</button>':'')
+        +(m.role!=='owner'&&!m.me&&(owner||m.role==='member')?'<button class="cat-chip" data-rm="'+escA(m.uid)+'" style="color:#B42318">הסר</button>':'')+'</div>').join('')
+      +box('<div style="font-weight:700;margin-bottom:6px">➕ צירוף עובדים</div><button class="btn-save" id="org-inv" style="width:100%;margin-bottom:8px"><i class="ti ti-share"></i> קישור הזמנה לארגון</button>'
+        +'<div style="display:flex;gap:6px"><input id="org-email" type="email" dir="ltr" placeholder="או מייל של משתמש תכל׳ס" style="flex:1;margin:0"><button class="btn-save" id="org-add" style="padding:8px 14px">צרף</button></div>');
+    pane.querySelectorAll('[data-role]').forEach(b=>b.onclick=async()=>{ const r=await orgApi('role',{uid:b.getAttribute('data-role'),role:b.getAttribute('data-to')}); showToast(r&&r.ok?'עודכן ✓':((r&&r.error)||'שגיאה')); showOrg(); });
+    pane.querySelectorAll('[data-rm]').forEach(b=>b.onclick=async()=>{ const uid=b.getAttribute('data-rm');
+      if(!confirm('להסיר את '+nameOf(uid)+' מהארגון?\n\nהוא/היא יצא/תצא מכל רשימות הארגון, והמשימות הפתוחות שבאחריותו/ה יעברו אליך. המשימות הפרטיות שלו/ה לא נפגעות.')) return;
+      b.disabled=true; const r=await orgApi('remove',{uid}); showToast(r&&r.ok?'הוסר/ה ✓'+(r.moved?' · '+r.moved+' משימות עברו אליך':''):((r&&r.error)||'שגיאה')); showOrg(); });
+    document.getElementById('org-inv').onclick=async()=>{ const r=await orgApi('invite'); if(!r||!r.ok){ showToast((r&&r.error)||'שגיאה'); return; }
+      const txt='הצטרפות ל"'+O.name+'" בתכל׳ס: '+r.link;
+      if(navigator.share){ try{ await navigator.share({text:txt}); return; }catch(e){} }
+      try{ await navigator.clipboard.writeText(r.link); showToast('הקישור הועתק - הדבק בוואטסאפ'); }catch(e){ prompt('העתק את הקישור ושלח',r.link); } };
+    document.getElementById('org-add').onclick=async e=>{ const v=document.getElementById('org-email').value.trim(); if(!/^\S+@\S+\.\S+$/.test(v)){ showToast('כתוב מייל תקין'); return; }
+      e.target.disabled=true; const r=await orgApi('add',{email:v}); showToast(r&&r.ok?(r.already?'כבר בארגון':'✓ צורף/ה לארגון'):((r&&r.error)||'שגיאה')); showOrg(); };
+  }
+  else if(orgTab==='lists'){
+    const picks=(sel)=>'<div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0">'+j.members.map(m=>'<label style="display:flex;gap:4px;align-items:center;background:#fff;border:1px solid #E2E1F0;border-radius:999px;padding:4px 10px;font-size:13px;cursor:pointer"><input type="checkbox" value="'+escA(m.uid)+'"'+(sel.includes(m.uid)?' checked':'')+(m.me?' checked disabled':'')+' style="margin:0"> <span data-notr>'+escA(m.name)+'</span></label>').join('')+'</div>';
+    pane.innerHTML=(j.lists.length?j.lists.map(l=>'<div style="padding:10px 0;border-bottom:1px solid #EEEDF7"><div style="display:flex;align-items:center;gap:8px"><b style="flex:1" data-notr>📋 '+escA(l.name)+'</b><span style="font-size:12px;color:#5B5B76">'+l.members.length+' משתתפים</span>'
+        +'<button class="cat-chip" data-edit="'+escA(l.id)+'">חברים</button>'+(owner?'<button class="cat-chip" data-del="'+escA(l.id)+'" style="color:#B42318">מחק</button>':'')+'</div>'
+        +'<div data-ed="'+escA(l.id)+'" style="display:none">'+picks(l.members)+'<button class="btn-save" data-save="'+escA(l.id)+'" style="padding:6px 14px">שמור</button> <span style="font-size:12px;color:#5B5B76">מי שמוסר – המשימות הפתוחות שלו ברשימה עוברות אליך</span></div></div>').join(''):'<div style="color:#5B5B76">עדיין אין רשימות לעסק.</div>')
+      +box('<div style="font-weight:700">➕ רשימה חדשה לעסק</div><input id="org-lname" type="text" maxlength="40" placeholder="למשל: משמרת ערב" style="width:100%;box-sizing:border-box;margin:6px 0">'
+        +'<div style="font-size:12px;color:#5B5B76">מי ברשימה:</div>'+picks([])+'<button class="btn-save" id="org-lcreate">צור רשימה</button>');
+    pane.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{ const e=pane.querySelector('[data-ed="'+b.getAttribute('data-edit')+'"]'); e.style.display=e.style.display==='none'?'':'none'; });
+    pane.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{ const id=b.getAttribute('data-save'), l=j.lists.find(x=>x.id===id);
+      const sel=[...pane.querySelectorAll('[data-ed="'+id+'"] input:checked')].map(i=>i.value);
+      const add=sel.filter(u=>!l.members.includes(u)), remove=l.members.filter(u=>!sel.includes(u)&&j.members.some(m=>m.uid===u&&!m.me));
+      if(remove.length&&!confirm('להוציא מהרשימה: '+remove.map(nameOf).join(', ')+'?\nהמשימות הפתוחות שבאחריותם ברשימה יעברו אליך.')) return;
+      b.disabled=true; const r=await orgApi('list-members',{listId:id,add,remove}); showToast(r&&r.ok?'נשמר ✓'+(r.moved?' · '+r.moved+' משימות עברו אליך':''):((r&&r.error)||'שגיאה')); showOrg(); });
+    pane.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{ const l=j.lists.find(x=>x.id===b.getAttribute('data-del'));
+      if(!confirm('למחוק את הרשימה "'+l.name+'" וכל המשימות שבה, לכל המשתתפים?')) return;
+      const r=await orgApi('list-delete',{listId:l.id}); showToast(r&&r.ok?'הרשימה נמחקה':((r&&r.error)||'שגיאה')); if(curList===l.id) switchList(null); showOrg(); });
+    document.getElementById('org-lcreate').onclick=async e=>{ const n=document.getElementById('org-lname').value.trim(); if(!n){ showToast('כתוב שם לרשימה'); return; }
+      const sel=[...e.target.parentElement.querySelectorAll('input[type=checkbox]:checked:not(:disabled)')].map(i=>i.value);
+      e.target.disabled=true; const r=await orgApi('list-create',{name:n,members:sel}); showToast(r&&r.ok?'הרשימה נוצרה ✓':((r&&r.error)||'שגיאה')); showOrg(); };
+  }
+  else {
+    const r=await orgApi('report');
+    if(!r||!r.ok){ pane.textContent=(r&&r.error)||'שגיאה'; return; }
+    const cell=(v,c)=>'<td style="border:0;text-align:center;padding:6px;font-weight:700;color:'+(v&&c?c:'#1E1B4B')+'">'+v+'</td>';
+    pane.innerHTML='<div style="font-size:12px;color:#5B5B76;margin-bottom:6px">משימות ברשימות הארגון, לפי מי שאחראי עליהן.</div>'
+      +'<table style="width:100%;min-width:0;border-collapse:collapse;font-size:13px;table-layout:fixed"><thead><tr><th style="color:#5B5B76;border:0;background:#F4F3FB;font-size:12px;padding:6px;text-align:start;width:40%">עובד</th><th style="color:#5B5B76;border:0;background:#F4F3FB;font-size:12px;padding:6px;text-align:center">פתוחות</th><th style="color:#5B5B76;border:0;background:#F4F3FB;font-size:12px;padding:6px;text-align:center">באיחור</th><th style="color:#5B5B76;border:0;background:#F4F3FB;font-size:12px;padding:6px;text-align:center">בוצעו ב-7 ימים</th></tr></thead><tbody>'
+      +r.rows.map(x=>'<tr style="border-bottom:1px solid #EEEDF7"><td style="border:0;padding:6px"><span data-notr>'+escA(x.name)+'</span>'+(x.lists.length?'<div style="font-size:11px;color:#5B5B76" data-notr>'+x.lists.map(l=>escA(l.name)+': '+l.open+(l.overdue?' ('+l.overdue+'⚠)':'')).join(' · ')+'</div>':'')+'</td>'+cell(x.open)+cell(x.overdue,'#B42318')+cell(x.done7,'#0F6B3E')+'</tr>').join('')
+      +'</tbody></table>'+(r.unassigned.open?'<div style="font-size:13px;margin-top:8px">📭 בלי אחראי: '+r.unassigned.open+' פתוחות'+(r.unassigned.overdue?', '+r.unassigned.overdue+' באיחור':'')+'</div>':'');
+  }
+}
+// ניהול (בעל האפליקציה): אישור ארגונים
+async function renderOrgAdmin(){
+  const box=document.getElementById('org-admin'); if(!box) return;
+  const j=await orgApi('admin-list'); if(!j||!j.ok){ box.innerHTML=''; return; }
+  if(!j.orgs.length){ box.innerHTML=''; return; }
+  const st={pending:'⏳ ממתין',active:'✅ פעיל',rejected:'⛔ נדחה'};
+  box.innerHTML='<div style="background:#F4F3FB;border-radius:14px;padding:10px 12px;margin-bottom:12px"><div style="font-weight:700;margin-bottom:4px">🏢 ארגונים</div>'
+    +j.orgs.map(o=>'<div style="display:flex;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid #E4E2F3;flex-wrap:wrap"><div style="flex:1;min-width:140px"><b>'+escA(o.name)+'</b> · '+st[o.status]+'<div style="font-size:12px;color:#5B5B76">'+escA(o.ownerName)+(o.ownerEmail?' · '+escA(o.ownerEmail):'')+' · '+o.members+' חברים</div></div>'
+      +(o.status==='pending'?'<button class="btn-save" data-oa="approve" data-o="'+o.id+'" style="padding:6px 12px">אשר</button><button class="btn-cancel" data-oa="reject" data-o="'+o.id+'" style="padding:6px 12px">דחה</button>':'')
+      +(o.status==='active'?'<button class="cat-chip" data-oa="delete" data-o="'+o.id+'" style="color:#B42318">סגור ארגון</button>':'')+'</div>').join('')+'</div>';
+  box.querySelectorAll('[data-oa]').forEach(b=>b.onclick=async()=>{ const a=b.getAttribute('data-oa');
+    if(a==='delete'&&!confirm('לסגור את הארגון? הרשימות והמשימות נשארות אצל החברים כרשימות משותפות רגילות.')) return;
+    b.disabled=true; const r=await orgApi('admin-set',{orgId:b.getAttribute('data-o'),action:a}); showToast(r&&r.ok?'עודכן ✓':((r&&r.error)||'שגיאה')); renderOrgAdmin(); });
 }
 async function createList(){
   const name=(prompt('שם לרשימה המשותפת (למשל: בית, משמרת ערב):')||'').trim();
@@ -1246,7 +1485,7 @@ async function checkAccess(){
 function showLocked(j){
   let ov=document.getElementById('locked-ov');
   if(!ov){ ov=document.createElement('div'); ov.id='locked-ov'; document.body.appendChild(ov); }
-  ov.style.cssText='position:fixed;inset:0;background:#1E1B4B;z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl;font-family:Rubik,Arial,sans-serif';
+  ov.style.cssText='position:fixed;inset:0;background:#1E1B4B;z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px;direction:var(--dir,rtl);font-family:Rubik,Arial,sans-serif';
   const ended=j.pending?'⏳ הבקשה שלך נשלחה לאישור':j.locked?'הגישה לתכל׳ס נעולה כרגע':(j.plan==='paid'||j.plan==='year'?'תקופת השימוש בתכל׳ס הסתיימה':'תקופת הניסיון של תכל׳ס הסתיימה');
   const sub=j.pending?'רני יאשר אותך בקרוב, ואז אפשר להתחיל.<br>רוצה לזרז? שלח/י לו הודעה':'המשימות שלך שמורות ומחכות לך.<br>כדי להמשיך: מנוי של <b style="color:#1A1A2E">'+escA(j.price)+' ₪ לחודש</b>';
   const waTxt=j.pending?'היי רני, נרשמתי לתכל׳ס – אשמח לאישור 🙂':'היי רני, אשמח להמשיך להשתמש בתכל׳ס 🙂';
@@ -1264,8 +1503,8 @@ function showLocked(j){
 function hideLocked(){ document.getElementById('locked-ov')?.remove(); }
 
 // מסך ניהול משתמשים (בעל העסק) - בתוך 📊
-const fmtD=ms=>ms?new Date(ms).toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit'}):'—';
-const fmtT=ms=>new Date(ms).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+const fmtD=ms=>ms?new Date(ms).toLocaleDateString(LOC(),{day:'numeric',month:'numeric',year:'2-digit'}):'—';
+const fmtT=ms=>new Date(ms).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'});
 let accOpen='', accLast=null;
 // ניווט בתוך הניהול: כל מעבר (לשונית / משתמש) נשמר, וחץ "חזרה" - או כפתור החזרה של הטלפון - מחזיר צעד אחד בלי לצאת מהפאנל
 let admNav=[], admTab='users', admShow=null, admClosing=false;
@@ -1294,6 +1533,7 @@ window.addEventListener('popstate',()=>{
 });
 async function renderAccessAdmin(cached){
   const box=document.getElementById('acc-body'); if(!box) return;
+  if(!cached) renderOrgAdmin();
   const j=cached&&accLast?accLast:await accessApi('list'); accLast=j;
   if(!j||!j.ok){ box.textContent='לא ניתן לטעון משתמשים'+(j&&j.error?': '+j.error:''); return; }
   const C=j.config;
@@ -1369,7 +1609,7 @@ async function renderAccessAdmin(cached){
     const access=u.pending?'מחכה לאישור שלך':u.locked?'נעול – לא יכול להשתמש':!u.allowed?'הגישה הסתיימה':u.until==null||C.freeMode?'פעיל – ללא הגבלה':'פעיל עד '+fmtD(u.until)+' (עוד '+u.daysLeft+' ימים)';
     const stat=(v,l)=>'<div style="flex:1;background:#F4F3FB;border-radius:12px;padding:8px 4px;text-align:center"><div style="font-size:15px;font-weight:700">'+v+'</div><div style="font-size:11px;color:#5B5B76">'+l+'</div></div>';
     box.innerHTML='<div style="display:flex;gap:12px;align-items:center">'+avatar(u,52)+'<div style="flex:1;min-width:0"><div style="font-size:18px;font-weight:700">'+escA(u.name||u.email||'משתמש')+'</div>'
-      +'<div style="font-size:12px;color:#5B5B76;direction:ltr;text-align:right;overflow:hidden;text-overflow:ellipsis">'+escA(u.email)+'</div></div></div>'
+      +'<div style="font-size:12px;color:#5B5B76;direction:ltr;text-align:start;overflow:hidden;text-overflow:ellipsis">'+escA(u.email)+'</div></div></div>'
       +'<div style="display:flex;gap:6px;margin-top:12px">'+stat(u.last?(isToday(u.last)?fmtT(u.last):fmtD(u.last)):'—','נכנס לאחרונה')+stat(u.opens||0,'פתיחות')+stat(u.tasks,'משימות')+stat(fmtD(u.joined),'הצטרף')+'</div>'
       +(C.consentActive||u.consent?'<div style="font-size:12px;color:#5B5B76;margin-top:8px">📜 '+(u.consent?'אישר/ה תנאים (גרסה '+escA(u.consent.termsV)+') ב-'+fmtD(u.consent.at)+(u.consent.marketing?' · מסכים/ה לפרסומים':''):'עוד לא אישר/ה את התנאים')+'</div>':'')
       +(u.pending
@@ -1390,7 +1630,7 @@ async function renderAccessAdmin(cached){
         +pill(flag(u))+'<span style="color:#A5A3C2;font-size:18px">‹</span></div>'; };
     box.innerHTML=
       (pend.length?pend.map(u=>'<div style="background:#EEF0FF;border-radius:14px;padding:12px;margin-bottom:10px">'
-        +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px" data-open="'+escA(u.uid)+'">'+avatar(u,38)+'<div style="flex:1;min-width:0;cursor:pointer"><b>'+escA(u.name||u.email||'משתמש')+'</b> מבקש/ת להצטרף<div style="font-size:12px;color:#5B5B76;direction:ltr;text-align:right">'+escA(u.email)+'</div></div></div>'
+        +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px" data-open="'+escA(u.uid)+'">'+avatar(u,38)+'<div style="flex:1;min-width:0;cursor:pointer"><b>'+escA(u.name||u.email||'משתמש')+'</b> מבקש/ת להצטרף<div style="font-size:12px;color:#5B5B76;direction:ltr;text-align:start">'+escA(u.email)+'</div></div></div>'
         +'<div style="display:flex;gap:8px">'+big(u.uid,'year','✅ אשר','main')+big(u.uid,'lock','❌ דחה','danger')+'</div></div>').join(''):'')
       +(rest.length?'<div style="font-size:13px;color:#5B5B76;margin:4px 0 2px">היום נכנסו <b style="color:#0F6B3E">'+today+'</b> מתוך '+rest.length+' משתמשים · לחץ על משתמש לפרטים</div>'+rest.map(row).join('')
         :(pend.length?'':'<div style="color:#5B5B76;padding:12px 0">אין עדיין משתמשים</div>'));
@@ -1509,7 +1749,7 @@ async function showStats(tab){
   // הניהול נפתח רק אחרי אימות עם חשבון Google של בעל העסק (פעם אחת במכשיר). קוד המנהל לבד לא מספיק
   try{ const r=await TASKS_APP.auth().currentUser.getIdTokenResult(); if(!r.claims.gadmin){ showAdminVerify(); return; } }catch(e){}
   document.getElementById('edit-modal')?.remove();
-  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal'; ov.dataset.admin='1';
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal'; ov.dataset.admin='1'; ov.dataset.notr=''; ov.dir='rtl'; ov.style.setProperty('--dir','rtl'); // הניהול נשאר בעברית
   if(fresh) try{ history.pushState({adm:1},''); }catch(e){}
   const T=(k,l)=>'<button data-tab="'+k+'" style="flex:1;height:38px;border:0;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer">'+l+'</button>';
   ov.innerHTML='<div class="modal" style="max-width:600px;max-height:90vh;overflow:auto">'
@@ -1518,7 +1758,7 @@ async function showStats(tab){
     +'<div style="flex:1;text-align:center;font-weight:800;font-size:16px;color:#1E1B4B">ניהול</div>'
     +'<button onclick="admClose()" aria-label="סגור" style="width:36px;height:36px;border-radius:50%;border:0;background:#F4F3FB;color:#1E1B4B;font-size:18px;cursor:pointer">✕</button></div>'
     +'<div style="display:flex;gap:4px;background:#F4F3FB;border-radius:12px;padding:4px;margin-bottom:12px">'+T('users','👥 משתמשים')+T('stats','📊 נתונים')+T('cfg','⚙️ הגדרות')+'</div>'
-    +'<div id="acc-body" data-pane="users" style="font-size:13px">טוען...</div><div id="st-body" data-pane="stats" style="font-size:13px">טוען...</div><div id="cfg-body" data-pane="cfg" style="font-size:13px">טוען...</div>'
+    +'<div id="org-admin" data-pane="users"></div><div id="acc-body" data-pane="users" style="font-size:13px">טוען...</div><div id="st-body" data-pane="stats" style="font-size:13px">טוען...</div><div id="cfg-body" data-pane="cfg" style="font-size:13px">טוען...</div>'
     +'<div class="modal-btns"><button class="btn-cancel" onclick="admClose()">סגור</button></div></div>';
   document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) admClose(); });
   const show=k=>{ ov.querySelectorAll('[data-pane]').forEach(p=>p.style.display=p.dataset.pane===k?'block':'none');
@@ -1579,7 +1819,7 @@ function showAdminVerify(){
     const redirect=/iPhone|iPad|iPod/.test(navigator.userAgent)||isStandalone();
     let nonce=''; try{ nonce=crypto.getRandomValues(new Uint32Array(4)).join('-'); localStorage.setItem('tasks_gsi_nonce',nonce); }catch(e){}
     google.accounts.id.initialize({client_id:GCAL_CLIENT_ID, callback:onAdminCredential, ux_mode:redirect?'redirect':'popup', login_uri:STAFF_API+'/tasks/admin/google-redirect', auto_select:false, nonce});
-    host.textContent=''; google.accounts.id.renderButton(host,{theme:'filled_blue',size:'large',text:'continue_with',shape:'pill',locale:'he',width:260});
+    host.textContent=''; google.accounts.id.renderButton(host,{theme:'filled_blue',size:'large',text:'continue_with',shape:'pill',locale:curLang,width:260});
   })();
 }
 async function onAdminCredential(resp){
@@ -1624,7 +1864,7 @@ function dependHtml(j){
 // מי נכנס ומתי - 14 הימים האחרונים
 function activityHtml(days){
   const dayName=k=>{ const [y,m,d]=k.split('-').map(Number), dt=new Date(y,m-1,d), t=new Date(); t.setHours(0,0,0,0);
-    const diff=Math.round((t-dt)/864e5); return diff===0?'היום':diff===1?'אתמול':dt.toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'numeric'}); };
+    const diff=Math.round((t-dt)/864e5); return diff===0?'היום':diff===1?'אתמול':dt.toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'numeric'}); };
   return '<div style="font-weight:600;margin:16px 0 6px">🕒 מי נכנס ומתי <span style="color:#888;font-weight:400">(14 ימים אחרונים)</span></div>'
     +(days.length?days.map(d=>'<div style="border:1.5px solid #E2E1F0;border-radius:12px;padding:8px 10px;margin-bottom:6px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">'+dayName(d.day)+' · '+d.people.length+' משתמשים</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:6px">'+d.people.map(p=>'<span style="background:#F4F3FB;border-radius:999px;padding:3px 10px;font-size:12px">'+escA(p.name||'משתמש')+(p.at?' <b style="color:#1E1B4B">'+fmtT(p.at)+'</b>':'')+'</span>').join('')+'</div></div>').join('')
@@ -1636,7 +1876,7 @@ function iosInstallHint(){
   try{
     if(!/iPhone|iPad|iPod/.test(navigator.userAgent) || isStandalone() || localStorage.getItem('ios_hint_off')) return;
     const b=document.createElement('div'); b.id='ios-hint';
-    b.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;background:#fff;border:2px solid #1E1B4B;border-radius:12px;padding:12px 14px;z-index:10000;box-shadow:0 4px 18px rgba(0,0,0,.25);font-size:14px;line-height:1.7;direction:rtl;color:#222';
+    b.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;background:#fff;border:2px solid #1E1B4B;border-radius:12px;padding:12px 14px;z-index:10000;box-shadow:0 4px 18px rgba(0,0,0,.25);font-size:14px;line-height:1.7;direction:var(--dir,rtl);color:#222';
     b.innerHTML='<b>📲 להתקנה באייפון (ב-Safari):</b><br>1. לחץ על כפתור השיתוף <i class="ti ti-share-2"></i> (ריבוע עם חץ למעלה) בתחתית המסך<br>2. גלול ובחר <b>"הוסף למסך הבית"</b> ← <b>"הוסף"</b><br>3. פתח מהאייקון ולחץ "אפשר התראות"'
       +'<div style="text-align:left;margin-top:6px"><button id="ios-hint-ok" style="border:0;background:#1E1B4B;color:#fff;border-radius:6px;padding:6px 14px;font-size:14px">הבנתי</button></div>';
     document.body.appendChild(b);
@@ -1647,7 +1887,8 @@ function iosInstallHint(){
 function startTasks(u){
   if(tasksStarted) return;
   if(u.uid==='staff-tasks' || /^ranizik@gmail\.com$/i.test(u.email||'')) markAdminDevice();
-  curUser=u; registerPush(true); setTimeout(showMovedBanner,1500); setTimeout(maybeGuestNudge,4000); checkConsent(); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp();
+  curUser=u; registerPush(true); setTimeout(showMovedBanner,1500); setTimeout(maybeGuestNudge,4000); checkConsent(); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp(); setTimeout(syncLangFromServer,2500); loadOrg().then(handleOrgJoinLink);
+  const ob=document.getElementById('org-btn'); if(ob) ob.style.display='';
   const sb=document.getElementById('stats-btn'); if(sb) sb.style.display = u.uid==='staff-tasks' ? '' : 'none';
   curList=null; tasksRef=listTasksRef(null); tasksStarted=true; subscribeTasks(); renderLists();
   handleJoinLink(); // בפתיחה תמיד מתחילים ב"שלי" (לא ברשימה האחרונה שהייתה פתוחה)
@@ -1655,7 +1896,8 @@ function startTasks(u){
 function stopTasks(){
   if(tasksStarted){ tasksRef.off(); tasksStarted=false; }
   if(listsRef){ listsRef.off(); listsRef=null; }
-  Object.values(listMetaRefs).forEach(r=>r.off()); listMetaRefs={}; myLists={}; curList=null; curUser=null;
+  Object.values(listMetaRefs).forEach(r=>r.off()); listMetaRefs={}; myLists={}; curList=null; curUser=null; orgInfo=null;
+  const ob=document.getElementById('org-btn'); if(ob) ob.style.display='none';
   gcalSrv={configured:false, connected:false, email:''}; updateGcalStatus();
   const sb=document.getElementById('stats-btn'); if(sb) sb.style.display='none';
   tasks={}; timers.forEach(clearTimeout); timers=[]; accessInfo=null; hideLocked(); render(); renderLists();
@@ -1701,7 +1943,7 @@ function setupGoogleButton(tries){
     google.accounts.id.initialize({client_id:GCAL_CLIENT_ID, callback:onGoogleCredential, ux_mode:redirect?'redirect':'popup', login_uri:STAFF_API+'/tasks/google-login-redirect', auto_select:false, cancel_on_tap_outside:true, nonce});
     const box=document.createElement('div'); box.id='gsi-btn'; box.style.cssText='display:flex;justify-content:center;min-height:44px';
     host.replaceWith(box);
-    google.accounts.id.renderButton(box,{theme:'outline',size:'large',text:'signin_with',shape:'rectangular',locale:'he',width:276});
+    google.accounts.id.renderButton(box,{theme:'outline',size:'large',text:'signin_with',shape:'rectangular',locale:curLang,width:276});
   }catch(e){ console.error('gsi', e); }
 }
 async function onGoogleCredential(resp){
@@ -1729,6 +1971,7 @@ async function onGoogleCredential(resp){
   if(le) setTimeout(()=>loginNote('ההתחברות נכשלה ('+decodeURIComponent(le)+')'),600);
   // קישור הזמנה לרשימה משותפת נשמר, כדי שלא ילך לאיבוד במעבר לגוגל וחזרה
   const j=new URLSearchParams(location.search).get('join'); if(j) try{ localStorage.setItem('tasks_pending_join',j); }catch(e){}
+  const og=new URLSearchParams(location.search).get('org'); if(og) try{ localStorage.setItem('tasks_pending_org',og); }catch(e){}
 })();
 function logout(){
   if(isGuest()){ // אורח שמתנתק מאבד גישה למשימות - מציעים קודם לחבר Google
@@ -1741,18 +1984,19 @@ function showTasksLogin(){
   if(document.getElementById('tasks-login')) return;
   const ov=document.createElement('div'); ov.id='tasks-login';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999';
-  ov.innerHTML='<div style="background:#fff;border-radius:14px;padding:22px;width:min(320px,90vw);text-align:center;direction:rtl">'
+  ov.innerHTML='<div style="background:#fff;border-radius:14px;padding:22px;width:min(320px,90vw);text-align:center;direction:var(--dir,rtl)">'
     +'<img id="login-logo" src="icon-v3-192.png" alt="" style="width:64px;height:64px;border-radius:18px;margin-bottom:8px"><div style="font-weight:800;font-size:22px;color:#1E1B4B">תכל׳ס</div><div style="font-size:13px;color:#5B5B76;margin-bottom:14px">אמרת – זה נרשם</div>'
-    +'<div id="login-consent" style="display:none;margin:0 0 10px;text-align:right"></div>'
+    +'<div id="login-consent" style="display:none;margin:0 0 10px;text-align:start"></div>'
     +'<button id="tasks-google-btn" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#333;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-brand-google"></i> כניסה עם Google</button>'
     +'<div id="guest-wrap" style="margin-top:12px"><button id="guest-btn" type="button" style="width:100%;padding:10px;font-size:15px;border:0;border-radius:8px;background:#F4F3FB;color:#1E1B4B;font-family:inherit;font-weight:600">המשך בלי Google</button>'
-    +'<div id="guest-form" style="display:none;text-align:right"><div style="font-size:13px;color:#5B5B76;margin:6px 0">איך קוראים לך?</div><input id="guest-name" type="text" maxlength="40" autocomplete="given-name" placeholder="השם שלך" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box">'
+    +'<div id="guest-form" style="display:none;text-align:start"><div style="font-size:13px;color:#5B5B76;margin:6px 0">איך קוראים לך?</div><input id="guest-name" type="text" maxlength="40" autocomplete="given-name" placeholder="השם שלך" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box">'
     +'<button id="guest-go" type="button" style="margin-top:8px;width:100%;padding:10px;font-size:16px;border:0;border-radius:8px;background:#1E1B4B;color:#fff;font-family:inherit">המשך</button>'
     +'<div style="font-size:11px;color:#8A89A3;margin-top:6px;line-height:1.5">המשימות יישמרו בחשבון במכשיר הזה. אפשר לחבר Google בכל רגע, כדי לא לאבד אותן בהחלפת טלפון.</div></div></div>'
     +'<div id="adm-wrap" style="display:'+(isAdminDevice()?'block':'none')+'"><div style="font-size:12px;color:#999;margin:14px 0 8px">או כניסת מנהל</div>'
     +'<input type="text" name="username" autocomplete="username" value="מנהל" style="display:none" tabindex="-1" aria-hidden="true">' // שהדפדפן ימלא כאן ולא בשדה המשימה
     +'<input id="tasks-pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="קוד מנהל" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box">'
     +'<button id="tasks-login-btn" style="margin-top:12px;width:100%;padding:10px;font-size:16px;border:0;border-radius:8px;background:#1E1B4B;color:#fff">כניסה</button></div>'
+    +(LANG_READY.length<2?'':'<button type="button" onclick="showLangPicker()" data-notr style="margin-top:12px;background:none;border:0;color:#4338CA;font-size:14px;font-weight:600;font-family:inherit;display:block;width:100%">🌐 Language · שפה · '+(LANGS[curLang]||LANGS.he).n+'</button>')
     +'<button type="button" onclick="showHelp()" style="margin-top:12px;background:none;border:0;color:#4338CA;font-size:14px;font-weight:600;font-family:inherit">❓ איך זה עובד?</button>'
     +'<div style="margin-top:10px;font-size:11px;color:#8A89A3">© 2026 רני איציק · כל הזכויות שמורות</div></div>';
   document.body.appendChild(ov);
@@ -1785,7 +2029,7 @@ function maybeGuestNudge(){
   let t=0; try{ t=+localStorage.getItem('tk_guest_nudge')||0; }catch(e){}
   if(Date.now()-t<3*864e5) return;
   const b=document.createElement('div'); b.id='guest-nudge';
-  b.style.cssText='position:fixed;left:10px;right:10px;bottom:12px;background:#fff;border:2px solid #1E1B4B;border-radius:16px;padding:12px 14px;z-index:9000;box-shadow:0 8px 28px rgba(0,0,0,.2);direction:rtl;font-size:14px;line-height:1.5';
+  b.style.cssText='position:fixed;left:10px;right:10px;bottom:12px;background:#fff;border:2px solid #1E1B4B;border-radius:16px;padding:12px 14px;z-index:9000;box-shadow:0 8px 28px rgba(0,0,0,.2);direction:var(--dir,rtl);font-size:14px;line-height:1.5';
   b.innerHTML='<b>👤 נכנסת בלי Google</b><div style="color:#5B5B76;font-size:13px;margin:2px 0 10px">המשימות שמורות במכשיר הזה. כדי לא לאבד אותן בהחלפת טלפון – חבר חשבון Google (לוקח רגע).</div>'
     +'<div style="display:flex;gap:8px"><button id="gn-link" style="height:38px;padding:0 14px;border-radius:12px;border:0;background:#1E1B4B;color:#fff;font-family:inherit;font-weight:600">חבר Google</button><button id="gn-later" style="height:38px;padding:0 14px;border-radius:12px;border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B;font-family:inherit">אחר כך</button></div>';
   document.body.appendChild(b);
@@ -1815,7 +2059,7 @@ async function showGuestLink(){
     if(!document.getElementById('gl-gsi')) return;
     if(!(window.google&&google.accounts&&google.accounts.id)){ if(++tries<40) return setTimeout(setup,250); host.textContent='לא ניתן לטעון את Google – נסה שוב'; return; }
     google.accounts.id.initialize({client_id:GCAL_CLIENT_ID, callback:onGuestLinkCredential, ux_mode:redirect?'redirect':'popup', login_uri:STAFF_API+'/tasks/guest/link-redirect', auto_select:false, nonce});
-    host.textContent=''; google.accounts.id.renderButton(host,{theme:'filled_blue',size:'large',text:'continue_with',shape:'pill',locale:'he',width:260});
+    host.textContent=''; google.accounts.id.renderButton(host,{theme:'filled_blue',size:'large',text:'continue_with',shape:'pill',locale:curLang,width:260});
   })();
 }
 async function onGuestLinkCredential(resp){
@@ -1884,7 +2128,7 @@ function showMovedBanner(){
   if(st!=='1' || OLD_HOST || document.getElementById('mig-banner')) return;
   const needNotif=HAS_NOTIF && Notification.permission!=='granted', ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
   const b=document.createElement('div'); b.id='mig-banner';
-  b.style.cssText='position:fixed;left:10px;right:10px;bottom:12px;background:#fff;border:2px solid #1E1B4B;border-radius:16px;padding:14px;z-index:10000;box-shadow:0 8px 28px rgba(0,0,0,.25);direction:rtl;font-size:14px;line-height:1.6;color:#1A1A2E';
+  b.style.cssText='position:fixed;left:10px;right:10px;bottom:12px;background:#fff;border:2px solid #1E1B4B;border-radius:16px;padding:14px;z-index:10000;box-shadow:0 8px 28px rgba(0,0,0,.25);direction:var(--dir,rtl);font-size:14px;line-height:1.6;color:#1A1A2E';
   const bt=(id,l,main,hide)=>'<button id="'+id+'" style="'+(hide?'display:none;':'')+'height:40px;padding:0 14px;border-radius:12px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;'+(main?'border:0;background:#1E1B4B;color:#fff':'border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B')+'">'+l+'</button>';
   b.innerHTML='<div style="font-weight:800;font-size:16px;margin-bottom:2px">✨ תכל׳ס עברה לכתובת חדשה</div>'
     +'<div>מעכשיו: <b>tachlesapps.com</b>. המשימות והרשימות שלך כאן, הכול נשמר ✓</div>'
@@ -1995,7 +2239,7 @@ function addTask(auto){
 
 function toggle(id){const t0=tasks[id];if(t0){
   const t={...t0}; const needNext=!t.done&&t.rep&&!t.nextMade; // נבדק לפני העדכון
-  const upd={done:!t.done}; if(needNext) upd.nextMade=true;
+  const upd={done:!t.done,doneAt:t.done?null:Date.now()}; if(needNext) upd.nextMade=true;
   tasksRef.child(id).update(upd);syncGtask({...t,done:!t.done});
   if(needNext) createNextRepeat(t);
 }}
@@ -2108,7 +2352,7 @@ function render(){
   const dk=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   const today=dk(new Date()), tmr=dk(new Date(Date.now()+864e5)), yst=dk(new Date(Date.now()-864e5));
   const isLate=t=>!t.done&&t.date&&due(t)<nowMs;
-  const dayTxt=t=>!t.date?'':t.date===today?'היום':t.date===tmr?'מחר':t.date===yst?'אתמול':new Date(t.date+'T12:00').toLocaleDateString('he-IL',{weekday:'short',day:'numeric',month:'numeric'});
+  const dayTxt=t=>!t.date?'':t.date===today?'היום':t.date===tmr?'מחר':t.date===yst?'אתמול':new Date(t.date+'T12:00').toLocaleDateString(LOC(),{weekday:'short',day:'numeric',month:'numeric'});
   const repTxt={daily:'כל יום',weekly:'כל שבוע',monthly:'כל חודש'};
   const card=t=>{
     const late=isLate(t);
@@ -2118,7 +2362,7 @@ function render(){
       +(selectMode
         ?'<button class="tick'+(sel?' on':'')+'" aria-label="בחר" onclick="toggleSel(\''+t.id+'\')">'+(sel?'✓':'')+'</button>'
         :'<button class="tick'+(t.done?' on':'')+'" aria-label="'+(t.done?'סמן כפתוחה':'סמן כבוצעה')+'" onclick="toggle(\''+t.id+'\')">'+(t.done?'✓':'')+'</button>')
-      +'<div class="cbody" onclick="rowClick(\''+t.id+'\')" title="לחץ לעריכה"><div class="cname">'+esc(t.name)+'</div>'
+      +'<div class="cbody" onclick="rowClick(\''+t.id+'\')" title="לחץ לעריכה"><div class="cname" data-notr>'+esc(t.name)+'</div>'
       +(meta?'<div class="cmeta">'+meta+'</div>':'')
       +(t.notes?'<div class="task-notes">📝 '+esc(String(t.notes).slice(0,80))+(String(t.notes).length>80?'…':'')+'</div>':'')+'</div>'
       +(!t.done&&t.pri==='high'?'<span class="pdot p-high" title="דחוף"></span>':(!t.done&&t.pri==='med'?'<span class="pdot p-med" title="בינוני"></span>':''))
@@ -2214,7 +2458,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-02d';
+const APP_VERSION='2026-11-03a';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());

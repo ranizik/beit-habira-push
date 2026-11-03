@@ -1,0 +1,556 @@
+or
+or Chrome), and try again
+or Enter). All the voice rules work in typing too
+or at
+or by voice
+or admin login
+or type a task
+or email of a Tachles user
+Say the task and stop talking. After about 2 seconds it is added automatically
+afternoon
+later
+iPhone (only
+How it works
+How to use
+What's your name
+You don't have access to this list
+No permission - sign in again
+No calendar connection
+No connection to the server
+There is currently no separate organizational workspace or central employee management – teamwork happens through the lists
+Nowhere to move to - create a shared list first
+No tasks for today
+No tasks — tap the microphone and say the first one
+Confirm and continue
+If you didn't say an urgency, a small window will appear
+Optional – a task with a time you haven't checked off
+You said it – it's saved
+Android
+me
+It is forbidden to copy, duplicate, distribute, modify or use the code, design, name or logo, in whole or in part, without prior written permission from the rights holder
+It is forbidden to copy, duplicate, distribute, modify, disassemble, sell or create derivative works from the app or any part of it, without prior written permission from the rights holder
+A task app: tap the microphone, say one sentence – and the task is saved with a date, time and urgency. At the set time a reminder arrives on your phone
+You can also type, manage
+Allow notifications
+You can combine
+Up to 3 reminders in advance
+I'd like to receive updates and offers from Tachles
+I'd like to receive updates and offers from Tachles (optional
+Also approve calendar access in Google
+yesterday
+at
+on November 15
+In 🔔 choose when to be reminded (personal for each user
+in red
+in red) · Today · Tomorrow · Later · No date
+Assigned to
+Assigned to Dani
+Who's responsible
+Assigned to Noga
+Assigned to: unassigned
+Overdue
+On iPhone: Share
+morning
+Check if I've been approved
+Test – this is how a reminder will look
+If you switch phones or clear browser data, you won't be able to get back to it
+Later
+The notification has buttons
+Checking
+Choose the
+Done
+Done
+Good morning
+Multi-select
+Choose
+Select all
+Choose when to get a reminder for a task with a date/time. The setting is personal and saved in your account
+Choose a topic or search
+Cancel
+on Thursday at three thirty
+Cancel
+Medium
+Home
+In every shared list all members have the same permissions: everyone sees all the tasks, adds, edits, marks done and deletes
+No Google · link an account for backup
+No date
+With no answer within 8 seconds the task stays not urgent
+At night (22:00–07:00) the nudge is silent
+On this device
+in
+in 3 days
+in a week
+Common issues
+via link
+in a shared list
+in the categories list
+in the row
+at
+at a time you choose (e.g. 09:00 or
+at the task's time
+at the bottom of the list
+At times a new user waits for approval – a screen will appear
+Google blocks sign-in from WhatsApp/Facebook. Open the link in Chrome or Safari (⋯ ← Open in browser) and try again
+Google will show a screen
+Google doesn't allow signing in from WhatsApp/Facebook. Tap ⋯ or the compass icon and choose
+Scroll and choose
+Also as a calendar event
+also from the calendar
+Urgent
+Urgent
+Urgency
+urgency, category, date and time
+min
+The assignee gets a notification, and if there's a time – the nudge too
+The events were removed from the calendar
+The app is currently available in Hebrew
+The app receives from the browser only the recognized text
+Got it
+Got it, sign in
+Request sent
+Your request has been sent for approval
+Settings
+Settings & language
+Time's up
+Access to Tachles is currently locked
+The browser doesn't support recording
+The browser doesn't support notifications
+Move failed
+Joining failed
+The permission is only for tasks
+Sign-in failed
+Sign-in failed (security check) - tap again on sign in with
+Sign-in failed – sign in again with
+Notifications were not registered
+added
+Add
+Add to home screen
+Add task
+You've been unsubscribed
+Moved to
+Invite
+The connection is encrypted, and there's a nightly backup
+Connection failed
+Renewal and payment are made directly with the app operator – there are no in-app payments
+Switch account
+Your account is available on any device
+Account linked to
+Today
+Calendar switched
+Calendar switched successfully
+The calendar is already connected. Switch to a different Google account
+The calendar is permanently connected
+Hi Rani, I'd like to keep using Tachles
+Hi Rani, I signed up for Tachles – I'd appreciate approval
+Hi, I have a question about Tachles
+Getting started
+History
+All
+Delete failed
+the red microphone
+The microphone doesn't work
+Subscription ended
+Task not found – refresh the app
+Task added ✓ — tap 📅 to add it to the calendar
+Task added, but not to the calendar
+Task deleted
+Your tasks were moved to your Google account
+Your tasks and lists are here, everything is saved
+Your tasks and lists are saved, and from now on you can sign in with them from any device. If you already have a Tachles account with this Google account – the tasks will move to it
+Tasks will also appear in the Samsung calendar
+The tasks will stay with the other members
+Tasks will be saved in the account on this device. You can link Google at any moment, so you don't lose them when switching phones
+Tasks aren't deleted
+Tasks are sorted by
+My tasks disappeared
+Tasks stay for the others
+Your tasks are saved to provide you the service, and aren't transferred to third parties. The app is provided AS IS, without liability for damage resulting from its use, such as a reminder that didn't arrive
+Your tasks are saved and waiting for you
+Your tasks are saved on this device. To avoid losing them when switching phones – link a Google account (takes a moment
+Continue
+Continue to beit-habira-api.onrender.com (unsafe
+Continue without
+They're saved on the server. Sign in with the same account
+Trial ended
+Hide completed tasks
+Move
+Move to another list
+Move task
+Move to another list
+Copy the link and send
+Turn on
+Turn on reminders
+Join the task list
+joined
+joined via link
+You joined the list
+Adding failed
+Link copied - paste it in WhatsApp
+Voice recordings aren't saved
+the square next to the task
+Permissions in a shared list
+The list
+List created ✓ - tap
+Restore failed
+Use of the app is permitted for personal use only, for approved users. The rights holder may block or end access at any time
+Your name
+Reminders saved
+Connect calendar
+Sign out
+Sign out
+Progress
+Install app
+Reinstall
+Install on home screen
+Notifications
+Notifications & nudge
+Notifications are on for this device
+Notifications on
+Notifications on! You'll get a reminder the evening before and at the task's time
+and
+and choose a Google account (if it shows
+and the task is saved by itself
+WhatsApp
+And there are quick buttons: Today · Tomorrow · Day after · In a week
+and approve
+and tap
+and to the calendar
+and delete the old icon
+and see only what they're responsible for
+and add people – with an invite link, or by the email of someone who already uses the app
+and try again
+and open the app from there
+That's fine – the app is being verified
+Detected
+Link
+Link calendar
+Link to calendar
+Member
+Account link
+Calendar connection
+Google & Samsung calendar connection
+Search
+Search help
+Search tasks
+Thursday
+Half an hour
+Loading
+1 day
+A day before
+A day before, at
+Calendar
+Google / Samsung calendar
+Google Calendar connected
+Samsung calendar
+Create a list (e.g.
+can choose in 🔔 whether to get an alert
+days
+left the list
+You left the list
+Exit
+Creating a task by voice
+Creating a task by typing
+created the list
+green = today, orange = this week) + history
+You must accept the terms
+∅
+Off (default) = the reminder comes only from Tachles, without duplicates
+Off = the reminder comes only from Tachles, without duplicates. (Relevant for those who turned on
+Off – one reminder and that's it
+Already in the list
+I've already renewed – check again
+By default the nudge is off
+It's worth adding it to the home screen again (Share
+It's worth reinstalling the icon and deleting the old one
+To keep using Tachles you need to accept them. Your tasks are saved and unchanged
+To keep getting reminders – allow notifications again
+To continue – check both boxes
+To continue: a subscription of
+to send a link
+So tasks appear in the Samsung calendar (and any calendar synced with Google), with an alert at the task's time
+Type in the field
+Night blue + coral
+Every 10 min
+Every 5 min
+Anyone can filter
+Any member can add more people (up to the plan's participant limit) and leave the list whenever they want – the tasks stay for the others
+Monthly
+Every half hour
+Daily
+Every task with a date goes into Google Tasks (a task with a checkmark
+Each user sees only their own tasks and the lists they belong to
+Every 15 minutes
+Weekly
+Every hour
+Every two hours
+Several at once
+Sign in
+Sign in & sign up
+Sign in with
+Button
+The share button (square with an arrow
+The 🔔 button at the top
+Currently Tachles is in
+When the period ends – they wait for renewal
+When marked done, the next one is created automatically
+When a usage period ends a screen will appear with a button
+Type your name
+Enter a valid email
+to
+Microphone access was not allowed
+Notifications were not allowed
+hasn't verified the app
+Not urgent
+I couldn't
+Doesn't repeat
+Unverified
+Notifications don't arrive
+is not enabled in the project in
+wasn't created
+Can't load
+Can't load Google – try again
+Not found. Try another word, or contact support
+Nothing was heard - tap the microphone and try again
+Not saved – try again
+allow microphone access. On iPhone only in
+check stock
+for home
+invite someone new
+order cola for work tomorrow at 10 urgent
+water the plants
+Sign out
+Sign out anyway? Your tasks will no longer be accessible
+To install on iPhone (in
+call the supplier
+Tap
+Tap
+Tap the name (someone already with you in another list) or type an email
+Link a Google account first? (OK = link
+a month
+to renew via WhatsApp
+Tapping Home / Work / Sales
+Tap the name and fix it
+Tap the task name (you can add an address, phone, what to bring
+Tap and speak
+Tap to edit
+Tap the share button
+Tap again for another task
+next to the task
+Good night
+for all tasks or only urgent ones, how often (5 min–2 hours) and up to how many times
+for all tasks with a time
+No category
+Delete
+To delete your account and data – contact support (below
+at the top (anyone signed in without Google will get a warning – better to link Google first
+at the top and allow notifications. Reminders arrive even when the app is closed
+to disconnect
+close the app completely and reopen it
+For working with employees or partners use
+before
+before the task
+before the task (up to 3, like in a calendar
+Leave the list
+Add without a link
+buy eggs
+buy eggs tomorrow at 10 for home
+buy balloons
+see that it works
+pay a bill
+approve. Tasks will appear in the calendar with an alert at the task's time
+by
+Privacy policy
+What is Tachles
+Recognizing
+Connecting
+Connected
+Connected to calendar
+Delete
+Also searches in details
+Delete
+Delete done
+Delete selected
+Tomorrow
+Tomorrow at
+Day after
+Who's active
+those who turned on
+Someone already with you in another list joins immediately and gets a notification. They can leave the list at any moment
+Sales
+keeps reminding
+Admin
+Subscription, trial and payment
+Subscriptions & payments
+check
+check the permissions
+Redirecting to Google
+from now on
+Tracking completion and deadlines
+Shows the members, who's active (green = today, orange = this week), how many open tasks each has, and join/leave history
+Listening
+Listening... speak, and the task will be added automatically when you finish
+Help center
+Something looks old
+Assign each task to someone
+Recurring task
+Recurring task (also weekly / monthly
+Task added
+Task updated
+An overdue task appears at the top in
+Tasks
+tasks for today
+Tasks added to the calendar
+Tasks deleted
+Completed tasks
+Tasks marked done move to
+Morning shift
+Approved users use it for free
+Participants
+Participants · details
+Signing in
+Below you can choose manually
+Under the greeting – tasks are saved
+When to remind
+Advanced
+Advanced ← Continue). From now on every task with a date goes into
+selected
+Nudge
+Nudge – if I haven't checked it off
+Nudge – repeating reminder
+Added
+Added as a task in Google Calendar
+Added from the tasks app
+The next task was created
+You signed in without
+You signed in without Google – after signing out you won't be able to get back to your tasks
+Signed in without Google? At any moment you can tap
+Deleted by mistake
+Opened from WhatsApp
+Clear date and time
+Recognized with a mistake
+You subscribed to updates
+stays private
+Usage data
+Disconnect
+Close
+Total
+Marked as medium
+Marked as urgent
+Mark as done
+Mark as open
+Work
+Up to 10 times
+Up to 2 times
+Up to 3 times
+Up to 3: 10 min / 15 min / 30 min / 1 hour / 2 hours / 1 day, like in a calendar
+Up to 5 times
+Until I mark it done
+Still locked – try again in a moment
+We updated the Terms of Use and Privacy Policy
+work without opening the app. At night (22:00–07:00) it's quiet
+30 more min
+hasn't signed in yet
+Help – how to use
+Design
+Now
+Assigned to me
+with a WhatsApp button
+with family or a team, and sync to your calendar
+Good evening
+Edit task
+Editing and details
+Editing, deleting and sorting
+active now
+Once
+Privacy
+Privacy & security
+Details
+More details (address, phone, what to bring
+Open
+open & assigned to them
+Open the app in Chrome / Safari to link
+Open in
+Open from the icon and tap
+Troubleshooting
+Exit
+Good afternoon
+was added to the list
+added by
+Direct add – no link
+added
+alert from the calendar too
+You need to reconnect the calendar - tap
+You need to connect the calendar - tap
+Need help? Write to us on WhatsApp
+Add
+Admin code
+Wrong code
+First you need to allow notifications
+Category
+Home category
+New category
+Categories
+Invite link
+a small link at the bottom left
+I've read the
+I've read and agree to the
+15 minutes
+Just a moment
+One moment, loading
+Want to speed it up? Send him a message
+square with an arrow up) at the bottom of the screen
+Rani
+Rani Itzik
+Rani Itzik · All rights reserved
+Rani Itzik. All rights reserved
+Rani will approve you soon, and then you can start
+Only the tasks assigned to you
+Only for urgent tasks
+Just a name. The account is saved
+private list
+New list
+Shared list
+A shared list updates for everyone in real time
+Shared lists
+next week
+Error
+Error saving
+Restored
+Saving
+Using it with a business or team
+Sharing and teamwork
+Send a test notification
+Send Rani a WhatsApp message
+Mine
+Mine (private
+yours, and you can cancel it at any moment
+Task name
+New category name
+Name for the shared list (e.g.: Home, evening shift
+Save
+Time
+hour 1–6 without
+2 hours
+h
+Language
+Two options
+Date
+Thanks! You can continue
+within 7 seconds
+Reminders
+Reminders & notifications
+One reminder and that's it
+Duplicate reminder from the calendar
+Reminder for tomorrow
+Tachles
+Tachles has moved to a new address
+Tachles is moving to a new address
+Tachles – tasks by voice
+Tachles, including the code, design, name, logo and content, is the property of Rani Itzik and protected by copyright
+is always private and only you can see it. There are currently no roles or different permissions for different members
+Terms of Use
+Terms of use
+Menu
+Your Tachles trial has ended
+Pilot period
+Your Tachles usage period has ended
