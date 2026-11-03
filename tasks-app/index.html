@@ -229,7 +229,7 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 .pdot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .p-high{background:#EF4444;}.p-med{background:#F59E0B;}.p-low{background:#A3A3C2;}
 .cact{display:flex;flex-shrink:0;}
-.cact button{background:none;border:0;color:#A3A3C2;font-size:18px;width:34px;height:40px;cursor:pointer;}
+.cact button{background:none;border:0;color:#4B4785;font-size:18px;width:34px;height:40px;cursor:pointer;}
 .cact button:hover{color:var(--navy);}
 .cact button.del:hover{color:#B42318;}
 .task-notes{color:var(--muted);}
@@ -333,7 +333,7 @@ setInterval(()=>{ const n=document.getElementById('notif-btn'), d=document.getEl
 // זיהוי תאריכים/שעות בדיבור: כרגע בעברית בלבד. הרחבה עתידית: PARSERS[lang] (ראה addTask).
 const LANGS={he:{n:'עברית',dir:'rtl',loc:'he-IL',sr:'he-IL'},en:{n:'English',dir:'ltr',loc:'en-US',sr:'en-US'},ar:{n:'العربية',dir:'rtl',loc:'ar',sr:'ar-SA'},ru:{n:'Русский',dir:'ltr',loc:'ru-RU',sr:'ru-RU'},fr:{n:'Français',dir:'ltr',loc:'fr-FR',sr:'fr-FR'},es:{n:'Español',dir:'ltr',loc:'es-ES',sr:'es-ES'}};
 const LANG_READY=['he','en','ar','ru','fr','es']; // i18n:ready (נכתב ע״י build.py)
-const I18N_V='2d903c10'; // i18n:version (נכתב ע״י build.py)
+const I18N_V='3ea8b5b0'; // i18n:version (נכתב ע״י build.py)
 let curLang=(()=>{ try{ return localStorage.getItem('tk_lang')||'he'; }catch(e){ return 'he'; } })();
 if(!LANGS[curLang]||!LANG_READY.includes(curLang)) curLang='he';
 const LOC=()=>(LANGS[curLang]||LANGS.he).loc;
@@ -1696,9 +1696,28 @@ async function handleJoinLink(){
     return true;
   }catch(e){ showToast('ההצטרפות נכשלה: '+e.message); return false; }
 }
+function moveTargets(fromLid){ return [[ '', '🔒 שלי (פרטי)' ]].concat(Object.entries(myLists).map(([lid,l])=>[lid,(l.org?'🏢 ':'👥 ')+l.name])); }
+async function doMove(key, to, extra){
+  const t=tasks[key]; if(!t) return false;
+  const L=locOf(key); to=to||null; if((L.lid||null)===to) return false;
+  const copy={...t, ...(extra||{})}; delete copy.rem; delete copy._l; copy.id=L.id;
+  if(to&&copy.who&&!listMembersOf(to).some(m=>m.uid===copy.who.uid)) delete copy.who;
+  if(!to) delete copy.who;
+  // הקישור ל-Google Tasks נשמר רק אם הוא שלי
+  const mine=!copy.gOwner||copy.gOwner===curUser.uid;
+  if(!mine){ delete copy.gtaskId; delete copy.gOwner; }
+  else if(copy.gtaskId){ if(to) copy.gOwner=curUser.uid; else delete copy.gOwner; }
+  try{
+    await listTasksRef(to).child(L.id).set(copy);
+    await L.ref.child(L.id).remove();
+    showToast('הועבר ל'+(to?'"'+myLists[to].name+'"':'רשימה הפרטית')+' ✓');
+    return true;
+  }catch(e){ showToast('ההעברה נכשלה'); console.error(e); return false; }
+}
 function moveTask(id){
   const t=tasks[id]; if(!t) return;
-  const targets=[[ '', '🔒 שלי (פרטי)' ]].concat(Object.entries(myLists).map(([lid,l])=>[lid,'👥 '+l.name])).filter(([lid])=>(lid||null)!==curList);
+  const from=locOf(id).lid||null;
+  const targets=moveTargets().filter(([lid])=>(lid||null)!==from);
   if(!targets.length){ showToast('אין לאן להעביר - צור קודם רשימה משותפת'); return; }
   document.getElementById('edit-modal')?.remove();
   const overlay=document.createElement('div'); overlay.className='modal-overlay'; overlay.id='edit-modal';
@@ -1709,20 +1728,7 @@ function moveTask(id){
   targets.forEach(([lid,label])=>{ const o=document.createElement('option'); o.value=lid; o.textContent=label; sel.appendChild(o); });
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
-  overlay.querySelector('#m-go').onclick=async()=>{
-    const to=sel.value||null;
-    const copy={...t}; delete copy.rem;
-    // הקישור ל-Google Tasks נשמר רק אם הוא שלי
-    const mine=!copy.gOwner||copy.gOwner===curUser.uid;
-    if(!mine){ delete copy.gtaskId; delete copy.gOwner; }
-    else if(copy.gtaskId){ if(to) copy.gOwner=curUser.uid; else delete copy.gOwner; }
-    try{
-      await listTasksRef(to).child(id).set(copy);
-      await tasksRef.child(id).remove();
-      overlay.remove();
-      showToast('הועבר ל'+(to?'"'+myLists[to].name+'"':'רשימה הפרטית')+' ✓');
-    }catch(e){ showToast('ההעברה נכשלה'); console.error(e); }
-  };
+  overlay.querySelector('#m-go').onclick=async()=>{ if(await doMove(id, sel.value||null)) overlay.remove(); };
 }
 // ── נתוני שימוש (ספירות בלבד) ──
 function statsPlatform(){ const ua=navigator.userAgent; return /iPhone|iPad|iPod/.test(ua)?'iphone':/Android/.test(ua)?'android':'desktop'; }
@@ -2679,7 +2685,7 @@ function render(){
       +(meta?'<div class="cmeta">'+meta+'</div>':'')
       +(t.notes?'<div class="task-notes">📝 '+esc(String(t.notes).slice(0,80))+(String(t.notes).length>80?'…':'')+'</div>':'')+'</div>'
       +(!t.done&&t.pri==='high'?'<span class="pdot p-high" title="דחוף"></span>':(!t.done&&t.pri==='med'?'<span class="pdot p-med" title="בינוני"></span>':''))
-      +(selectMode?'':'<div class="cact">'+(allView?'':'<button onclick="moveTask(\''+t.id+'\')" title="העבר לרשימה אחרת" aria-label="העבר לרשימה אחרת"><i class="ti ti-arrows-exchange"></i></button>')+'<button class="del" onclick="del(\''+t.id+'\')" title="מחק" aria-label="מחק"><i class="ti ti-trash"></i></button></div>')
+      +(selectMode?'':'<div class="cact"><button onclick="moveTask(\''+t.id+'\')" title="העבר לרשימה אחרת" aria-label="העבר לרשימה אחרת"><i class="ti ti-arrows-exchange"></i></button>'+'<button class="del" onclick="del(\''+t.id+'\')" title="מחק" aria-label="מחק"><i class="ti ti-trash"></i></button></div>')
       +'</div>';
   };
   const open=list.filter(t=>!t.done), doneL=list.filter(t=>t.done);
@@ -2728,6 +2734,7 @@ function editTask(id) {
         <option value="high" ${t.pri==='high'?'selected':''}>🔴 דחוף</option>
       </select>
       <select id="e-cat" onchange="onCatSelect(this)">${catOptions(t.cat||'')}</select>
+      <label class="fld"><span>📋 רשימה</span><select id="e-list"></select></label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="fld"><span>📅 תאריך</span><input type="date" id="e-date" value="${t.date||''}"/></label><label class="fld"><span>🕐 שעה</span><input type="time" id="e-time" value="${t.time||''}"/></label></div>
       ${curList?'<select id="e-who">'+whoOptions((t.who&&t.who.uid)||'')+'</select>':''}
       <select id="e-rep"><option value="">🔁 לא חוזרת</option><option value="daily">🔁 כל יום</option><option value="weekly">🔁 כל שבוע</option><option value="monthly">🔁 כל חודש</option></select>
@@ -2742,6 +2749,9 @@ function editTask(id) {
   document.getElementById('e-name').value = t.name || '';
   document.getElementById('e-notes').value = t.notes || '';
   document.getElementById('e-rep').value = t.rep || '';
+  const el=document.getElementById('e-list'), from=locOf(id).lid||'';
+  moveTargets().forEach(([lid,label])=>{ const o=document.createElement('option'); o.value=lid; o.textContent=label; o.setAttribute('data-notr',''); el.appendChild(o); });
+  el.value=from;
   document.getElementById('e-name').focus();
 }
 
@@ -2761,6 +2771,8 @@ function saveEdit(id) {
   if(ew&&curList){ const m=listMembers().find(x=>x.uid===ew.value); const prevWho=tasks[id]&&tasks[id].who&&tasks[id].who.uid; upd.who=m?{uid:m.uid,name:m.name}:null;
     if(m&&m.uid!==prevWho) listsApi('notify',{listId:curList,name:upd.name,assignee:m.uid,reassign:true}).catch(()=>{}); }
   if (upd.rep && !upd.date) { const d=new Date(); upd.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  const el=document.getElementById('e-list'), toL=el?(el.value||null):undefined;
+  if(toL!==undefined && toL!==(locOf(id).lid||null)){ doMove(id,toL,upd); document.getElementById('edit-modal').remove(); scheduleAllLocal(); return; }
   refOf(id).update(upd);
   if (tasks[id] && tasks[id].gtaskId && upd.date) syncGtask({...tasks[id], ...upd});
   document.getElementById('edit-modal').remove();
@@ -2772,7 +2784,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03h';
+const APP_VERSION='2026-11-03i';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
