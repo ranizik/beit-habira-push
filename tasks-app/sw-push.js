@@ -2,6 +2,7 @@
 const BASE = self.registration.scope; // הכתובת שבה הוא רשום - '/' בחדשה, '/tasks/' בישנה
 const ICON = new URL('icon-v3-192.png', BASE).href;
 // מציג תזכורות שמגיעות מהשרת (FCM) - גם כשהאפליקציה סגורה.
+const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(self.navigator.userAgent || '');
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
@@ -24,7 +25,7 @@ self.addEventListener('push', (event) => {
     lang: data.lang || 'he',
     tag: data.taskId ? 'task-' + data.taskId : undefined,
     renotify: true,
-    requireInteraction: true,
+    requireInteraction: MOBILE, // במחשב ההתראה נעלמת לבד למרכז ההודעות ולא נערמת על המסך
     vibrate: [200, 100, 200],
     data: { link: data.link || BASE, act: data.act || '', l3: data.l3 || '', l4: data.l4 || '', rtl: RTL },
   }));
