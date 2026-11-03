@@ -173,9 +173,28 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 .lists-bar,.list-members{background:transparent;border:0;padding:12px 12px 0;}
 .list-tab{border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:18px;height:36px;padding:0 14px;font-family:inherit;}
 .list-tab.active{background:var(--navy);border-color:var(--navy);}
-/* שני צבעים: "שלי" (פרטי) בכחול לילה, רשימות משותפות בקורל */
+/* list colors: private = navy, shared = coral */
 .list-tab.shared{border-color:#FFC4C6;background:#FFF5F5;color:#B4232A;}
 .list-tab.shared.active{background:var(--coral);border-color:var(--coral);color:#fff;}
+.lists-bar{overflow:visible!important;position:relative;z-index:50;}
+.lp-wrap{position:relative;width:100%;}
+.list-pick{width:100%;height:48px;border-radius:14px;border:0;display:flex;align-items:center;gap:10px;padding:0 16px;font-family:inherit;font-size:17px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 3px 10px rgba(30,27,75,.18);}
+.list-pick.mine{background:var(--navy);} .list-pick.shared{background:var(--coral);} .list-pick.all{background:#0E7C66;}
+.lp-name{flex:1;text-align:start;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lp-caret{font-size:14px;opacity:.9;}
+.list-menu{position:absolute;top:54px;inset-inline:0;z-index:800;background:#fff;border-radius:16px;box-shadow:0 12px 36px rgba(20,18,60,.28);padding:6px;display:none;flex-direction:column;gap:2px;max-height:60vh;overflow:auto;}
+.list-menu.open{display:flex;animation:menuIn .14s ease-out;}
+.lm-item{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:0 12px;border:0;background:none;border-radius:11px;font-family:inherit;font-size:16px;color:#1E1B4B;cursor:pointer;text-align:start;}
+.lm-item:hover,.lm-item.on{background:#F4F3FB;}
+.lm-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.lm-item.mine .lm-dot{background:var(--navy);} .lm-item.shared .lm-dot{background:var(--coral);} .lm-item.all .lm-dot{background:#0E7C66;}
+.lm-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lm-item.on .lm-name{font-weight:700;}
+.lm-sub{font-size:12px;color:var(--muted);}
+.lm-ok{color:#0E7C66;font-weight:700;}
+.lm-sep{height:1px;background:#EEEDF7;margin:4px 6px;}
+.lm-item.add{color:#217346;font-weight:600;}
+
 .list-tab.add{color:var(--navy);border-color:var(--navy);}
 .list-tool{background:#ECEBFA;color:var(--navy);border-radius:10px;height:32px;font-family:inherit;}
 .stats{background:transparent;border:0;padding:10px 12px 0;gap:8px;}
@@ -189,10 +208,13 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 .task-list{padding:6px 12px 12px;display:flex;flex-direction:column;gap:8px;}
 .sec{font-size:13px;font-weight:700;color:var(--muted);margin:10px 4px 0;letter-spacing:.2px;}
 .sec.late{color:#B42318;}
-.card{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:12px 12px 12px 6px;border:1.5px solid #E6E5F3;box-shadow:0 1px 3px rgba(30,27,75,.06);}
-/* הפרדה בין משימות: רקע לסירוגין – לבן / סגלגל בהיר */
-.card.alt{background:#ECEBFA;border-color:#DCDAF2;}
-.card.late{border-color:#F9B4AE;background:#FFF4F3;}
+.card{display:flex;align-items:center;gap:12px;background:#DCD8FF;border-radius:18px;padding:12px 12px 12px 6px;border:2px solid #C3BDFB;box-shadow:0 2px 6px rgba(30,27,75,.10);}
+/* task separation: two alternating colors (violet / aqua) */
+.card.alt{background:#C9EEF5;border-color:#9EDCE8;}
+.card.late{border-color:#E5484D;border-width:2.5px;}
+.card .tick{background:#fff;}
+.lchip{display:inline-block;background:#FFE1E2;color:#B4232A;border-radius:8px;padding:0 7px;font-weight:600;}
+.lchip.mine{background:#1E1B4B;color:#fff;}
 .card.sel{border-color:#6366F1;background:#EEF0FF;}
 .card.done{opacity:.6;}
 .card.done .cname{text-decoration:line-through;}
@@ -290,6 +312,11 @@ const APP_URL = 'https://tachlesapps.com/';
 const APP_BASE = new URL('./', location.href).pathname; // '/' בכתובת החדשה, '/tasks/' בישנה
 const OLD_HOST = /(^|\.)beit-habira\.com$/i.test(location.hostname); // בכתובת הישנה: מעבירים את המשתמש (מחובר) לכתובת החדשה
 
+// ── בחירת רשימה (רשימה נפתחת) ──
+function toggleListMenu(e){ if(e) e.stopPropagation(); closeHdrMenu(); document.getElementById('list-menu')?.classList.toggle('open'); }
+function closeListMenu(){ document.getElementById('list-menu')?.classList.remove('open'); }
+function pickList(v){ closeListMenu(); if(v==='__all') showAllTasks(); else if(v==='__new') createList(); else switchList(v||null); }
+document.addEventListener('click',e=>{ if(!e.target.closest('#list-menu')&&!e.target.closest('#list-pick')) closeListMenu(); });
 // ── תפריט בכותרת (כל הכפתורים ברשימה נפתחת) ──
 function toggleHdrMenu(e){ if(e) e.stopPropagation(); const m=document.getElementById('hdr-menu'), b=document.getElementById('menu-btn'); const open=!m.classList.contains('open'); m.classList.toggle('open',open); b.setAttribute('aria-expanded',open?'true':'false'); }
 function closeHdrMenu(){ const m=document.getElementById('hdr-menu'); if(m&&m.classList.contains('open')){ m.classList.remove('open'); document.getElementById('menu-btn').setAttribute('aria-expanded','false'); } }
@@ -304,7 +331,7 @@ setInterval(()=>{ const n=document.getElementById('notif-btn'), d=document.getEl
 // זיהוי תאריכים/שעות בדיבור: כרגע בעברית בלבד. הרחבה עתידית: PARSERS[lang] (ראה addTask).
 const LANGS={he:{n:'עברית',dir:'rtl',loc:'he-IL',sr:'he-IL'},en:{n:'English',dir:'ltr',loc:'en-US',sr:'en-US'},ar:{n:'العربية',dir:'rtl',loc:'ar',sr:'ar-SA'},ru:{n:'Русский',dir:'ltr',loc:'ru-RU',sr:'ru-RU'},fr:{n:'Français',dir:'ltr',loc:'fr-FR',sr:'fr-FR'},es:{n:'Español',dir:'ltr',loc:'es-ES',sr:'es-ES'}};
 const LANG_READY=['he','en','ar','ru','fr','es']; // i18n:ready (נכתב ע״י build.py)
-const I18N_V='11ac128e'; // i18n:version (נכתב ע״י build.py)
+const I18N_V='2d903c10'; // i18n:version (נכתב ע״י build.py)
 let curLang=(()=>{ try{ return localStorage.getItem('tk_lang')||'he'; }catch(e){ return 'he'; } })();
 if(!LANGS[curLang]||!LANG_READY.includes(curLang)) curLang='he';
 const LOC=()=>(LANGS[curLang]||LANGS.he).loc;
@@ -617,14 +644,14 @@ async function addToGcal(task) {
   if (!task.date) return;
   if (gcalSrv.configured) {
     const j = await gcalServerApi('task', {op:'create', task:{tz:task.tz||LOCAL_TZ, name:task.name, date:task.date, time:task.time||'', done:!!task.done, notes:task.notes||'', pri:task.pri||''}}).catch(e => ({ok:false, error:'אין חיבור לשרת'}));
-    if (j.ok && j.id) { tasksRef.child(task.id).update(curList ? {gtaskId:j.id, gOwner:curUser.uid} : {gtaskId:j.id}); return true; }
+    if (j.ok && j.id) { refOf(task.id).update(curList ? {gtaskId:j.id, gOwner:curUser.uid} : {gtaskId:j.id}); return true; }
     if (j.error === 'not_connected') { gcalSrv.connected = false; updateGcalStatus(); return 'צריך לחבר את היומן - לחץ 📅'; }
     return j.error || 'שגיאה';
   }
   try {
     const {r, data} = await gtaskRequest('POST', '', gtaskBody(task));
     if (data.id) {
-      tasksRef.child(task.id).update(curList ? {gtaskId: data.id, gOwner: curUser.uid} : {gtaskId: data.id});
+      refOf(task.id).update(curList ? {gtaskId: data.id, gOwner: curUser.uid} : {gtaskId: data.id});
       return true;
     }
     return gtaskError(r, data);
@@ -1359,6 +1386,15 @@ let tasksStarted=false;
 // todo/shared/<listId>: { name, owner, invite, members:{uid:{name}}, tasks:{...} }  |  todo/userLists/<uid>/<listId>: true
 let curUser=null, curList=null, myLists={}, listsRef=null, listMetaRefs={};
 function listTasksRef(id){ return id ? db.ref('todo/shared/'+id+'/tasks') : refForUser(curUser); }
+// ── "כל המשימות": תצוגה אחת של המשימות מכל הרשימות (המפתח: <רשימה>~<משימה>, me = שלי) ──
+let allView=false, allRefs=[], allParts={}, allT=null;
+function locOf(key){ key=String(key); const i=key.indexOf('~'); if(allView&&i>0){ const l=key.slice(0,i), id=key.slice(i+1), lid=l==='me'?null:l; return {lid,id,ref:listTasksRef(lid)}; } return {lid:curList,id:key,ref:tasksRef}; }
+function refOf(key){ const L=locOf(key); return L.ref.child(L.id); }
+function listNameOf(l){ return !l||l==='me'?'שלי':((myLists[l]&&myLists[l].name)||''); }
+function allOff(){ allRefs.forEach(r=>r.off()); allRefs=[]; allParts={}; }
+function mergeAll(){ const out={}; for(const [l,part] of Object.entries(allParts)) for(const [k,t] of Object.entries(part||{})){ if(t&&typeof t==='object'){ const key=l+'~'+k; out[key]={...t,id:key,_l:l}; } } tasks=out; render(); }
+function subscribeAll(){ allOff(); [null,...Object.keys(myLists)].forEach(l=>{ const r=listTasksRef(l); allRefs.push(r); r.on('value',snap=>{ allParts[l||'me']=snap.val()||{}; mergeAll(); },()=>{ delete allParts[l||'me']; mergeAll(); }); }); }
+function showAllTasks(){ if(tasksStarted){ tasksRef.off(); tasksStarted=false; } allView=true; curList=null; whoFilter=''; tasks={}; tasksRef=listTasksRef(null); subscribeAll(); renderLists(); render(); }
 function subscribeTasks(){
   let firstLoad=true;
   tasksRef.on('value',snap=>{tasks=snap.val()||{};
@@ -1371,6 +1407,7 @@ function subscribeTasks(){
 }
 function switchList(id){
   if(id && !myLists[id]) id=null;
+  if(allView){ allView=false; allOff(); }
   if(tasksStarted) tasksRef.off();
   curList=id||null; whoFilter=''; tasks={}; render();
   try{ localStorage.setItem('tasks_cur_list', curList||''); }catch(e){}
@@ -1389,6 +1426,7 @@ function watchLists(){
       ['name','members','invite'].forEach(k=>r.child(k).on('value', s=>{ if(myLists[id]){ myLists[id][k]=s.val(); renderLists(); } }, ()=>{}));
     });
     if(curList && !ids.includes(curList)) switchList(null);
+    if(allView){ clearTimeout(allT); allT=setTimeout(()=>{ if(allView) subscribeAll(); },400); }
     renderLists();
   }, ()=>{});
 }
@@ -1402,8 +1440,8 @@ function renderWhoSelect(){
   const v=s.value; s.innerHTML=whoOptions(v); s.value=v&&listMembers().some(m=>m.uid===v)?v:''; s.style.display='';
 }
 // "באחריות נוגה" / "אחראית נוגה" בדיבור -> המשימה משויכת לנוגה
-function parseWho(name){
-  const ms=listMembers(); if(!ms.length) return {name,who:null};
+function parseWho(name, members){
+  const ms=members||listMembers(); if(!ms.length) return {name,who:null};
   const m=name.match(/(^|\s)(?:באחריות|אחראי|אחראית|אחראיות)\s+(?:של\s+)?(\S+(?:\s+\S+)?)/);
   if(!m) return {name,who:null};
   const words=m[2].split(' ');
@@ -1455,12 +1493,17 @@ function renderLists(){
   const bar=document.getElementById('lists-bar'); if(!bar) return;
   if(!curUser){ bar.innerHTML=''; document.getElementById('list-members').style.display='none'; return; }
   const esc=x=>String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let h='<button class="list-tab'+(!curList?' active':'')+'" onclick="switchList(null)"><i class="ti ti-lock"></i> שלי</button>';
-  Object.entries(myLists).sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name),'he')).forEach(([id,l])=>{
-    h+='<button class="list-tab shared'+(curList===id?' active':'')+'" onclick="switchList(\''+id+'\')"><i class="ti '+(isOrgList(id)?'ti-building':'ti-users')+'"></i> <span data-notr>'+esc(l.name)+'</span></button>';
-  });
-  h+='<button class="list-tab add" onclick="createList()"><i class="ti ti-plus"></i> רשימה משותפת</button>';
-  bar.innerHTML=h;
+  // בחירת רשימה ברשימה נפתחת (במקום שורת כפתורים שנחתכת בצדדים)
+  const sharedIds=Object.keys(myLists).sort((a,b)=>String(myLists[a].name).localeCompare(String(myLists[b].name),'he'));
+  const cur=allView?{ic:'📋',n:'כל המשימות',c:'all'}:curList&&myLists[curList]?{ic:isOrgList(curList)?'🏢':'👥',n:myLists[curList].name,c:'shared',u:1}:{ic:'🔒',n:'שלי',c:'mine'};
+  const item=(on,cls,ic,label,click,user,sub)=>'<button class="lm-item '+cls+(on?' on':'')+'" onclick="'+click+'"><span class="lm-dot"></span><span class="lm-ic">'+ic+'</span><span class="lm-name"'+(user?' data-notr':'')+'>'+esc(label)+'</span>'+(sub?'<span class="lm-sub">'+sub+'</span>':'')+(on?'<span class="lm-ok">✓</span>':'')+'</button>';
+  let menu=item(allView,'all','📋','כל המשימות','pickList(\'__all\')')
+    +item(!allView&&!curList,'mine','🔒','שלי','pickList(\'\')');
+  sharedIds.forEach(id=>{ const l=myLists[id]; const cnt=l.members?Object.values(l.members).filter(Boolean).length:0;
+    menu+=item(!allView&&curList===id,'shared',isOrgList(id)?'🏢':'👥',l.name,'pickList(\''+id+'\')',true,cnt?'👤 '+cnt:''); });
+  menu+='<div class="lm-sep"></div><button class="lm-item add" onclick="pickList(\'__new\')"><span class="lm-ic">➕</span><span class="lm-name">רשימה משותפת</span></button>';
+  bar.innerHTML='<div class="lp-wrap"><button class="list-pick '+cur.c+'" id="list-pick" onclick="toggleListMenu(event)" aria-haspopup="true"><span class="lp-ic">'+cur.ic+'</span><span class="lp-name"'+(cur.u?' data-notr':'')+'>'+esc(cur.n)+'</span><span class="lp-caret">▾</span></button>'
+    +'<div class="list-menu" id="list-menu" role="menu">'+menu+'</div></div>';
   const mb=document.getElementById('list-members'), l=curList&&myLists[curList];
   if(l){
     const cnt=l.members?Object.values(l.members).filter(Boolean).length:0;
@@ -2131,6 +2174,7 @@ function startTasks(u){
 }
 function stopTasks(){
   if(tasksStarted){ tasksRef.off(); tasksStarted=false; }
+  allView=false; allOff();
   if(listsRef){ listsRef.off(); listsRef=null; }
   Object.values(listMetaRefs).forEach(r=>r.off()); listMetaRefs={}; myLists={}; curList=null; curUser=null; orgInfo=null;
   const ob=document.getElementById('org-btn'); if(ob) ob.style.display='none';
@@ -2383,16 +2427,34 @@ function askPriority(id, name){
   const b=document.createElement('div'); b.id='pri-ask';
   b.innerHTML='<div class="pa-t"></div><div class="pa-b" style="grid-template-columns:1fr 1fr 1fr"><button class="pa-h">🔴 דחוף</button><button class="pa-m" style="background:#F59E0B;color:#fff;">🟡 בינוני</button><button class="pa-l">לא דחוף</button></div><div class="pa-bar"></div>';
   b.querySelector('.pa-t').textContent='"'+name+'" – דחיפות?';
-  b.querySelector('.pa-h').onclick=()=>{ tasksRef.child(id).update({pri:'high'}).then(()=>showToast('סומן כדחוף 🔴')); hidePriAsk(); };
-  b.querySelector('.pa-m').onclick=()=>{ tasksRef.child(id).update({pri:'med'}).then(()=>showToast('סומן כבינוני 🟡')); hidePriAsk(); };
+  b.querySelector('.pa-h').onclick=()=>{ (priAskRef||tasksRef.child(id)).update({pri:'high'}).then(()=>showToast('סומן כדחוף 🔴')); hidePriAsk(); };
+  b.querySelector('.pa-m').onclick=()=>{ (priAskRef||tasksRef.child(id)).update({pri:'med'}).then(()=>showToast('סומן כבינוני 🟡')); hidePriAsk(); };
   b.querySelector('.pa-l').onclick=hidePriAsk;
   document.body.appendChild(b);
   priAskTimer=setTimeout(hidePriAsk, 8000);
 }
 function hidePriAsk(){ clearTimeout(priAskTimer); priAskTimer=null; document.getElementById('pri-ask')?.remove(); }
+// רשימה מתוך המשפט: "...לרשימת מטלות בית" / "...למטלות בית" / "ברשימה שלי" / "to the Shopping list"
+function pickListFromText(text){
+  const esc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const cats=new Set(allCats());
+  const opts=[['me','שלי'],['me','הפרטית'],...Object.entries(myLists).map(([id,l])=>[id,String((l&&l.name)||'').trim()])].filter(x=>x[1]&&x[1]!=='...').sort((a,b)=>b[1].length-a[1].length);
+  for(const [id,n] of opts){
+    const e=esc(n), multi=/\s/.test(n);
+    const pats=[new RegExp('(^|\\s)(?:ל|ב)?(?:רשימת|רשימה|רשימות)\\s+(?:של\\s+)?'+e+'(?=\\s|$|[,.!?])','i'),
+      new RegExp('(^|\\s)(?:to|in|into|à|dans|en|para|в|на|إلى|في)\\s+(?:the\\s+|la\\s+|le\\s+|el\\s+)?(?:list\\s+|liste\\s+|lista\\s+|список\\s+|قائمة\\s+)?'+e+'(?:\\s+list)?(?=\\s|$|[,.!?])','i')];
+    if(id!=='me'&&(multi||!cats.has(n))) pats.push(new RegExp('(^|\\s)(?:ל|ב|ל-|ב-)'+e+(multi?'(?=\\s|$|[,.!?])':'(?=$|[,.!?])'),'i'));
+    if(id!=='me'&&multi) pats.push(new RegExp('(\\s)'+e+'(?=$|[,.!?])','i')); // שם של כמה מילים בסוף המשפט, גם בלי ל/ב
+    for(const re of pats){ const m=text.match(re); if(m){ const rest=(text.slice(0,m.index)+(m[1]||'')+text.slice(m.index+m[0].length)).replace(/\s+/g,' ').trim(); if(rest) return {list:id==='me'?null:id,name:rest}; } }
+  }
+  return null;
+}
+function listMembersOf(id){ const l=id&&myLists[id]; return l&&l.members?Object.entries(l.members).filter(([u,m])=>m).map(([uid,m])=>({uid,name:String(m.name||'חבר/ה')})):[]; }
+let priAskRef=null;
 function addTask(auto){
   let name=document.getElementById('f-name').value.trim();
   if(!name)return;
+  let tl=allView?null:curList; const lp=pickListFromText(name); if(lp){ name=lp.name; tl=lp.list; } // רשימת היעד
   // מזהה תאריך/שעה גם בטקסט שהוקלד או הוכתב דרך המקלדת, ומוציא אותם משם המשימה
   let date=document.getElementById('f-date').value, time=document.getElementById('f-time').value;
   const plang=PARSE_LANG_OF(name); // שפת המשפט: עברית או שפת הממשק
@@ -2442,20 +2504,23 @@ function addTask(auto){
   const id='task_'+Date.now();
   const task={id,name,pri:document.getElementById('f-pri').value,date,time,done:false,created:Date.now(),tz:LOCAL_TZ};
   const fc=document.getElementById('f-cat'); if(fc&&fc.value&&fc.value!=='__new') task.cat=fc.value; else if(autoCat) task.cat=autoCat;
-  if(curList && curUser) task.byUid=curUser.uid;
-  if(curList && curUser) task.by=(myLists[curList]&&myLists[curList].members&&myLists[curList].members[curUser.uid]&&myLists[curList].members[curUser.uid].name)||'';
-  if(curList){
-    const pw=plang!=='he'?intlWho(task.name,plang,listMembers()):parseWho(task.name); if(pw.who&&pw.name){ task.name=pw.name; task.who=pw.who; }
-    const fw=document.getElementById('f-who'); const sel=fw&&fw.value&&listMembers().find(m=>m.uid===fw.value);
+  if(tl && curUser) task.byUid=curUser.uid;
+  if(tl && curUser) task.by=(myLists[tl]&&myLists[tl].members&&myLists[tl].members[curUser.uid]&&myLists[tl].members[curUser.uid].name)||'';
+  if(tl){
+    const ms=listMembersOf(tl);
+    const pw=plang!=='he'?intlWho(task.name,plang,ms):parseWho(task.name,ms); if(pw.who&&pw.name){ task.name=pw.name; task.who=pw.who; }
+    const fw=document.getElementById('f-who'); const sel=tl===curList&&fw&&fw.value&&ms.find(m=>m.uid===fw.value);
     if(sel) task.who={uid:sel.uid,name:sel.name};
   }
   if(autoPri && document.getElementById('f-pri').value!=='high') task.pri=autoPri; // בחירה ידנית של "דחוף" גוברת
   if(repParsed){ task.rep=repParsed; if(!task.date){ const d=new Date(); task.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } }
-  tasksRef.child(id).set(task);
+  priAskRef=listTasksRef(tl).child(id);
+  priAskRef.set(task);
+  if(lp&&(allView||tl!==curList)) setTimeout(()=>showToast('✓ נוסף לרשימה "'+listNameOf(tl)+'"'),600); // נאמר שם של רשימה אחרת
   // אחרי הקלטה בקול בלי שנאמרה דחיפות - שאלה קצרה: דחוף / לא דחוף (בלי תשובה תוך 8 שניות = לא דחוף)
   hidePriAsk();
   if(auto===true && !autoPri && task.pri!=='high') askPriority(id, task.name);
-  if(curList) listsApi('notify',{listId:curList,name:task.name,assignee:(task.who&&task.who.uid)||''}).catch(()=>{}); // התראה לשאר חברי הרשימה (ולמי שבאחריותו)
+  if(tl) listsApi('notify',{listId:tl,name:task.name,assignee:(task.who&&task.who.uid)||''}).catch(()=>{}); // התראה לשאר חברי הרשימה (ולמי שבאחריותו)
   statsApi('event',{type: auto===true ? 'task_voice' : 'task_typed'});
   document.getElementById('f-name').value=''; document.getElementById('btn-add')?.classList.remove('ready');
   document.getElementById('f-date').value='';
@@ -2479,7 +2544,7 @@ function addTask(auto){
 function toggle(id){const t0=tasks[id];if(t0){
   const t={...t0}; const needNext=!t.done&&t.rep&&!t.nextMade; // נבדק לפני העדכון
   const upd={done:!t.done,doneAt:t.done?null:Date.now()}; if(needNext) upd.nextMade=true;
-  tasksRef.child(id).update(upd);syncGtask({...t,done:!t.done});
+  refOf(id).update(upd);syncGtask({...t,done:!t.done});
   if(needNext) createNextRepeat(t);
 }}
 function nextRepeatDate(t){
@@ -2493,8 +2558,8 @@ function createNextRepeat(t){
   const nid='task_'+Date.now();
   const n={id:nid,name:t.name,pri:t.pri||'low',date:nextRepeatDate(t),time:t.time||'',done:false,created:Date.now(),rep:t.rep,tz:t.tz||LOCAL_TZ};
   if(t.cat) n.cat=t.cat; if(t.notes) n.notes=t.notes; if(t.by) n.by=t.by;
-  tasksRef.child(nid).set(n);
-  if(isGcalConnected()) addToGcal(n);
+  const L=locOf(t.id); L.ref.child(nid).set(n); // באותה רשימה של המשימה המקורית
+  if(isGcalConnected()) addToGcal(allView?{...n,id:(L.lid||'me')+'~'+nid}:n);
   showToast('🔁 נוצרה המשימה הבאה: '+n.date.split('-').reverse().join('/'));
 }
 function del(id){ deleteWithUndo([id]); }
@@ -2502,22 +2567,22 @@ let undoTimer=null, undoData=null;
 function deleteWithUndo(ids){
   ids=ids.filter(id=>tasks[id]); if(!ids.length){ showToast('המשימה לא נמצאה – רענן את האפליקציה'); return; }
   finalizeUndo();
-  const removed={}; ids.forEach(id=>{ removed[id]={...tasks[id]}; });
-  const upd={}; ids.forEach(id=>{ upd[id]=null; });
-  const ref=tasksRef, listId=curList;
+  const removed={}, groups={};
+  ids.forEach(k=>{ const L=locOf(k), t={...tasks[k]}; delete t._l; t.id=L.id; removed[k]={ref:L.ref,id:L.id,t};
+    const g=groups[L.lid||'']=groups[L.lid||'']||{lid:L.lid,ref:L.ref,ids:[],upd:{}}; g.ids.push(L.id); g.upd[L.id]=null; });
   // ברשימה משותפת - המחיקה עוברת דרך השרת (בודק שאתה חבר ברשימה)
-  const doDelete = listId
-    ? listsApi('remove-tasks',{listId, ids}).then(j=>{ if(!j||!j.ok) throw new Error((j&&j.error)||'server'); })
-    : ref.update(upd);
+  const doDelete = Promise.all(Object.values(groups).map(g=>g.lid
+    ? listsApi('remove-tasks',{listId:g.lid, ids:g.ids}).then(j=>{ if(!j||!j.ok) throw new Error((j&&j.error)||'server'); })
+    : g.ref.update(g.upd)));
   doDelete.then(()=>{
-    undoData={ref, removed};
+    undoData={removed};
     showUndo(ids.length===1?'המשימה נמחקה':ids.length+' משימות נמחקו');
     undoTimer=setTimeout(finalizeUndo, 7000);
   }).catch(e=>{ showToast('המחיקה נכשלה: '+((e&&e.message)||'')); console.error(e); });
 }
 // אחרי 7 שניות בלי "בטל" - נמחקת סופית גם מ-Google Tasks
-function finalizeUndo(){ clearTimeout(undoTimer); undoTimer=null; if(undoData){ Object.values(undoData.removed).forEach(t=>syncGtask(t,true)); undoData=null; } hideUndo(); }
-function undoDelete(){ clearTimeout(undoTimer); undoTimer=null; if(!undoData) return; const d=undoData; undoData=null; hideUndo(); Promise.all(Object.entries(d.removed).map(([id,t])=>d.ref.child(id).set(t))).then(()=>showToast('שוחזר ✓')).catch(()=>showToast('השחזור נכשל')); }
+function finalizeUndo(){ clearTimeout(undoTimer); undoTimer=null; if(undoData){ Object.values(undoData.removed).forEach(r=>syncGtask(r.t,true)); undoData=null; } hideUndo(); }
+function undoDelete(){ clearTimeout(undoTimer); undoTimer=null; if(!undoData) return; const d=undoData; undoData=null; hideUndo(); Promise.all(Object.values(d.removed).map(r=>r.ref.child(r.id).set(r.t))).then(()=>showToast('שוחזר ✓')).catch(()=>showToast('השחזור נכשל')); }
 function showUndo(msg){ hideUndo(); const b=document.createElement('div'); b.id='undo-bar'; b.innerHTML='<span></span><button>בטל</button>'; b.querySelector('span').textContent=msg; b.querySelector('button').onclick=undoDelete; document.body.appendChild(b); }
 function hideUndo(){ document.getElementById('undo-bar')?.remove(); }
 
@@ -2596,7 +2661,8 @@ function render(){
   let altN=0; // רקע לסירוגין
   const card=t=>{
     const late=isLate(t), alt=(altN++)%2===1;
-    const meta=[(!t.done&&t.pri==='high')?'<b style="color:#DC2626">דחוף</b>':(!t.done&&t.pri==='med')?'<b style="color:#B45309">בינוני</b>':'', late?'באיחור':'', [t.date&&t.date!==today?dayTxt(t):'', t.time||''].filter(Boolean).join(' '), (t.cat&&!curCat)?esc(t.cat):'', t.rep?'🔁 '+(repTxt[t.rep]||''):'', (curList&&t.by)?'מאת '+esc(t.by):'', (curList&&t.who&&t.who.uid)?'<b style="color:#4338CA">👤 '+(curUser&&t.who.uid===curUser.uid?'עליי':esc(t.who.name))+'</b>':''].filter(Boolean).join(' · ');
+    const lchip=allView?'<span class="lchip'+(t._l==='me'?' mine':'')+'"><span data-notr>'+(t._l==='me'?'🔒 ':(isOrgList(t._l)?'🏢 ':'👥 '))+esc(listNameOf(t._l))+'</span></span>':'';
+    const meta=[lchip,(!t.done&&t.pri==='high')?'<b style="color:#DC2626">דחוף</b>':(!t.done&&t.pri==='med')?'<b style="color:#B45309">בינוני</b>':'', late?'באיחור':'', [t.date&&t.date!==today?dayTxt(t):'', t.time||''].filter(Boolean).join(' '), (t.cat&&!curCat)?esc(t.cat):'', t.rep?'🔁 '+(repTxt[t.rep]||''):'', (curList&&t.by)?'מאת '+esc(t.by):'', (curList&&t.who&&t.who.uid)?'<b style="color:#4338CA">👤 '+(curUser&&t.who.uid===curUser.uid?'עליי':esc(t.who.name))+'</b>':''].filter(Boolean).join(' · ');
     const sel=selectMode&&selected.has(t.id);
     return '<div class="card'+(alt?' alt':'')+(t.done?' done':'')+(late?' late':'')+(sel?' sel':'')+'">'
       +(selectMode
@@ -2606,7 +2672,7 @@ function render(){
       +(meta?'<div class="cmeta">'+meta+'</div>':'')
       +(t.notes?'<div class="task-notes">📝 '+esc(String(t.notes).slice(0,80))+(String(t.notes).length>80?'…':'')+'</div>':'')+'</div>'
       +(!t.done&&t.pri==='high'?'<span class="pdot p-high" title="דחוף"></span>':(!t.done&&t.pri==='med'?'<span class="pdot p-med" title="בינוני"></span>':''))
-      +(selectMode?'':'<div class="cact"><button onclick="moveTask(\''+t.id+'\')" title="העבר לרשימה אחרת" aria-label="העבר לרשימה אחרת"><i class="ti ti-arrows-exchange"></i></button><button class="del" onclick="del(\''+t.id+'\')" title="מחק" aria-label="מחק"><i class="ti ti-trash"></i></button></div>')
+      +(selectMode?'':'<div class="cact">'+(allView?'':'<button onclick="moveTask(\''+t.id+'\')" title="העבר לרשימה אחרת" aria-label="העבר לרשימה אחרת"><i class="ti ti-arrows-exchange"></i></button>')+'<button class="del" onclick="del(\''+t.id+'\')" title="מחק" aria-label="מחק"><i class="ti ti-trash"></i></button></div>')
       +'</div>';
   };
   const open=list.filter(t=>!t.done), doneL=list.filter(t=>t.done);
@@ -2688,7 +2754,7 @@ function saveEdit(id) {
   if(ew&&curList){ const m=listMembers().find(x=>x.uid===ew.value); const prevWho=tasks[id]&&tasks[id].who&&tasks[id].who.uid; upd.who=m?{uid:m.uid,name:m.name}:null;
     if(m&&m.uid!==prevWho) listsApi('notify',{listId:curList,name:upd.name,assignee:m.uid,reassign:true}).catch(()=>{}); }
   if (upd.rep && !upd.date) { const d=new Date(); upd.date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-  tasksRef.child(id).update(upd);
+  refOf(id).update(upd);
   if (tasks[id] && tasks[id].gtaskId && upd.date) syncGtask({...tasks[id], ...upd});
   document.getElementById('edit-modal').remove();
   showToast('משימה עודכנה!');
@@ -2699,7 +2765,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03f';
+const APP_VERSION='2026-11-03g';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
