@@ -82,3 +82,12 @@
 שם	Name	الاسم	Название	Nom	Nombre
 שם הרשימה	List name	اسم القائمة	Название списка	Nom de la liste	Nombre de la lista
 שנה שם	Rename	إعادة التسمية	Переименовать	Renommer	Cambiar nombre
+אשר	Approve	موافقة	Одобрить	Approuver	Aprobar
+דחה	Decline	رفض	Отклонить	Refuser	Rechazar
+הבקשה להצטרף ל	The request to join 	طلب الانضمام إلى 	Запрос на вступление в 	La demande pour rejoindre 	La solicitud para unirte a 
+הבקשה נדחתה	Request declined	تم رفض الطلب	Запрос отклонён	Demande refusée	Solicitud rechazada
+הבקשה נשלחה למנהל של	Request sent to the manager of	تم إرسال الطلب إلى مدير	Запрос отправлен менеджеру	Demande envoyée au responsable de	Solicitud enviada al responsable de
+כשיאשר – תקבל/י התראה ואפשר להתחיל	Once approved, you'll get a notification and can start	عند الموافقة ستصلك إشعار ويمكنك البدء	После одобрения вы получите уведомление и сможете начать	Une fois approuvé, vous recevrez une notification et pourrez commencer	Cuando lo apruebe, recibirás una notificación y podrás empezar
+ממתינים לאישור	Waiting for approval	بانتظار الموافقة	Ожидают одобрения	En attente d'approbation	Pendientes de aprobación
+נשלחה למנהל	was sent to the manager	أُرسل إلى المدير	отправлен менеджеру	a été envoyée au responsable	se envió al responsable
+תקבל/י התראה כשיאשר	you'll be notified once approved	ستصلك إشعار عند الموافقة	вы получите уведомление после одобрения	vous serez notifié une fois approuvé	recibirás un aviso cuando lo apruebe
