@@ -91,3 +91,10 @@
 ממתינים לאישור	Waiting for approval	بانتظار الموافقة	Ожидают одобрения	En attente d'approbation	Pendientes de aprobación
 נשלחה למנהל	was sent to the manager	أُرسل إلى المدير	отправлен менеджеру	a été envoyée au responsable	se envió al responsable
 תקבל/י התראה כשיאשר	you'll be notified once approved	ستصلك إشعار عند الموافقة	вы получите уведомление после одобрения	vous serez notifié une fois approuvé	recibirás un aviso cuando lo apruebe
+אפשר	Allow	سماح	Разрешить	Autoriser	Permitir
+ההתראות חסומות בדפדפן הזה	Notifications are blocked in this browser	الإشعارات محظورة في هذا المتصفح	Уведомления заблокированы в этом браузере	Les notifications sont bloquées dans ce navigateur	Las notificaciones están bloqueadas en este navegador
+ההתראות עוד לא פעילות במכשיר הזה	Notifications aren't on for this device yet	الإشعارات غير مفعّلة على هذا الجهاز بعد	Уведомления на этом устройстве ещё не включены	Les notifications ne sont pas encore activées sur cet appareil	Las notificaciones aún no están activadas en este dispositivo
+הפעל התראות במכשיר הזה	Turn on notifications on this device	تفعيل الإشعارات على هذا الجهاز	Включить уведомления на этом устройстве	Activer les notifications sur cet appareil	Activar notificaciones en este dispositivo
+ואז רענן את הדף	then refresh the page	ثم حدّث الصفحة	затем обновите страницу	puis actualisez la page	y luego actualiza la página
+לא הופיעה שאלה? לחץ על סמל הפעמון/המנעול שליד הכתובת למעלה	No prompt? Click the bell/lock icon next to the address bar	لم يظهر سؤال؟ اضغط على أيقونة الجرس/القفل بجانب العنوان	Нет запроса? Нажмите значок колокольчика/замка рядом с адресом	Pas de demande ? Cliquez sur l'icône cloche/cadenas près de l'adresse	¿No apareció la pregunta? Pulsa el icono de campana/candado junto a la dirección
+לחץ על סמל המנעול (או ההגדרות) שליד הכתובת למעלה	Click the lock (or settings) icon next to the address bar	اضغط على أيقونة القفل (أو الإعدادات) بجانب العنوان	Нажмите значок замка (или настроек) рядом с адресом	Cliquez sur l'icône cadenas (ou paramètres) près de l'adresse	Pulsa el icono del candado (o ajustes) junto a la dirección

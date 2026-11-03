@@ -333,7 +333,7 @@ setInterval(()=>{ const n=document.getElementById('notif-btn'), d=document.getEl
 // זיהוי תאריכים/שעות בדיבור: כרגע בעברית בלבד. הרחבה עתידית: PARSERS[lang] (ראה addTask).
 const LANGS={he:{n:'עברית',dir:'rtl',loc:'he-IL',sr:'he-IL'},en:{n:'English',dir:'ltr',loc:'en-US',sr:'en-US'},ar:{n:'العربية',dir:'rtl',loc:'ar',sr:'ar-SA'},ru:{n:'Русский',dir:'ltr',loc:'ru-RU',sr:'ru-RU'},fr:{n:'Français',dir:'ltr',loc:'fr-FR',sr:'fr-FR'},es:{n:'Español',dir:'ltr',loc:'es-ES',sr:'es-ES'}};
 const LANG_READY=['he','en','ar','ru','fr','es']; // i18n:ready (נכתב ע״י build.py)
-const I18N_V='b9f43b5a'; // i18n:version (נכתב ע״י build.py)
+const I18N_V='b7e3fda3'; // i18n:version (נכתב ע״י build.py)
 let curLang=(()=>{ try{ return localStorage.getItem('tk_lang')||'he'; }catch(e){ return 'he'; } })();
 if(!LANGS[curLang]||!LANG_READY.includes(curLang)) curLang='he';
 const LOC=()=>(LANGS[curLang]||LANGS.he).loc;
@@ -711,7 +711,7 @@ function updateNotifBtn() {
 
 function requestNotify() {
   // התראות כבר פעילות → הגדרות (נודניק)
-  if (HAS_NOTIF && Notification.permission === 'granted' && curUser) { notifSettings(); return; }
+  if (HAS_NOTIF && curUser) { notifSettings(); return; } // תמיד נפתח חלון; אם ההתראות לא פעילות במכשיר – יש בו כפתור הפעלה והסבר
   if (!HAS_NOTIF) {
     showToast(/iPhone|iPad/.test(navigator.userAgent) ? 'באייפון: שתף ← "הוסף למסך הבית", ופתח את האפליקציה משם' : 'הדפדפן לא תומך בהתראות');
     return;
@@ -738,6 +738,11 @@ async function notifSettings(){
   const sec=t=>'<div style="font-weight:700;margin:14px 0 6px">'+t+'</div>';
   const row=(id,html)=>'<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:6px 0;cursor:pointer;flex-wrap:wrap"><input id="'+id+'" type="checkbox" style="width:18px;height:18px;margin:0"> '+html+'</label>';
   ov.innerHTML='<div class="modal" style="max-height:88vh;overflow:auto"><h3>🔔 תזכורות</h3>'
+    +(Notification.permission==='granted'?'':'<div id="n-dev" style="background:#FFF4E5;border:1px solid #F5C77E;border-radius:12px;padding:10px 12px;margin:6px 0 10px;font-size:13px;line-height:1.6">'
+      +(Notification.permission==='denied'
+        ?'<b>🔕 ההתראות חסומות בדפדפן הזה.</b><br>לחץ על סמל המנעול (או ההגדרות) שליד הכתובת למעלה ← <b>התראות</b> ← <b>אפשר</b>, ואז רענן את הדף.'
+        :'<b>🔕 ההתראות עוד לא פעילות במכשיר הזה.</b><br><button class="btn-save" id="n-enable" style="margin-top:6px;padding:8px 14px">🔔 הפעל התראות במכשיר הזה</button><div id="n-enable-hint" style="display:none;margin-top:6px">לא הופיעה שאלה? לחץ על סמל הפעמון/המנעול שליד הכתובת למעלה ← <b>התראות</b> ← <b>אפשר</b>.</div>')
+      +'</div>')
     +'<div style="font-size:13px;color:#5B5B76">בחר מתי לקבל תזכורת על משימה עם תאריך/שעה. ההגדרה אישית ושמורה בחשבון.</div>'
     +sec('📅 מתי להזכיר')
     +row('n-eve','<span>יום לפני, בשעה</span><input id="n-eve-time" type="time" style="width:auto;margin:0;padding:4px 8px">')
@@ -755,6 +760,11 @@ async function notifSettings(){
     +'<div id="n-mkt-wrap" style="display:none;margin-top:12px;border-top:1px solid #EEEDF7;padding-top:10px"><label style="display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer"><input id="n-mkt" type="checkbox" style="width:auto;margin:0"> <span>📣 אשמח לקבל עדכונים ופרסומים מתכל׳ס</span></label></div>'
     +'<div class="modal-btns" style="margin-top:14px"><button class="btn-cancel" id="n-test">שלח התראת בדיקה</button><button class="btn-save" id="n-save">שמור</button></div></div>';
   document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  const en=document.getElementById('n-enable');
+  if(en) en.onclick=async()=>{ en.disabled=true; const hint=setTimeout(()=>{ const h=document.getElementById('n-enable-hint'); if(h) h.style.display='block'; },2500);
+    const p=await Notification.requestPermission(); clearTimeout(hint); updateNotifBtn();
+    if(p==='granted'){ if(await registerPush(false)){ showToast('התראות מופעלות במכשיר הזה ✓'); document.getElementById('n-dev')?.remove(); } }
+    else { en.disabled=false; const h=document.getElementById('n-enable-hint'); if(h) h.style.display='block'; } };
   consentApi('status').then(c=>{ if(!c||!c.ok||!c.active||curUser&&curUser.uid==='staff-tasks') return; const w=document.getElementById('n-mkt-wrap'), m=document.getElementById('n-mkt'); if(!w) return; w.style.display='block'; m.checked=!!c.marketing;
     m.onchange=async()=>{ const r=await consentApi('marketing',{on:m.checked}); showToast(r&&r.ok?(m.checked?'נרשמת לעדכונים ✓':'הוסרת מהעדכונים ✓'):'שגיאה'); }; });
   let before=[];
@@ -2798,7 +2808,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 updateGcalStatus();
 iosInstallHint();
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03n';
+const APP_VERSION='2026-11-03o';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
