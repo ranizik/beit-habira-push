@@ -16,7 +16,8 @@
 // שפה: נקבעת לפני הציור הראשון (מונע הבהוב). המילון נטען בהמשך (i18n)
 (function(){ try{ var l=localStorage.getItem('tk_lang')||'he'; if(l!=='he'){ var d=(l==='ar')?'rtl':'ltr'; var h=document.documentElement; h.lang=l; h.dir=d; h.style.setProperty('--dir',d); h.classList.add('i18n-wait'); setTimeout(function(){ h.classList.remove('i18n-wait'); },3000); } }catch(e){} })();
 </script>
-<style>html.i18n-wait body{visibility:hidden}</style>
+<style>html.i18n-wait body{visibility:hidden}@keyframes instb{from{transform:translateY(0)}to{transform:translateY(6px)}}
+</style>
 <link rel="manifest" href="manifest-v3.json"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="mobile-web-app-capable" content="yes"/>
@@ -255,6 +256,7 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
     <button class="notif-status" id="gcal-status" onclick="hdrGo(gcalButton)">📅 חבר יומן</button>
     <button class="notif-status" id="org-btn" onclick="hdrGo(showOrg)" style="display:none">🏢 תכל׳ס לעסקים</button>
     <button class="notif-status" id="lang-btn" onclick="hdrGo(showLangPicker)">🌐 שפה</button>
+    <button class="notif-status" id="inst-btn" onclick="hdrGo(()=>installHint(true))">📲 התקנה לטלפון</button>
     <button class="notif-status" id="help-btn" onclick="hdrGo(showHelp)">❓ עזרה – איך משתמשים</button>
     <button class="notif-status" id="stats-btn" onclick="hdrGo(showStats)" style="display:none">📊 ניהול</button>
     <button class="notif-status" id="logout-btn" onclick="hdrGo(logout)" style="display:none">⏻ התנתק</button>
@@ -333,7 +335,7 @@ setInterval(()=>{ const n=document.getElementById('notif-btn'), d=document.getEl
 // זיהוי תאריכים/שעות בדיבור: כרגע בעברית בלבד. הרחבה עתידית: PARSERS[lang] (ראה addTask).
 const LANGS={he:{n:'עברית',dir:'rtl',loc:'he-IL',sr:'he-IL'},en:{n:'English',dir:'ltr',loc:'en-US',sr:'en-US'},ar:{n:'العربية',dir:'rtl',loc:'ar',sr:'ar-SA'},ru:{n:'Русский',dir:'ltr',loc:'ru-RU',sr:'ru-RU'},fr:{n:'Français',dir:'ltr',loc:'fr-FR',sr:'fr-FR'},es:{n:'Español',dir:'ltr',loc:'es-ES',sr:'es-ES'}};
 const LANG_READY=['he','en','ar','ru','fr','es']; // i18n:ready (נכתב ע״י build.py)
-const I18N_V='b7e3fda3'; // i18n:version (נכתב ע״י build.py)
+const I18N_V='db6805c2'; // i18n:version (נכתב ע״י build.py)
 let curLang=(()=>{ try{ return localStorage.getItem('tk_lang')||'he'; }catch(e){ return 'he'; } })();
 if(!LANGS[curLang]||!LANG_READY.includes(curLang)) curLang='he';
 const LOC=()=>(LANGS[curLang]||LANGS.he).loc;
@@ -2186,22 +2188,63 @@ function activityHtml(days){
     +'<div style="font-size:11px;color:#999;margin:4px 0 8px">השעה = הכניסה האחרונה באותו יום.</div>';
 }
 
-function iosInstallHint(){
+// ── התקנה לטלפון בקיצור: לחיצה אחת באנדרואיד, הנחיה עם חץ באייפון, ואחרי ההתקנה – לחיצה אחת להתראות ──
+const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const IS_MOBILE=IS_IOS||/Android|Mobile/i.test(navigator.userAgent);
+const IN_APP=/FBAN|FBAV|Instagram|Line\/|; wv\)|WhatsApp|TikTok|Snapchat/i.test(navigator.userAgent);
+const IOS_OTHER=IS_IOS&&/CriOS|FxiOS|EdgiOS|GSA\/|OPiOS/.test(navigator.userAgent);
+function instBar(html){
+  document.getElementById('inst-bar')?.remove();
+  const b=document.createElement('div'); b.id='inst-bar';
+  b.style.cssText='position:fixed;left:10px;right:10px;bottom:12px;background:#fff;border:2px solid #1E1B4B;border-radius:16px;padding:12px 14px;z-index:10001;box-shadow:0 8px 28px rgba(0,0,0,.25);direction:var(--dir,rtl);font-size:14px;line-height:1.6;color:#1A1A2E';
+  b.innerHTML='<button id="inst-x" aria-label="סגור" style="position:absolute;top:4px;inset-inline-end:6px;border:0;background:none;font-size:20px;color:#5B5B76;cursor:pointer">✕</button>'+html;
+  document.body.appendChild(b);
+  document.getElementById('inst-x').onclick=()=>{ try{ localStorage.setItem('inst_off',String(Date.now())); }catch(e){} b.remove(); };
+  return b;
+}
+const instBtn=(id,l)=>'<button id="'+id+'" style="width:100%;height:46px;margin-top:8px;border:0;border-radius:12px;background:#1E1B4B;color:#fff;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer">'+l+'</button>';
+function installHint(force){
   try{
-    if(!/iPhone|iPad|iPod/.test(navigator.userAgent) || isStandalone() || localStorage.getItem('ios_hint_off')) return;
-    const b=document.createElement('div'); b.id='ios-hint';
-    b.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;background:#fff;border:2px solid #1E1B4B;border-radius:12px;padding:12px 14px;z-index:10000;box-shadow:0 4px 18px rgba(0,0,0,.25);font-size:14px;line-height:1.7;direction:var(--dir,rtl);color:#222';
-    b.innerHTML='<b>📲 להתקנה באייפון (ב-Safari):</b><br>1. לחץ על כפתור השיתוף <i class="ti ti-share-2"></i> (ריבוע עם חץ למעלה) בתחתית המסך<br>2. גלול ובחר <b>"הוסף למסך הבית"</b> ← <b>"הוסף"</b><br>3. פתח מהאייקון ולחץ "אפשר התראות"'
-      +'<div style="text-align:left;margin-top:6px"><button id="ios-hint-ok" style="border:0;background:#1E1B4B;color:#fff;border-radius:6px;padding:6px 14px;font-size:14px">הבנתי</button></div>';
-    document.body.appendChild(b);
-    document.getElementById('ios-hint-ok').onclick=()=>{ try{ localStorage.setItem('ios_hint_off','1'); }catch(e){} b.remove(); };
+    if(isStandalone()) { if(force) showToast('האפליקציה כבר מותקנת ✓'); return; }
+    if(!force){ if(!IS_MOBILE||document.getElementById('inst-bar')||document.getElementById('mig-banner')) return; const t=+(localStorage.getItem('inst_off')||0); if(Date.now()-t<3*864e5) return; }
+    if(IN_APP||IOS_OTHER){
+      const and=/Android/i.test(navigator.userAgent);
+      instBar('<b>📲 כדי להתקין את תכל׳ס</b><div>'+(IS_IOS?'פתח את הקישור ב-<b>Safari</b>':'פתח את הקישור בדפדפן (Chrome)')+' – משם זו לחיצה אחת.</div>'
+        +(and?instBtn('inst-open','פתח ב-Chrome'):instBtn('inst-copy','העתק קישור'+(IS_IOS?' ל-Safari':''))));
+      const o=document.getElementById('inst-open'); if(o) o.onclick=()=>{ location.href='intent://'+location.host+location.pathname+location.search+'#Intent;scheme=https;package=com.android.chrome;end'; };
+      const c=document.getElementById('inst-copy'); if(c) c.onclick=async()=>{ try{ await navigator.clipboard.writeText(APP_URL); showToast('הקישור הועתק – הדבק ב-Safari'); }catch(e){ prompt('העתק ופתח ב-Safari',APP_URL); } };
+      return;
+    }
+    if(IS_IOS){
+      instBar('<b>📲 התקנה ב-2 צעדים:</b><div style="margin-top:4px">1. לחץ על <b>שיתוף</b> <i class="ti ti-share-2" style="font-size:18px;vertical-align:-3px"></i> בסרגל למטה<br>2. בחר <b>"הוסף למסך הבית"</b> ← <b>הוסף</b></div>'
+        +'<div style="text-align:center;font-size:28px;line-height:1;margin-top:4px;animation:instb 1s infinite alternate">⬇</div>');
+      return;
+    }
+    if(installEvt){
+      instBar('<b>📲 תכל׳ס כאפליקציה בטלפון</b><div style="color:#5B5B76;font-size:13px">אייקון במסך הבית ותזכורות גם כשהאפליקציה סגורה.</div>'+instBtn('inst-go','📲 התקן – לחיצה אחת'));
+      document.getElementById('inst-go').onclick=async()=>{ const e=installEvt; if(!e) return; e.prompt(); let ok=false; try{ ok=(await e.userChoice).outcome==='accepted'; }catch(x){} installEvt=null; document.getElementById('inst-bar')?.remove(); if(ok) showToast('✓ הותקן – פתח מהאייקון במסך הבית'); };
+      return;
+    }
+    if(force) instBar('<b>📲 להתקנה:</b><div>תפריט הדפדפן <b>⋮</b> ← <b>"התקן אפליקציה"</b> / <b>"הוסף למסך הבית"</b></div>');
   }catch(e){}
 }
+// אחרי ההתקנה: בפתיחה הראשונה מהאייקון – לחיצה אחת להפעלת תזכורות
+function notifNudge(){
+  try{
+    if(!HAS_NOTIF||Notification.permission!=='default'||!curUser||!isStandalone()||document.getElementById('inst-bar')||document.getElementById('mig-banner')) return;
+    const t=+(localStorage.getItem('nn_off')||0); if(Date.now()-t<864e5) return;
+    instBar('<b>🔔 עוד צעד אחרון</b><div style="color:#5B5B76;font-size:13px">כדי לקבל תזכורות על המשימות.</div>'+instBtn('nn-go','🔔 הפעל תזכורות'));
+    document.getElementById('inst-x').onclick=()=>{ try{ localStorage.setItem('nn_off',String(Date.now())); }catch(e){} document.getElementById('inst-bar')?.remove(); };
+    document.getElementById('nn-go').onclick=async()=>{ const p=await Notification.requestPermission(); updateNotifBtn(); document.getElementById('inst-bar')?.remove();
+      if(p==='granted'&&await registerPush(false)) showToast('התראות מופעלות ✓'); else if(p!=='granted') showToast('אפשר להפעיל אחר כך: ☰ ← 🔔 התראות'); };
+  }catch(e){}
+}
+window.addEventListener('appinstalled',()=>document.getElementById('inst-bar')?.remove());
 
 function startTasks(u){
   if(tasksStarted) return;
   if(u.uid==='staff-tasks' || /^ranizik@gmail\.com$/i.test(u.email||'')) markAdminDevice();
-  curUser=u; registerPush(true); setTimeout(showMovedBanner,1500); setTimeout(maybeGuestNudge,4000); checkConsent(); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp(); setTimeout(syncLangFromServer,2500); if(isAdminDevice()) setTimeout(admPrefetch,3000); loadOrg().then(handleOrgJoinLink);
+  curUser=u; registerPush(true); setTimeout(showMovedBanner,1500); setTimeout(maybeGuestNudge,4000); checkConsent(); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp(); setTimeout(syncLangFromServer,2500); if(isAdminDevice()) setTimeout(admPrefetch,3000); loadOrg().then(handleOrgJoinLink); setTimeout(notifNudge,3000);
   const ob=document.getElementById('org-btn'); if(ob) ob.style.display='';
   const sb=document.getElementById('stats-btn'); if(sb) sb.style.display = u.uid==='staff-tasks' ? '' : 'none';
   curList=null; tasksRef=listTasksRef(null); tasksStarted=true; subscribeTasks(); renderLists();
@@ -2437,7 +2480,7 @@ async function moveToNewDomain(u){
   location.replace(APP_URL+location.search+(hash?'#'+hash:''));
 }
 // בכתובת החדשה, אחרי המעבר: הודעה + אישור התראות מחדש + התקנה מחדש של האייקון (פעם אחת)
-let installEvt=null; window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installEvt=e; const b=document.getElementById('mig-install'); if(b) b.style.display=''; });
+let installEvt=null; window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installEvt=e; const b=document.getElementById('mig-install'); if(b) b.style.display=''; setTimeout(()=>installHint(),1500); });
 function showMovedBanner(){
   let st=''; try{ st=localStorage.getItem('tk_migrated')||''; }catch(e){}
   if(st!=='1' || OLD_HOST || document.getElementById('mig-banner')) return;
@@ -2806,9 +2849,10 @@ function saveEdit(id) {
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 updateGcalStatus();
-iosInstallHint();
+setTimeout(()=>installHint(),2500);
+try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03o';
+const APP_VERSION='2026-11-03p';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());

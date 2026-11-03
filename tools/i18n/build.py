@@ -40,7 +40,7 @@ for li, lang in enumerate(LANGS):
     missing = [k for k in current if k not in d]
     (out_dir / (lang + '.json')).write_text(json.dumps(d, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     if missing:
-        print(f'{lang}: חסרים {len(missing)} קטעים -> לא מופעל:', missing[:8])
+        print(f'{lang}: חסרים {len(missing)} קטעים -> לא מופעל:', missing)
     else:
         ready.append(lang); print(f'{lang}: ✓ {len(d)} קטעים')
 ver = hashlib.md5(b''.join((out_dir / (l + '.json')).read_bytes() for l in ready[1:])).hexdigest()[:8]
