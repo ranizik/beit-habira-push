@@ -257,6 +257,7 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
     <button class="notif-status" id="org-btn" onclick="hdrGo(showOrg)" style="display:none">🏢 תכל׳ס לעסקים</button>
     <button class="notif-status" id="lang-btn" onclick="hdrGo(showLangPicker)">🌐 שפה</button>
     <button class="notif-status" id="inst-btn" onclick="hdrGo(()=>installHint(true))">📲 התקנה לטלפון</button>
+    <button class="notif-status" id="qr-btn" onclick="hdrGo(showQr)">📱 ברקוד להורדה</button>
     <button class="notif-status" id="help-btn" onclick="hdrGo(showHelp)">❓ עזרה – איך משתמשים</button>
     <button class="notif-status" id="stats-btn" onclick="hdrGo(showStats)" style="display:none">📊 ניהול</button>
     <button class="notif-status" id="logout-btn" onclick="hdrGo(logout)" style="display:none">⏻ התנתק</button>
@@ -335,7 +336,7 @@ setInterval(()=>{ const n=document.getElementById('notif-btn'), d=document.getEl
 // זיהוי תאריכים/שעות בדיבור: כרגע בעברית בלבד. הרחבה עתידית: PARSERS[lang] (ראה addTask).
 const LANGS={he:{n:'עברית',dir:'rtl',loc:'he-IL',sr:'he-IL'},en:{n:'English',dir:'ltr',loc:'en-US',sr:'en-US'},ar:{n:'العربية',dir:'rtl',loc:'ar',sr:'ar-SA'},ru:{n:'Русский',dir:'ltr',loc:'ru-RU',sr:'ru-RU'},fr:{n:'Français',dir:'ltr',loc:'fr-FR',sr:'fr-FR'},es:{n:'Español',dir:'ltr',loc:'es-ES',sr:'es-ES'}};
 const LANG_READY=['he','en','ar','ru','fr','es']; // i18n:ready (נכתב ע״י build.py)
-const I18N_V='db6805c2'; // i18n:version (נכתב ע״י build.py)
+const I18N_V='069eb770'; // i18n:version (נכתב ע״י build.py)
 let curLang=(()=>{ try{ return localStorage.getItem('tk_lang')||'he'; }catch(e){ return 'he'; } })();
 if(!LANGS[curLang]||!LANG_READY.includes(curLang)) curLang='he';
 const LOC=()=>(LANGS[curLang]||LANGS.he).loc;
@@ -2206,6 +2207,7 @@ const instBtn=(id,l)=>'<button id="'+id+'" style="width:100%;height:46px;margin-
 function installHint(force){
   try{
     if(isStandalone()) { if(force) showToast('האפליקציה כבר מותקנת ✓'); return; }
+    if(!force&&/[?&]i=1/.test(location.search)&&IS_MOBILE){ force=true; try{ history.replaceState(null,'',location.pathname+location.search.replace(/[?&]i=1/,'').replace(/^&/,'?')); }catch(e){} } // הגיע מסריקת הברקוד
     if(!force){ if(!IS_MOBILE||document.getElementById('inst-bar')||document.getElementById('mig-banner')) return; const t=+(localStorage.getItem('inst_off')||0); if(Date.now()-t<3*864e5) return; }
     if(IN_APP||IOS_OTHER){
       const and=/Android/i.test(navigator.userAgent);
@@ -2240,6 +2242,20 @@ function notifNudge(){
   }catch(e){}
 }
 window.addEventListener('appinstalled',()=>document.getElementById('inst-bar')?.remove());
+// ברקוד להורדה – להראות למישהו לידך או לשלוח
+function showQr(){
+  document.getElementById('edit-modal')?.remove();
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
+  ov.innerHTML='<div class="modal" style="text-align:center;max-width:380px"><h3>📱 ברקוד להורדה</h3><div style="font-size:13px;color:#5B5B76;margin-bottom:8px">סורקים עם המצלמה של הטלפון ומתקינים.</div>'
+    +'<img src="'+APP_BASE+'qr-install.png" alt="QR" style="width:min(280px,70vw);height:auto;border-radius:12px;border:1px solid #E2E1F0">'
+    +'<div style="font-size:13px;margin-top:6px" dir="ltr" data-notr>tachlesapps.com</div>'
+    +'<div class="modal-btns" style="margin-top:12px"><button class="btn-cancel" onclick="document.getElementById(\'edit-modal\').remove()">סגור</button><button class="btn-save" id="qr-share">שתף</button></div></div>';
+  document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  document.getElementById('qr-share').onclick=async()=>{
+    try{ const blob=await fetch(APP_BASE+'qr-install.png').then(r=>r.blob()); const f=new File([blob],'tachles-qr.png',{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],text:tr('תכל׳ס – משימות בקול')+': '+APP_URL+'?i=1'}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
+    const a=document.createElement('a'); a.href=APP_BASE+'qr-install.png'; a.download='tachles-qr.png'; document.body.appendChild(a); a.click(); a.remove(); };
+}
 
 function startTasks(u){
   if(tasksStarted) return;
@@ -2852,7 +2868,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-03p';
+const APP_VERSION='2026-11-03q';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
