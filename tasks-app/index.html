@@ -336,7 +336,7 @@ setInterval(()=>{ const n=document.getElementById('notif-btn'), d=document.getEl
 // זיהוי תאריכים/שעות בדיבור: כרגע בעברית בלבד. הרחבה עתידית: PARSERS[lang] (ראה addTask).
 const LANGS={he:{n:'עברית',dir:'rtl',loc:'he-IL',sr:'he-IL'},en:{n:'English',dir:'ltr',loc:'en-US',sr:'en-US'},ar:{n:'العربية',dir:'rtl',loc:'ar',sr:'ar-SA'},ru:{n:'Русский',dir:'ltr',loc:'ru-RU',sr:'ru-RU'},fr:{n:'Français',dir:'ltr',loc:'fr-FR',sr:'fr-FR'},es:{n:'Español',dir:'ltr',loc:'es-ES',sr:'es-ES'}};
 const LANG_READY=['he','en','ar','ru','fr','es']; // i18n:ready (נכתב ע״י build.py)
-const I18N_V='182f240a'; // i18n:version (נכתב ע״י build.py)
+const I18N_V='decee180'; // i18n:version (נכתב ע״י build.py)
 let curLang=(()=>{ try{ return localStorage.getItem('tk_lang')||'he'; }catch(e){ return 'he'; } })();
 if(!LANGS[curLang]||!LANG_READY.includes(curLang)) curLang='he';
 const LOC=()=>(LANGS[curLang]||LANGS.he).loc;
@@ -1798,6 +1798,7 @@ function showLocked(j){
     +'<img src="icon-v3-192.png" alt="" style="width:72px;height:72px;border-radius:20px;margin-bottom:10px">'
     +'<div style="font-size:21px;font-weight:800;margin-bottom:6px">'+ended+'</div>'
     +'<div style="font-size:15px;color:#5B5B76;line-height:1.6;margin-bottom:16px">'+sub+'</div>'
+    +(j.payUrl&&!j.pending&&!j.locked?'<a href="'+escA(j.payUrl+(j.payUrl.includes('?')?'&':'?')+'ref='+encodeURIComponent(curUser?curUser.uid:''))+'" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:14px;background:#1E1B4B;color:#fff;font-size:17px;font-weight:700;text-decoration:none;margin-bottom:8px">💳 לתשלום מאובטח</a>':'')
     +(j.orgReq?'':'<a href="'+waLink(j.contact,waTxt)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:14px;background:#25D366;color:#fff;font-size:17px;font-weight:700;text-decoration:none"><i class="ti ti-brand-whatsapp" style="font-size:22px"></i> '+(j.pending?'שלח/י הודעה בוואטסאפ':'לחידוש בוואטסאפ')+'</a>')
     +'<button id="locked-recheck" style="margin-top:10px;width:100%;height:46px;border-radius:14px;border:1.5px solid #E2E1F0;background:#fff;color:#1E1B4B;font-size:15px;font-weight:600;font-family:inherit">'+(j.pending?'בדוק אם אושרתי':'כבר חידשתי – בדוק שוב')+'</button>'
     +'<button id="locked-logout" style="margin-top:6px;background:none;border:0;color:#5B5B76;font-size:13px;padding:8px;font-family:inherit">התנתק</button></div>';
@@ -1959,6 +1960,9 @@ async function renderAccessAdmin(cached, quick){
     +'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0;cursor:pointer"><input id="acc-free" type="checkbox" style="width:auto;margin:0" '+(C.freeMode?'checked':'')+'> <span><b>🎁 תקופת הרצה</b> – כל מי שאושר משתמש בחינם, בלי הגבלת זמן</span></label>'
     +'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0;cursor:pointer"><input id="acc-approval" type="checkbox" style="width:auto;margin:0" '+(C.approval?'checked':'')+'> <span><b>כל משתמש חדש צריך את האישור שלי</b> (מי שקיבל את הקישור ממישהו אחר יחכה לאישור)</span></label>'
     +'<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:6px 0;cursor:pointer"><input id="acc-consent" type="checkbox" style="width:auto;margin:3px 0 0" '+(C.consentActive?'checked':'')+'> <span><b>📜 חובת אישור תנאי שימוש ומדיניות פרטיות</b> – כל משתמש יתבקש לאשר (חד-פעמי). <span style="color:#B42318">להפעיל רק אחרי שהמסמכים הסופיים פורסמו.</span></span></label>'
+    +'<div style="border:1px dashed #C9C7E0;border-radius:10px;padding:8px 10px;margin:8px 0"><label style="display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer"><input id="acc-pay" type="checkbox" style="width:auto;margin:0" '+(C.payEnabled?'checked':'')+'> <span><b>💳 תשלום בתוך האפליקציה</b> – כפתור "לתשלום" במסך החידוש (כבוי = חידוש בוואטסאפ)</span></label>'
+      +'<div style="display:grid;grid-template-columns:auto 1fr;gap:6px 8px;align-items:center;font-size:12px;color:#5B5B76;margin-top:6px"><span>דף תשלום – פרטי</span><input id="acc-pay-url" type="url" dir="ltr" placeholder="https://…" value="'+escA(C.payUrl||'')+'" style="margin:0;padding:6px 8px"><span>דף תשלום – עסקי</span><input id="acc-pay-url-b" type="url" dir="ltr" placeholder="https://… (לא חובה)" value="'+escA(C.payUrlBusiness||'')+'" style="margin:0;padding:6px 8px"></div>'
+      +'<div style="font-size:11px;color:#5B5B76;margin-top:4px">הקישור מחברת הסליקה (דף תשלום/הוראת קבע). אחרי תשלום – מאריכים את המשתמש כאן כרגיל.</div></div>'
     +'<div style="display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center;font-size:13px;color:#5B5B76;margin:8px 0">'
     +'<span>ימי ניסיון</span><input id="acc-days" type="number" min="1" max="365" value="'+escA(C.trialDays)+'" style="width:80px;margin:0;padding:6px 8px">'
     +'</div><div style="font-weight:700;font-size:13px;margin:10px 0 6px">מסלולים</div>'
@@ -2012,9 +2016,9 @@ async function renderAccessAdmin(cached, quick){
     ca.disabled=true; const r=await statsApi('clear',{}); showToast(r&&r.ok?'היסטוריית השימוש נמחקה ✓':'שגיאה: '+((r&&r.error)||'')); showStats('users');
   };
   const sv=document.getElementById('acc-save'); if(sv) sv.onclick=async()=>{
-    const r=await accessApi('config',{trialDays:document.getElementById('acc-days').value,price:document.getElementById('acc-price').value,priceBusiness:document.getElementById('acc-price-b').value,membersPrivate:document.getElementById('acc-mem-p').value,membersBusiness:document.getElementById('acc-mem-b').value,extraPricePrivate:document.getElementById('acc-ext-p').value,extraPriceBusiness:document.getElementById('acc-ext-b').value,contact:document.getElementById('acc-contact').value,approval:document.getElementById('acc-approval').checked,consentActive:document.getElementById('acc-consent').checked,freeMode:document.getElementById('acc-free').checked});
+    const r=await accessApi('config',{trialDays:document.getElementById('acc-days').value,price:document.getElementById('acc-price').value,priceBusiness:document.getElementById('acc-price-b').value,membersPrivate:document.getElementById('acc-mem-p').value,membersBusiness:document.getElementById('acc-mem-b').value,extraPricePrivate:document.getElementById('acc-ext-p').value,extraPriceBusiness:document.getElementById('acc-ext-b').value,contact:document.getElementById('acc-contact').value,approval:document.getElementById('acc-approval').checked,consentActive:document.getElementById('acc-consent').checked,freeMode:document.getElementById('acc-free').checked,payUrl:document.getElementById('acc-pay-url').value,payUrlBusiness:document.getElementById('acc-pay-url-b').value,payEnabled:document.getElementById('acc-pay').checked});
     renderAccessAdmin();
-    showToast(r&&r.ok?'ההגדרות נשמרו ✓':'שגיאה בשמירה');
+    showToast(r&&r.ok?'ההגדרות נשמרו ✓':((r&&r.error)||'שגיאה בשמירה'));
   };
 }
 
@@ -2868,7 +2872,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-04b';
+const APP_VERSION='2026-11-04c';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
