@@ -87,10 +87,10 @@
 הבקשה להצטרף ל	The request to join 	طلب الانضمام إلى 	Запрос на вступление в 	La demande pour rejoindre 	La solicitud para unirte a 
 הבקשה נדחתה	Request declined	تم رفض الطلب	Запрос отклонён	Demande refusée	Solicitud rechazada
 הבקשה נשלחה למנהל של	Request sent to the manager of	تم إرسال الطلب إلى مدير	Запрос отправлен менеджеру	Demande envoyée au responsable de	Solicitud enviada al responsable de
-כשיאשר – תקבל/י התראה ואפשר להתחיל	Once approved, you'll get a notification and can start	عند الموافقة ستصلك إشعار ويمكنك البدء	После одобрения вы получите уведомление и сможете начать	Une fois approuvé, vous recevrez une notification et pourrez commencer	Cuando lo apruebe, recibirás una notificación y podrás empezar
+כשיאשר – תקבל/י התראה ואפשר להתחיל	Once approved, you'll get a notification and can start	عند الموافقة سيصلك إشعار ويمكنك البدء	После одобрения вы получите уведомление и сможете начать	Une fois approuvé, vous recevrez une notification et pourrez commencer	Cuando lo apruebe, recibirás una notificación y podrás empezar
 ממתינים לאישור	Waiting for approval	بانتظار الموافقة	Ожидают одобрения	En attente d'approbation	Pendientes de aprobación
 נשלחה למנהל	was sent to the manager	أُرسل إلى المدير	отправлен менеджеру	a été envoyée au responsable	se envió al responsable
-תקבל/י התראה כשיאשר	you'll be notified once approved	ستصلك إشعار عند الموافقة	вы получите уведомление после одобрения	vous serez notifié une fois approuvé	recibirás un aviso cuando lo apruebe
+תקבל/י התראה כשיאשר	you'll be notified once approved	سيصلك إشعار عند الموافقة	вы получите уведомление после одобрения	vous serez notifié une fois approuvé	recibirás un aviso cuando lo apruebe
 אפשר	Allow	سماح	Разрешить	Autoriser	Permitir
 ההתראות חסומות בדפדפן הזה	Notifications are blocked in this browser	الإشعارات محظورة في هذا المتصفح	Уведомления заблокированы в этом браузере	Les notifications sont bloquées dans ce navigateur	Las notificaciones están bloqueadas en este navegador
 ההתראות עוד לא פעילות במכשיר הזה	Notifications aren't on for this device yet	الإشعارات غير مفعّلة على هذا الجهاز بعد	Уведомления на этом устройстве ещё не включены	Les notifications ne sont pas encore activées sur cet appareil	Las notificaciones aún no están activadas en este dispositivo
@@ -111,7 +111,7 @@
 התקנה ב-2 צעדים	Install in 2 steps	التثبيت بخطوتين	Установка в 2 шага	Installation en 2 étapes	Instalación en 2 pasos
 התקנה לטלפון	Install on phone	التثبيت على الهاتف	Установить на телефон	Installer sur le téléphone	Instalar en el teléfono
 התראות מופעלות	Notifications on	الإشعارات مفعّلة	Уведомления включены	Notifications activées	Notificaciones activadas
-כדי להתקין את תכל׳ס	To install Tachles	لتثبيت تَخلِس	Чтобы установить Тахлес	Pour installer Tachles	Para instalar Tachles
+כדי להתקין את תכל׳ס	To install Tachles	لتثبيت Tachles	Чтобы установить Tachles	Pour installer Tachles	Para instalar Tachles
 כדי לקבל תזכורות על המשימות	to get reminders for your tasks	لتلقي تذكيرات بمهامك	чтобы получать напоминания о задачах	pour recevoir des rappels de vos tâches	para recibir recordatorios de tus tareas
 להתקנה	To install	للتثبيت	Для установки	Pour installer	Para instalar
 לחץ על	Tap	اضغط على	Нажмите	Appuyez sur	Pulsa
@@ -120,15 +120,19 @@
 פתח את הקישור ב	Open the link in 	افتح الرابط في 	Откройте ссылку в 	Ouvrez le lien dans 	Abre el enlace en 
 פתח את הקישור בדפדפן	Open the link in your browser	افتح الرابط في المتصفح	Откройте ссылку в браузере	Ouvrez le lien dans le navigateur	Abre el enlace en el navegador
 שיתוף	Share	مشاركة	Поделиться	Partager	Compartir
-תכל׳ס כאפליקציה בטלפון	Tachles as an app on your phone	تَخلِس كتطبيق على هاتفك	Тахлес как приложение на телефоне	Tachles comme appli sur votre téléphone	Tachles como app en tu teléfono
+תכל׳ס כאפליקציה בטלפון	Tachles as an app on your phone	Tachles كتطبيق على هاتفك	Tachles как приложение на телефоне	Tachles comme appli sur votre téléphone	Tachles como app en tu teléfono
 תפריט הדפדפן	Browser menu	قائمة المتصفح	Меню браузера	Menu du navigateur	Menú del navegador
 ברקוד להורדה	QR code to download	رمز QR للتنزيل	QR-код для загрузки	QR code pour télécharger	Código QR para descargar
 סורקים עם המצלמה של הטלפון ומתקינים	Scan with your phone camera and install	امسح بكاميرا الهاتف وثبّت	Отсканируйте камерой телефона и установите	Scannez avec l’appareil photo et installez	Escanea con la cámara del teléfono e instala
 שתף	Share	مشاركة	Поделиться	Partager	Compartir
-הבקשה ממתינה לאישור של תכל׳ס. תקבל התראה כשהארגון יאושר	The request is waiting for Tachles approval. You'll be notified when the organization is approved	الطلب بانتظار موافقة تَخلِس. ستصلك إشعار عند الموافقة على المؤسسة	Запрос ожидает одобрения Тахлес. Вы получите уведомление, когда организацию одобрят	La demande attend l'approbation de Tachles. Vous serez notifié une fois l'organisation approuvée	La solicitud espera la aprobación de Tachles. Recibirás un aviso cuando se apruebe la organización
-הבקשה נשלחת לתכל׳ס לאישור	The request is sent to Tachles for approval	يُرسل الطلب إلى تَخلِس للموافقة	Запрос отправляется в Тахлес на одобрение	La demande est envoyée à Tachles pour approbation	La solicitud se envía a Tachles para su aprobación
-היי, אשמח להמשיך להשתמש בתכל׳ס	Hi, I'd like to keep using Tachles	مرحبًا، أود مواصلة استخدام تَخلِس	Здравствуйте, хочу продолжить пользоваться Тахлес	Bonjour, j'aimerais continuer à utiliser Tachles	Hola, me gustaría seguir usando Tachles
-היי, נרשמתי לתכל׳ס – אשמח לאישור	Hi, I signed up for Tachles – please approve me	مرحبًا، سجّلت في تَخلِس – أرجو الموافقة	Здравствуйте, я зарегистрировался в Тахлес — прошу одобрить	Bonjour, je me suis inscrit à Tachles – merci de m'approuver	Hola, me registré en Tachles: agradecería la aprobación
-צוות תכל׳ס יאשר אותך בקרוב, ואז אפשר להתחיל	The Tachles team will approve you soon, and then you can start	سيوافق فريق تَخلِس عليك قريبًا، وبعدها يمكنك البدء	Команда Тахлес скоро одобрит вас, и можно будет начать	L'équipe Tachles vous approuvera bientôt, et vous pourrez commencer	El equipo de Tachles te aprobará pronto y podrás empezar
+הבקשה ממתינה לאישור של תכל׳ס. תקבל התראה כשהארגון יאושר	The request is waiting for Tachles approval. You'll be notified when the organization is approved	الطلب بانتظار موافقة Tachles. سيصلك إشعار عند الموافقة على المؤسسة	Запрос ожидает одобрения Tachles. Вы получите уведомление, когда организацию одобрят	La demande attend l'approbation de Tachles. Vous serez notifié une fois l'organisation approuvée	La solicitud espera la aprobación de Tachles. Recibirás un aviso cuando se apruebe la organización
+הבקשה נשלחת לתכל׳ס לאישור	The request is sent to Tachles for approval	يُرسل الطلب إلى Tachles للموافقة	Запрос отправляется в Tachles на одобрение	La demande est envoyée à Tachles pour approbation	La solicitud se envía a Tachles para su aprobación
+היי, אשמח להמשיך להשתמש בתכל׳ס	Hi, I'd like to keep using Tachles	مرحبًا، أود مواصلة استخدام Tachles	Здравствуйте, хочу продолжить пользоваться Tachles	Bonjour, j'aimerais continuer à utiliser Tachles	Hola, me gustaría seguir usando Tachles
+היי, נרשמתי לתכל׳ס – אשמח לאישור	Hi, I signed up for Tachles – please approve me	مرحبًا، سجّلت في Tachles – أرجو الموافقة	Здравствуйте, я зарегистрировался в Tachles — прошу одобрить	Bonjour, je me suis inscrit à Tachles – merci de m'approuver	Hola, me registré en Tachles: agradecería la aprobación
+צוות תכל׳ס יאשר אותך בקרוב, ואז אפשר להתחיל	The Tachles team will approve you soon, and then you can start	سيوافق فريق Tachles عليك قريبًا، وبعدها يمكنك البدء	Команда Tachles скоро одобрит вас, и можно будет начать	L'équipe Tachles vous approuvera bientôt, et vous pourrez commencer	El equipo de Tachles te aprobará pronto y podrás empezar
 רוצה לזרז? שלח/י לנו הודעה	Want to speed it up? Send us a message	تريد التسريع؟ أرسل لنا رسالة	Хотите быстрее? Напишите нам	Pour accélérer, envoyez-nous un message	¿Quieres acelerarlo? Envíanos un mensaje
 שלח/י הודעה בוואטסאפ	Send a WhatsApp message	أرسل رسالة واتساب	Написать в WhatsApp	Envoyer un message WhatsApp	Enviar un WhatsApp
+המנהל קובע מי בכל רשימה	the manager decides who is in each list	يحدد المدير من في كل قائمة	менеджер решает, кто в каждом списке	le responsable décide qui est dans chaque liste	el responsable decide quién está en cada lista
+לעסק עם עובדים יש גם	For a business with employees there is also	للأعمال التي لديها موظفون يوجد أيضًا	Для бизнеса с сотрудниками есть также	Pour une entreprise avec des employés, il y a aussi	Para un negocio con empleados también existe
+לעסקים): מנהלים, רשימות לעסק, אישור הצטרפות ודוח משימות לפי עובד	Business): managers, business lists, join approval and a task report per employee	للأعمال): مديرون، قوائم للعمل، الموافقة على الانضمام وتقرير مهام لكل موظف	Бизнес): менеджеры, списки для бизнеса, одобрение вступления и отчёт по задачам каждого сотрудника	Entreprise) : responsables, listes d'entreprise, approbation des adhésions et rapport des tâches par employé	Empresas): responsables, listas del negocio, aprobación de altas e informe de tareas por empleado
+תמיד פרטית ורק אתה רואה אותה. ברשימות של	is always private and only you see it. In the lists of	خاصة دائمًا ولا يراها غيرك. في قوائم	всегда личный, и видите его только вы. В списках	est toujours privée et vous seul la voyez. Dans les listes de	es siempre privada y solo tú la ves. En las listas de
