@@ -2318,10 +2318,12 @@ function setupGoogleButton(tries){
     const redirect=/iPhone|iPad|iPod/.test(navigator.userAgent)||isStandalone();
     // קוד חד-פעמי: גוגל חותם אותו בתוך האישור, וכשחוזרים לאפליקציה בודקים שהוא זהה - הגנה מפני כניסה שלא יצאה מכאן
     let nonce=''; try{ nonce=crypto.getRandomValues(new Uint32Array(4)).join('-'); localStorage.setItem('tasks_gsi_nonce',nonce); }catch(e){}
-    google.accounts.id.initialize({client_id:GCAL_CLIENT_ID, callback:onGoogleCredential, ux_mode:redirect?'redirect':'popup', login_uri:STAFF_API+'/tasks/google-login-redirect', auto_select:false, cancel_on_tap_outside:true, nonce});
+    google.accounts.id.initialize({client_id:GCAL_CLIENT_ID, callback:onGoogleCredential, ux_mode:redirect?'redirect':'popup', login_uri:STAFF_API+'/tasks/google-login-redirect', auto_select:false, cancel_on_tap_outside:true, nonce, use_fedcm_for_prompt:true, context:'signin'});
     const box=document.createElement('div'); box.id='gsi-btn'; box.style.cssText='display:flex;justify-content:center;min-height:44px';
     host.replaceWith(box);
     google.accounts.id.renderButton(box,{theme:'outline',size:'large',text:'signin_with',shape:'rectangular',locale:curLang,width:276});
+    // כניסה בלחיצה אחת: Google מציעה "להמשיך כ…" עם החשבון שכבר מחובר במכשיר (אם אין – נשאר הכפתור)
+    setTimeout(()=>{ try{ let lo=false; try{ lo=!!sessionStorage.getItem('tk_lo'); }catch(x){} if(!lo&&document.getElementById('gsi-btn')) google.accounts.id.prompt(); }catch(e){} },600);
   }catch(e){ console.error('gsi', e); }
 }
 async function onGoogleCredential(resp){
@@ -2356,6 +2358,7 @@ function logout(){
     if(confirm('נכנסת בלי Google – אחרי התנתקות לא תוכל לחזור למשימות שלך.\n\nלחבר קודם חשבון Google? (אישור = לחבר)')){ showGuestLink(); return; }
     if(!confirm('להתנתק בכל זאת? המשימות שלך לא יהיו נגישות יותר.')) return;
   } else if(!confirm('להתנתק?')) return;
+  try{ sessionStorage.setItem('tk_lo','1'); google.accounts.id.disableAutoSelect(); }catch(e){}
   stopTasks(); TASKS_APP.auth().signOut();
 }
 function showTasksLogin(){
@@ -2872,7 +2875,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-04c';
+const APP_VERSION='2026-11-04d';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
