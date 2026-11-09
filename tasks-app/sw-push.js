@@ -3,8 +3,53 @@ const BASE = self.registration.scope; // הכתובת שבה הוא רשום - '
 const ICON = new URL('icon-v3-192.png', BASE).href;
 // מציג תזכורות שמגיעות מהשרת (FCM) - גם כשהאפליקציה סגורה.
 const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(self.navigator.userAgent || '');
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+// ── עבודה גם כשהשרת לא עונה (504) או כשהרשת חוסמת את הכתובת ──
+// דף האפליקציה: קודם מהרשת (כדי לקבל עדכונים), ואם אין תשובה תוך 4 שניות או שגיאה – מהעותק השמור.
+// קבצים קבועים (אייקונים, מילונים, ספריות Firebase): מהעותק השמור, ומתעדכנים ברקע.
+const CACHE = 'tachles-v1';
+const SHELL = BASE; // כתובת דף האפליקציה ('/' או '/tasks/')
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE).then((c) => fetch(SHELL, { cache: 'no-store' }).then((r) => { if (r.ok) return c.put(SHELL, r); })).catch(() => {}));
+});
+self.addEventListener('activate', (event) => event.waitUntil(Promise.all([
+  self.clients.claim(),
+  caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith('tachles-') && k !== CACHE).map((k) => caches.delete(k)))),
+])));
+const STATIC_EXT = /\.(png|svg|json|ico|woff2?)$/i;
+const CDN = /^https:\/\/(www\.gstatic\.com\/firebasejs\/|fonts\.(googleapis|gstatic)\.com\/|cdn\.jsdelivr\.net\/npm\/@tabler)/;
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (req.mode === 'navigate' && req.url.startsWith(BASE)) {
+    const path = url.pathname.slice(new URL(BASE).pathname.length);
+    if (path && !/^(index\.html)?$/.test(path)) return; // דפים אחרים (פרטיות וכו') – כרגיל
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      const net = fetch(req).then((r) => { if (r.ok) cache.put(SHELL, r.clone()); return r; });
+      const timeout = new Promise((res) => setTimeout(() => res(null), 4000));
+      try {
+        const r = await Promise.race([net, timeout]);
+        if (r && r.ok) return r;
+      } catch (e) {}
+      const cached = await cache.match(SHELL);
+      if (cached) return cached;
+      return net.catch(() => new Response('<meta charset="utf-8"><p style="font:18px sans-serif;text-align:center;margin-top:30vh">אין חיבור כרגע – נסה שוב בעוד רגע</p>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } }));
+    })());
+    return;
+  }
+  const same = req.url.startsWith(BASE) && STATIC_EXT.test(url.pathname) && !/manifest/.test(url.pathname);
+  if (same || CDN.test(req.url)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      const cached = await cache.match(req);
+      const net = fetch(req).then((r) => { if (r.ok || r.type === 'opaque') cache.put(req, r.clone()); return r; }).catch(() => null);
+      if (cached) { event.waitUntil(net); return cached; }
+      return (await net) || Response.error();
+    })());
+  }
+});
 
 self.addEventListener('push', (event) => {
   let payload = {};

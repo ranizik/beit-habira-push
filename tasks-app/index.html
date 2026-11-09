@@ -2875,7 +2875,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-04d';
+const APP_VERSION='2026-11-09a';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
