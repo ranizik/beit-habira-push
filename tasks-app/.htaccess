@@ -1,5 +1,5 @@
 <FilesMatch "(index\.html|manifest.*\.json|sw-push\.js)$">
-    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Cache-Control "no-cache, must-revalidate"
     Header set Pragma "no-cache"
     Header set Expires 0
 </FilesMatch>
@@ -8,3 +8,19 @@
 <Files ".ftp-deploy-sync-state.json">
     Require all denied
 </Files>
+
+# ── כותרות אבטחה (נוסף 17-11-2026) ──
+<IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Content-Security-Policy "upgrade-insecure-requests; frame-ancestors 'self'"
+    # המיקרופון חייב להישאר מאושר - זה הלב של האפליקציה
+    Header always set Permissions-Policy "microphone=(self), geolocation=(), camera=(), payment=(), usb=()"
+</IfModule>
+
+# גיבויי קוד - לא נגישים מהאינטרנט (נוסף 17-11-2026)
+<FilesMatch "(-before-|^htaccess-before-).*\.(html|txt|json)$">
+    Require all denied
+</FilesMatch>

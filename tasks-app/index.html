@@ -252,6 +252,7 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
   <div class="brand"><h1>תכל׳ס</h1><small>אמרת – זה נרשם</small></div>
   <button class="notif-status menu-btn" id="menu-btn" onclick="toggleHdrMenu(event)" aria-label="תפריט" aria-haspopup="true" aria-expanded="false"><span style="font-size:22px;line-height:1">☰</span><span class="menu-dot" id="menu-dot"></span></button>
   <div class="hdr-menu" id="hdr-menu" role="menu">
+    <button class="notif-status" id="share-btn" onclick="hdrGo(shareTachles)">💚 שתף את תכל׳ס</button>
     <button class="notif-status" id="notif-btn" onclick="hdrGo(requestNotify)">🔔 התראות</button>
     <button class="notif-status" id="gcal-status" onclick="hdrGo(gcalButton)">📅 חבר יומן</button>
     <button class="notif-status" id="org-btn" onclick="hdrGo(showOrg)" style="display:none">🏢 תכל׳ס לעסקים</button>
@@ -1188,7 +1189,7 @@ function showHelp(){
     document.getElementById('help-none').style.display=any?'none':'block'; };
 }
 // בפעם הראשונה אחרי הכניסה - המדריך נפתח לבד (פעם אחת בלבד)
-function maybeFirstHelp(){ try{ if(!localStorage.getItem('tk_help_seen')) setTimeout(()=>{ if(!document.getElementById('edit-modal')&&!document.getElementById('locked-ov')&&!document.getElementById('tasks-login')) showHelp(); },1500); }catch(e){} }
+function maybeFirstHelp(){ if(!firstDone()) return; /* 17-11-2026: משתמש חדש מקבל כרטיס משימה ראשונה במקום מודאל עזרה */ try{ if(!localStorage.getItem('tk_help_seen')) setTimeout(()=>{ if(!document.getElementById('edit-modal')&&!document.getElementById('locked-ov')&&!document.getElementById('tasks-login')) showHelp(); },1500); }catch(e){} }
 function showTerms(){
   document.getElementById('edit-modal')?.remove();
   const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
@@ -1349,6 +1350,32 @@ function setupMic() {
     if(heard && document.getElementById('f-name').value.trim()) addTask(true);
     else if(!micErr) document.getElementById('mic-status').textContent='לא נשמע כלום - לחץ על המיקרופון ונסה שוב';
   };
+}
+// ── משימה ראשונה מודרכת (נוסף 17-11-2026) ──
+const FIRST_EX={he:'לקנות חלב מחר ב-8',en:'Buy milk tomorrow at 8',ar:'شراء الحليب غدا الساعة 8',ru:'Купить молоко завтра в 8',fr:'Acheter du lait demain à 8h',es:'Comprar leche mañana a las 8'};
+function firstExample(){ return FIRST_EX[curLang]||FIRST_EX.he; }
+function firstDone(){ try{ return localStorage.getItem('tk_first_done')==='1'; }catch(e){ return true; } }
+function markFirstDone(){ try{ localStorage.setItem('tk_first_done','1'); }catch(e){} }
+function emptyStateHtml(){
+  if(firstDone()) return '<div class="empty">אין משימות — לחץ על המיקרופון ותגיד את הראשונה!</div>';
+  return '<div class="empty" style="padding:4px 0">'
+    +'<div style="background:#1E1B4B;color:#fff;border-radius:20px;padding:22px 18px;max-width:420px;margin:0 auto;text-align:center">'
+    +'<div style="font-size:18px;font-weight:800;margin-bottom:6px">נתחיל ממשימה אחת</div>'
+    +'<div style="font-size:14px;opacity:.85;line-height:1.6;margin-bottom:14px">לוחצים, אומרים משפט אחד — והיא נרשמת לבד, עם התאריך והשעה</div>'
+    +'<div data-notr style="background:rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;font-size:17px;font-weight:600;margin-bottom:16px">"'+escA(firstExample())+'"</div>'
+    +'<button onclick="tryFirstTask()" style="width:100%;height:52px;border:0;border-radius:14px;background:#FF5A5F;color:#fff;font-size:18px;font-weight:800;cursor:pointer;font-family:inherit">🎤 נסה עכשיו</button>'
+    +'</div></div>';
+}
+function tryFirstTask(){
+  const ex=firstExample();
+  let b=document.getElementById('tk-first-live');
+  if(!b){ b=document.createElement('div'); b.id='tk-first-live'; document.body.appendChild(b); }
+  b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:130px;z-index:9997;background:#1E1B4B;color:#fff;padding:14px 20px;border-radius:16px;font-size:18px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:92vw;text-align:center;direction:var(--dir,rtl);font-family:inherit';
+  b.textContent='תגיד/י עכשיו: "'+ex+'"';
+  try{ document.getElementById('mic-btn').scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){}
+  try{ if(!isRecording) toggleMic(); }catch(e){}
+  const close=()=>{ if(typeof isRecording!=='undefined' && isRecording) return setTimeout(close,500); b.remove(); };
+  setTimeout(close,1500);
 }
 function toggleMic(){if(!recognition)setupMic();if(!recognition)return;isRecording?recognition.stop():recognition.start();}
 function stopMic(){isRecording=false;document.getElementById('mic-btn').classList.remove('recording');document.getElementById('mic-icon').className='ti ti-microphone';}
@@ -1660,13 +1687,50 @@ async function showOrg(tab){
     const r=await orgApi('report');
     if(!r||!r.ok){ pane.textContent=(r&&r.error)||'שגיאה'; return; }
     const cell=(v,c)=>'<td style="border:0;text-align:center;padding:6px;font-weight:700;color:'+(v&&c?c:'#1E1B4B')+'">'+v+'</td>';
-    pane.innerHTML='<div style="font-size:12px;color:#5B5B76;margin-bottom:6px">משימות ברשימות הארגון, לפי מי שאחראי עליהן.</div>'
+    pane.innerHTML=orgSummary(r)+'<div style="font-size:12px;color:#5B5B76;margin-bottom:6px">משימות ברשימות הארגון, לפי מי שאחראי עליהן.</div>'
       +'<table style="width:100%;min-width:0;border-collapse:collapse;font-size:13px;table-layout:fixed"><thead><tr><th style="color:#5B5B76;border:0;background:#F4F3FB;font-size:12px;padding:6px;text-align:start;width:40%">עובד</th><th style="color:#5B5B76;border:0;background:#F4F3FB;font-size:12px;padding:6px;text-align:center">פתוחות</th><th style="color:#5B5B76;border:0;background:#F4F3FB;font-size:12px;padding:6px;text-align:center">באיחור</th><th style="color:#5B5B76;border:0;background:#F4F3FB;font-size:12px;padding:6px;text-align:center">בוצעו ב-7 ימים</th></tr></thead><tbody>'
-      +r.rows.map(x=>'<tr style="border-bottom:1px solid #EEEDF7"><td style="border:0;padding:6px"><span data-notr>'+escA(x.name)+'</span>'+(x.lists.length?'<div style="font-size:11px;color:#5B5B76" data-notr>'+x.lists.map(l=>escA(l.name)+': '+l.open+(l.overdue?' ('+l.overdue+'⚠)':'')).join(' · ')+'</div>':'')+'</td>'+cell(x.open)+cell(x.overdue,'#B42318')+cell(x.done7,'#0F6B3E')+'</tr>').join('')
+      +r.rows.map(x=>'<tr style="border-bottom:1px solid #EEEDF7"><td style="border:0;padding:6px"><span data-notr>'+escA(x.name)+'</span>'+(x.lists.length?'<div style="font-size:11px;color:#5B5B76" data-notr>'+x.lists.map(l=>escA(l.name)+': '+l.open+(l.overdue?' ('+l.overdue+'⚠)':'')).join(' · ')+'</div>':'')+orgBar(x.done7||0,Math.max(0,(x.open||0)-(x.overdue||0)),x.overdue||0)+'</td>'+cell(x.open)+cell(x.overdue,'#B42318')+cell(x.done7,'#0F6B3E')+'</tr>').join('')
       +'</tbody></table>'+(r.unassigned.open?'<div style="font-size:13px;margin-top:8px">📭 בלי אחראי: '+r.unassigned.open+' פתוחות'+(r.unassigned.overdue?', '+r.unassigned.overdue+' באיחור':'')+'</div>':'');
   }
 }
 // ניהול (בעל האפליקציה): אישור ארגונים
+// ── גרף ביצוע לארגונים (נוסף 17-11-2026) ──
+const ORG_C={done:'#0F6B3E',open:'#1E1B4B',late:'#B42318'};
+function pieSvg(parts,size){
+  const tot=parts.reduce((s,p)=>s+p.v,0); if(!tot) return '';
+  const R=size/2; let a0=-Math.PI/2, out='';
+  parts.forEach(p=>{ if(!p.v) return;
+    const a1=a0+(p.v/tot)*Math.PI*2;
+    if(p.v===tot){ out+='<circle cx="'+R+'" cy="'+R+'" r="'+R+'" fill="'+p.c+'"/>'; a0=a1; return; }
+    const x0=R+R*Math.cos(a0),y0=R+R*Math.sin(a0),x1=R+R*Math.cos(a1),y1=R+R*Math.sin(a1);
+    out+='<path d="M'+R+' '+R+' L'+x0.toFixed(2)+' '+y0.toFixed(2)+' A'+R+' '+R+' 0 '+((a1-a0)>Math.PI?1:0)+' 1 '+x1.toFixed(2)+' '+y1.toFixed(2)+' Z" fill="'+p.c+'"/>';
+    a0=a1; });
+  return '<svg viewBox="0 0 '+size+' '+size+'" width="'+size+'" height="'+size+'" aria-hidden="true">'+out+'<circle cx="'+R+'" cy="'+R+'" r="'+(R*0.56).toFixed(1)+'" fill="#fff"/></svg>';
+}
+function orgBar(done,openOk,late){
+  const t=done+openOk+late; if(!t) return '';
+  const p=v=>(v/t*100).toFixed(1)+'%';
+  return '<div style="display:flex;height:6px;border-radius:4px;overflow:hidden;background:#EEEDF7;margin-top:5px">'
+    +(done?'<div style="width:'+p(done)+';background:'+ORG_C.done+'"></div>':'')
+    +(openOk?'<div style="width:'+p(openOk)+';background:'+ORG_C.open+'"></div>':'')
+    +(late?'<div style="width:'+p(late)+';background:'+ORG_C.late+'"></div>':'')+'</div>';
+}
+function orgSummary(r){
+  const rows=r.rows||[]; let done=0,open=0,late=0;
+  rows.forEach(x=>{ done+=x.done7||0; open+=x.open||0; late+=x.overdue||0; });
+  if(r.unassigned){ open+=r.unassigned.open||0; late+=r.unassigned.overdue||0; }
+  const openOk=Math.max(0,open-late); if(!(done+openOk+late)) return '';
+  const pct=Math.round(done/((done+open)||1)*100);
+  const lg=(c,n,v)=>'<div style="display:flex;align-items:center;gap:6px;font-size:13px;margin:3px 0"><span style="width:10px;height:10px;border-radius:3px;background:'+c+';flex:none"></span><span style="flex:1">'+n+'</span><b data-notr>'+v+'</b></div>';
+  return '<div style="background:#F4F3FB;border-radius:14px;padding:12px;margin-bottom:12px">'
+    +'<div style="font-weight:700;margin-bottom:8px">תמונת ביצוע</div>'
+    +'<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">'
+    +'<div style="position:relative;flex:none">'+pieSvg([{v:done,c:ORG_C.done},{v:openOk,c:ORG_C.open},{v:late,c:ORG_C.late}],104)
+    +'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;color:#1E1B4B" data-notr>'+pct+'%</div></div>'
+    +'<div style="flex:1;min-width:150px">'
+    +lg(ORG_C.done,'בוצעו ב-7 ימים',done)+lg(ORG_C.open,'פתוחות',openOk)+lg(ORG_C.late,'באיחור',late)
+    +'</div></div></div>';
+}
 async function renderOrgAdmin(){
   const box=document.getElementById('org-admin'); if(!box) return;
   const j=await orgApi('admin-list'); if(!j||!j.ok){ box.innerHTML=''; return; }
@@ -1815,12 +1879,16 @@ let accOpen='', accLast=null, accAt=0, sumLast=null, sumAt=0;
 // ניהול מהיר: הנתונים נטענים מראש ברקע (במכשיר של בעל העסק), והפאנל נפתח מיד עם מה שכבר נטען ומתעדכן ברקע
 async function admPrefetch(){
   try{ const r=await TASKS_APP.auth().currentUser.getIdTokenResult(); if(!r.claims.gadmin) return; }catch(e){ return; }
-  accessApi('list').then(j=>{ if(j&&j.ok){ accLast=j; accAt=Date.now(); } });
-  statsApi('summary').then(j=>{ if(j&&j.ok){ sumLast=j; sumAt=Date.now(); } });
+  accessApi('list').then(j=>{ if(j&&j.ok){ accLast=j; accAt=Date.now(); admCacheSave('tk_adm_acc',j); } });
+  statsApi('summary').then(j=>{ if(j&&j.ok){ sumLast=j; sumAt=Date.now(); admCacheSave('tk_adm_sum',j); } });
 }
+// שמירת הנתונים האחרונים במכשיר - הפאנל נפתח מיד ומתעדכן ברקע (17-11-2026)
+function admCacheSave(k,j){ try{ localStorage.setItem(k,JSON.stringify({at:Date.now(),j})); }catch(e){} }
+function admCacheLoad(k){ try{ const c=JSON.parse(localStorage.getItem(k)||'null'); if(c&&c.j&&c.j.ok&&Date.now()-c.at<864e5) return c; }catch(e){} return null; }
 async function admSummary(onFresh){
-  if(sumLast){ if(Date.now()-sumAt>30000) statsApi('summary').then(j=>{ if(j&&j.ok){ sumLast=j; sumAt=Date.now(); onFresh&&onFresh(); } }); return sumLast; }
-  const j=await statsApi('summary'); if(j&&j.ok){ sumLast=j; sumAt=Date.now(); } return j;
+  if(!sumLast){ const c=admCacheLoad('tk_adm_sum'); if(c){ sumLast=c.j; sumAt=c.at; } }
+  if(sumLast){ if(Date.now()-sumAt>30000) statsApi('summary').then(j=>{ if(j&&j.ok){ sumLast=j; sumAt=Date.now(); admCacheSave('tk_adm_sum',j); onFresh&&onFresh(); } }); return sumLast; }
+  const j=await statsApi('summary'); if(j&&j.ok){ sumLast=j; sumAt=Date.now(); admCacheSave('tk_adm_sum',j); } return j;
 }
 // ניווט בתוך הניהול: כל מעבר (לשונית / משתמש) נשמר, וחץ "חזרה" - או כפתור החזרה של הטלפון - מחזיר צעד אחד בלי לצאת מהפאנל
 let admNav=[], admTab='users', admShow=null, admClosing=false;
@@ -2063,12 +2131,62 @@ function statsPing(){ statsApi('ping',{standalone:isStandalone(), platform:stats
 window.addEventListener('appinstalled', ()=>statsApi('event',{type:'install'}));
 
 // ניהול: שלוש לשוניות - משתמשים / נתונים / הגדרות
+// ── דורש טיפול + עוגת משתמשים + יצוא לאקסל (נוסף 17-11-2026) ──
+let admAcc=null, admB={};
+const ADM_DAY=864e5;
+function admIsActive(u){ return u.last && (Date.now()-u.last)<7*ADM_DAY; }
+function admTodoHtml(acc){
+  const us=(acc&&acc.users)||[]; if(!us.length) return '';
+  admB={ pending:us.filter(u=>u.pending), nostart:us.filter(u=>!u.pending&&!u.tasks),
+         dormant:us.filter(u=>!u.pending&&u.tasks&&!admIsActive(u)), ended:us.filter(u=>!u.pending&&!u.locked&&!u.allowed) };
+  const act=us.filter(u=>u.tasks&&admIsActive(u)).length, dor=admB.dormant.length, no=admB.nostart.length;
+  const pct=Math.round(act/(us.length||1)*100);
+  const lg=(c,n,v)=>'<div style="display:flex;align-items:center;gap:6px;font-size:13px;margin:3px 0"><span style="width:10px;height:10px;border-radius:3px;background:'+c+';flex:none"></span><span style="flex:1">'+n+'</span><b>'+v+'</b></div>';
+  const row=(k,n,l,c)=>'<div onclick="admToggle(\''+k+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid #EEEDF7;cursor:'+(n?'pointer':'default')+';opacity:'+(n?1:.45)+'"><b style="min-width:28px;font-size:18px;color:'+(n?c:'#8A88A8')+'">'+n+'</b><span style="flex:1;font-size:14px">'+l+'</span>'+(n?'<span style="color:#8A88A8;font-size:18px">‹</span>':'')+'</div><div id="todo-'+k+'" style="display:none"></div>';
+  return '<div style="background:#fff;border:1.5px solid #E2E1F0;border-radius:16px;padding:14px;margin-bottom:12px">'
+    +'<div style="font-weight:800;font-size:15px;color:#1E1B4B;margin-bottom:10px">דורש טיפול</div>'
+    +'<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px">'
+    +'<div style="position:relative;flex:none">'+pieSvg([{v:act,c:'#0F6B3E'},{v:dor,c:'#6366F1'},{v:no,c:'#B42318'}],104)
+    +'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;color:#1E1B4B">'+pct+'%</div></div>'
+    +'<div style="flex:1;min-width:150px">'+lg('#0F6B3E','פעילים השבוע',act)+lg('#6366F1','רדומים',dor)+lg('#B42318','לא התחילו',no)+'</div></div>'
+    +row('pending',admB.pending.length,'ממתינים לאישור שלך','#3730A3')
+    +row('nostart',no,'נרשמו ולא רשמו משימה','#B42318')
+    +row('dormant',dor,'לא נכנסו שבוע','#8A5A00')
+    +row('ended',admB.ended.length,'התוקף הסתיים','#B42318')
+    +'<button onclick="admCsv()" style="width:100%;height:44px;margin-top:12px;border:1.5px solid #E2E1F0;border-radius:12px;background:#F4F3FB;color:#1E1B4B;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer">⬇ הורד רשימה לאקסל</button>'
+    +'</div>';
+}
+function admToggle(k){
+  const box=document.getElementById('todo-'+k); const list=admB[k]||[]; if(!box||!list.length) return;
+  if(box.style.display!=='none'){ box.style.display='none'; return; }
+  const fm=u=>u.last?(new Date(u.last)).toLocaleDateString('he-IL'):'—';
+  box.innerHTML='<div style="padding:4px 2px 10px">'+list.map(u=>'<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px dashed #EEEDF7"><span data-notr>'+escA(u.name||u.email||'משתמש')+'</span><span style="color:#5B5B76" data-notr>'+fm(u)+'</span></div>').join('')+'</div>';
+  box.style.display='block';
+}
+function admCsv(){
+  const us=(admAcc&&admAcc.users)||[]; if(!us.length) return;
+  const d=t=>t?new Date(t).toLocaleDateString('he-IL'):'';
+  const st=u=>u.pending?'ממתין לאישור':u.locked?'נעול':!u.allowed?'הסתיים':'פעיל';
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const head=['שם','אימייל','נרשם','כניסה אחרונה','פתיחות','משימות','פתוחות','סטטוס'];
+  const rows=us.map(u=>[u.name||'',u.email||'',d(u.joined),d(u.last),u.opens||0,u.tasks||0,u.open||0,st(u)].map(q).join(','));
+  const csv='\ufeff'+[head.map(q).join(',')].concat(rows).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='tachles-users-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+}
 async function showStats(tab){
   const fresh=!admOpen(); // פתיחה חדשה (לא רענון של פאנל פתוח)
   tab=tab||(fresh?'users':admTab);
   if(fresh){ accOpen=''; admNav=[]; }
   // הניהול נפתח רק אחרי אימות עם חשבון Google של בעל העסק (פעם אחת במכשיר). קוד המנהל לבד לא מספיק
-  try{ const r=await TASKS_APP.auth().currentUser.getIdTokenResult(); if(!r.claims.gadmin){ showAdminVerify(); return; } }catch(e){}
+  // האימות נזכר במכשיר - אחרי הפעם הראשונה הפאנל נפתח מיד והבדיקה רצה ברקע (17-11-2026)
+  let admOK=false; try{ admOK=localStorage.getItem('tk_adm_ok')==='1'; }catch(e){}
+  if(!admOK){
+    try{ const r=await TASKS_APP.auth().currentUser.getIdTokenResult(); if(!r.claims.gadmin){ showAdminVerify(); return; } try{ localStorage.setItem('tk_adm_ok','1'); }catch(e){} }catch(e){}
+  } else {
+    TASKS_APP.auth().currentUser.getIdTokenResult().then(r=>{ if(!r||!r.claims||!r.claims.gadmin){ try{ localStorage.removeItem('tk_adm_ok'); }catch(e){} try{ admClose(); }catch(e){} showAdminVerify(); } }).catch(()=>{});
+  }
   document.getElementById('edit-modal')?.remove();
   const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal'; ov.dataset.admin='1'; ov.dataset.notr=''; ov.dir='rtl'; ov.style.setProperty('--dir','rtl'); // הניהול נשאר בעברית
   if(fresh) try{ history.pushState({adm:1},''); }catch(e){}
@@ -2090,7 +2208,7 @@ async function showStats(tab){
   const j=await admSummary(()=>{ if(admOpen()&&admTab==='stats') showStats('stats'); });
   const body=document.getElementById('st-body'); if(!body) return;
   if(!j||!j.ok){ body.textContent='לא ניתן לטעון נתונים'+(j&&j.error?': '+j.error:''); return; }
-  const card=(label,val,sub)=>'<div style="background:#f5f5f5;border-radius:8px;padding:8px 10px"><div style="font-size:11px;color:#666">'+label+'</div><div style="font-size:22px;font-weight:700;color:#222">'+val+'</div>'+(sub?'<div style="font-size:11px;color:#888">'+sub+'</div>':'')+'</div>';
+  const card=(label,val,sub)=>'<div style="background:#fff;border:1.5px solid #E2E1F0;border-radius:14px;padding:10px 12px"><div style="font-size:12px;color:#5B5B76;font-weight:600">'+label+'</div><div style="font-size:26px;font-weight:800;color:#1E1B4B;line-height:1.25">'+val+'</div>'+(sub?'<div style="font-size:11px;color:#8A88A8">'+sub+'</div>':'')+'</div>';
   const grid=a=>'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px">'+a.join('')+'</div>';
   // הגרפים מתחילים מהיום הראשון שיש בו נתונים (לפחות 7 ימים), כדי שלא יהיו ריקים ברובם
   const CK=['visitors','active','newUsers','tasks'];
@@ -2104,12 +2222,14 @@ async function showStats(tab){
       +cDays.map(d=>'<div title="'+d.day.split('-').reverse().join('/')+': '+d[key]+'" style="flex:1;background:'+color+';height:'+Math.round(d[key]/max*100)+'%;min-height:'+(d[key]?2:0)+'px;border-radius:2px 2px 0 0"></div>').join('')+'</div>'
       +'<div style="display:flex;justify-content:space-between;font-size:10px;color:#999;direction:ltr"><span>'+cDays[0].day.slice(5).split('-').reverse().join('/')+'</span><span>היום</span></div>';
   };
+  try{ const ac=admCacheLoad('tk_adm_acc'); admAcc=accLast||(ac?ac.j:null)||await accessApi('list'); }catch(e){ admAcc=null; }
   const U=j.users, I=j.installs, S=j.usage;
   const plat={iphone:'אייפון',android:'אנדרואיד',desktop:'מחשב'};
   const since=j.trackingSince?j.trackingSince.split('-').reverse().join('/'):'היום';
   const V=j.visits||{total:0,today:0,d7:0,d30:0,todayNew:0,fromHome:0}, td=j.days[j.days.length-1]||{};
   body.innerHTML=
-    grid([card('פעילים היום',td.active||0), card('פעילים השבוע',U.active7,'ב-30 יום: '+U.active30), card('משתמשים רשומים',U.total,'חדשים השבוע: '+U.new7), card('פתחו את הקישור היום',V.today)])
+    admTodoHtml(admAcc)+
+    grid([card('פעילים היום',td.active||0), card('פעילים השבוע',U.active7,'ב-30 יום: '+U.active30), card('משתמשים רשומים',U.total,'חדשים השבוע: '+U.new7)])
     +dependHtml(j)
     +activityHtml(j.activity||[])
     +'<details style="margin-top:14px;border:1.5px solid #E2E1F0;border-radius:14px;padding:4px 12px"><summary style="cursor:pointer;font-weight:700;font-size:14px;padding:8px 0">עוד נתונים</summary>'
@@ -2180,17 +2300,17 @@ function dependHtml(j){
     +box(D.tasksPerActiveDay,'משימות ליום','למשתמש ביום שהוא פעיל')+'</div>'
     +'<div style="font-size:12px;margin:6px 0 0;color:'+lvl[1]+';font-weight:600">'+lvl[0]+'</div>'
     +pctChart
-    +'<div style="font-weight:600;margin:16px 0 2px">📝 משימות לפי משתמש <span style="color:#888;font-weight:400">(14 ימים, כל עמודה = יום)</span></div>'+rows;
+    +'<details style="margin-top:14px;border:1.5px solid #E2E1F0;border-radius:14px;padding:4px 12px"><summary style="cursor:pointer;font-weight:700;font-size:14px;padding:8px 0">📝 משימות לפי משתמש <span style="color:#888;font-weight:400">(14 ימים, כל עמודה = יום)</span></summary>'+rows+'</details>';
 }
 // מי נכנס ומתי - 14 הימים האחרונים
 function activityHtml(days){
   const dayName=k=>{ const [y,m,d]=k.split('-').map(Number), dt=new Date(y,m-1,d), t=new Date(); t.setHours(0,0,0,0);
     const diff=Math.round((t-dt)/864e5); return diff===0?'היום':diff===1?'אתמול':dt.toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'numeric'}); };
-  return '<div style="font-weight:600;margin:16px 0 6px">🕒 מי נכנס ומתי <span style="color:#888;font-weight:400">(14 ימים אחרונים)</span></div>'
+  return '<details style="margin-top:14px;border:1.5px solid #E2E1F0;border-radius:14px;padding:4px 12px"><summary style="cursor:pointer;font-weight:700;font-size:14px;padding:8px 0">🕒 מי נכנס ומתי <span style="color:#888;font-weight:400">(14 ימים אחרונים)</span></summary>'
     +(days.length?days.map(d=>'<div style="border:1.5px solid #E2E1F0;border-radius:12px;padding:8px 10px;margin-bottom:6px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">'+dayName(d.day)+' · '+d.people.length+' משתמשים</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:6px">'+d.people.map(p=>'<span style="background:#F4F3FB;border-radius:999px;padding:3px 10px;font-size:12px">'+escA(p.name||'משתמש')+(p.at?' <b style="color:#1E1B4B">'+fmtT(p.at)+'</b>':'')+'</span>').join('')+'</div></div>').join('')
       :'<div style="color:#888;font-size:12px">אין כניסות ב-14 הימים האחרונים</div>')
-    +'<div style="font-size:11px;color:#999;margin:4px 0 8px">השעה = הכניסה האחרונה באותו יום.</div>';
+    +'<div style="font-size:11px;color:#999;margin:4px 0 8px">השעה = הכניסה האחרונה באותו יום.</div></details>';
 }
 
 // ── התקנה לטלפון בקיצור: לחיצה אחת באנדרואיד, הנחיה עם חץ באייפון, ואחרי ההתקנה – לחיצה אחת להתראות ──
@@ -2247,6 +2367,21 @@ function notifNudge(){
 }
 window.addEventListener('appinstalled',()=>document.getElementById('inst-bar')?.remove());
 // ברקוד להורדה – להראות למישהו לידך או לשלוח
+// שיתוף האפליקציה לחבר (נוסף 18-11-2026)
+const SHARE_TXT={
+ he:'תכל׳ס – אומרים משימה בקול והיא נרשמת לבד, עם תאריך ושעה. שווה לנסות: ',
+ en:'Tachles – say a task out loud and it saves itself, with date and time. Worth a try: ',
+ ar:'تخلس – قل المهمة بصوتك وتُحفظ وحدها، مع التاريخ والوقت. جرّبها: ',
+ ru:'Tachles – скажите задачу вслух, и она сохранится сама, с датой и временем. Попробуйте: ',
+ fr:'Tachles – dites une tâche à voix haute, elle s’enregistre seule, avec date et heure. À essayer : ',
+ es:'Tachles – di una tarea en voz alta y se guarda sola, con fecha y hora. Pruébala: '};
+async function shareTachles(){
+  const url=APP_URL+'?i=1';
+  const txt=(SHARE_TXT[curLang]||SHARE_TXT.he)+url;
+  if(navigator.share){ try{ await navigator.share({text:txt}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+  try{ await navigator.clipboard.writeText(txt); showToast('הקישור הועתק ✓'); return; }catch(e){}
+  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener');
+}
 function showQr(){
   document.getElementById('edit-modal')?.remove();
   const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='edit-modal';
@@ -2264,7 +2399,7 @@ function showQr(){
 function startTasks(u){
   if(tasksStarted) return;
   if(u.uid==='staff-tasks' || /^ranizik@gmail\.com$/i.test(u.email||'')) markAdminDevice();
-  curUser=u; registerPush(true); setTimeout(showMovedBanner,1500); setTimeout(maybeGuestNudge,4000); checkConsent(); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp(); setTimeout(syncLangFromServer,2500); if(isAdminDevice()) setTimeout(admPrefetch,3000); loadOrg().then(handleOrgJoinLink); setTimeout(notifNudge,3000);
+  curUser=u; registerPush(true); setTimeout(showMovedBanner,1500); setTimeout(maybeGuestNudge,4000); checkConsent(); watchLists(); gcalServerStatus(); statsPing(); checkAccess(); maybeFirstHelp(); setTimeout(syncLangFromServer,2500); if(isAdminDevice()) setTimeout(admPrefetch,600); loadOrg().then(handleOrgJoinLink); setTimeout(notifNudge,3000);
   const ob=document.getElementById('org-btn'); if(ob) ob.style.display='';
   const sb=document.getElementById('stats-btn'); if(sb) sb.style.display = u.uid==='staff-tasks' ? '' : 'none';
   curList=null; tasksRef=listTasksRef(null); tasksStarted=true; subscribeTasks(); renderLists();
@@ -2756,14 +2891,15 @@ function render(){
   const esc=x=>String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const dk=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   const today=dk(new Date()), tmr=dk(new Date(Date.now()+864e5)), yst=dk(new Date(Date.now()-864e5));
-  const isLate=t=>!t.done&&t.date&&due(t)<nowMs;
+  const endDate=t=>(t.date2&&t.date&&t.date2>t.date)?t.date2:t.date;
+  const isLate=t=>!t.done&&t.date&&due({date:endDate(t),time:t.time})<nowMs;
   const dayTxt=t=>!t.date?'':t.date===today?'היום':t.date===tmr?'מחר':t.date===yst?'אתמול':new Date(t.date+'T12:00').toLocaleDateString(LOC(),{weekday:'short',day:'numeric',month:'numeric'});
   const repTxt={daily:'כל יום',weekly:'כל שבוע',monthly:'כל חודש'};
   let altN=0; // רקע לסירוגין
   const card=t=>{
     const late=isLate(t), alt=(altN++)%2===1;
     const lchip=allView?'<span class="lchip'+(t._l==='me'?' mine':'')+'"><span data-notr>'+(t._l==='me'?'🔒 ':(isOrgList(t._l)?'🏢 ':'👥 '))+esc(listNameOf(t._l))+'</span></span>':'';
-    const meta=[lchip,(!t.done&&t.pri==='high')?'<b style="color:#DC2626">דחוף</b>':(!t.done&&t.pri==='med')?'<b style="color:#B45309">בינוני</b>':'', late?'באיחור':'', [t.date&&t.date!==today?dayTxt(t):'', t.time||''].filter(Boolean).join(' '), (t.cat&&!curCat)?esc(t.cat):'', t.rep?'🔁 '+(repTxt[t.rep]||''):'', (curList&&t.by)?'מאת '+esc(t.by):'', (curList&&t.who&&t.who.uid)?'<b style="color:#4338CA">👤 '+(curUser&&t.who.uid===curUser.uid?'עליי':esc(t.who.name))+'</b>':''].filter(Boolean).join(' · ');
+    const meta=[lchip,(!t.done&&t.pri==='high')?'<b style="color:#DC2626">דחוף</b>':(!t.done&&t.pri==='med')?'<b style="color:#B45309">בינוני</b>':'', late?'באיחור':'', [(t.date2&&t.date&&t.date2>t.date)?(dayTxt(t)+' – '+dayTxt({date:t.date2})):(t.date&&t.date!==today?dayTxt(t):''), t.time||''].filter(Boolean).join(' '), (t.cat&&!curCat)?esc(t.cat):'', t.rep?'🔁 '+(repTxt[t.rep]||''):'', (curList&&t.by)?'מאת '+esc(t.by):'', (curList&&t.who&&t.who.uid)?'<b style="color:#4338CA">👤 '+(curUser&&t.who.uid===curUser.uid?'עליי':esc(t.who.name))+'</b>':''].filter(Boolean).join(' · ');
     const sel=selectMode&&selected.has(t.id);
     return '<div class="card'+(alt?' alt':'')+(t.done?' done':'')+(late?' late':'')+(sel?' sel':'')+'">'
       +(selectMode
@@ -2777,14 +2913,16 @@ function render(){
       +'</div>';
   };
   const open=list.filter(t=>!t.done), doneL=list.filter(t=>t.done);
-  const groups=[['באיחור',open.filter(isLate),'late'],['היום',open.filter(t=>!isLate(t)&&t.date===today),''],['מחר',open.filter(t=>t.date===tmr),''],['בהמשך',open.filter(t=>t.date&&t.date>tmr),''],['בלי תאריך',open.filter(t=>!t.date),'']];
+  const effD=t=>(t.date2&&t.date&&t.date<=today&&today<=t.date2)?today:t.date;
+  const groups=[['באיחור',open.filter(isLate),'late'],['היום',open.filter(t=>!isLate(t)&&effD(t)===today),''],['מחר',open.filter(t=>effD(t)===tmr),''],['בהמשך',open.filter(t=>effD(t)&&effD(t)>tmr),''],['בלי תאריך',open.filter(t=>!t.date),'']];
   let html='';
   groups.forEach(([title,arr,cls])=>{ if(arr.length) html+='<div class="sec '+cls+'">'+title+'</div>'+arr.map(card).join(''); });
   if(doneL.length){
     if(showDone||q||selectMode) html+='<div class="sec">בוצעו</div>'+doneL.map(card).join('')+(q||selectMode?'':'<button class="more-done" onclick="showDone=false;render()">הסתר משימות שבוצעו</button>');
     else html+='<button class="more-done" onclick="showDone=true;render()">'+doneL.length+' משימות שבוצעו ←</button>';
   }
-  document.getElementById('tbl-body').innerHTML = list.length ? html : '<div class="empty">אין משימות — לחץ על המיקרופון ותגיד את הראשונה!</div>';
+  if(!firstDone() && Object.keys(tasks).length){ markFirstDone(); try{ showToast('המשימה הראשונה שלך נרשמה 🎉'); }catch(e){} }
+  document.getElementById('tbl-body').innerHTML = list.length ? html : emptyStateHtml();
   const g=document.getElementById('greet');
   if(g){
     const h=new Date().getHours(), hi=h<5?'לילה טוב':h<12?'בוקר טוב':h<17?'צהריים טובים':h<21?'ערב טוב':'לילה טוב';
@@ -2815,7 +2953,7 @@ function editTask(id) {
   overlay.innerHTML = `
     <div class="modal">
       <h3>ערוך משימה</h3>
-      <input type="text" id="e-name" value="${t.name}" placeholder="שם המשימה"/>
+      <input type="text" id="e-name" value="${escA(t.name)}" placeholder="שם המשימה"/>
       <select id="e-pri">
         <option value="low" ${t.pri==='low'||!t.pri?'selected':''}>⚪ לא דחוף</option>
         <option value="med" ${t.pri==='med'?'selected':''}>🟡 בינוני</option>
@@ -2823,7 +2961,7 @@ function editTask(id) {
       </select>
       <select id="e-cat" onchange="onCatSelect(this)">${catOptions(t.cat||'')}</select>
       <label class="fld"><span>📋 רשימה</span><select id="e-list"></select></label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="fld"><span>📅 תאריך</span><input type="date" id="e-date" value="${t.date||''}"/></label><label class="fld"><span>🕐 שעה</span><input type="time" id="e-time" value="${t.time||''}"/></label></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="fld"><span>📅 תאריך</span><input type="date" id="e-date" value="${t.date||''}"/></label><label class="fld"><span>🕐 שעה</span><input type="time" id="e-time" value="${t.time||''}"/></label><label class="fld"><span>📅 עד תאריך</span><input type="date" id="e-date2" value="${t.date2||''}" min="${t.date||''}"/></label></div>
       <select id="e-who" style="${locOf(id).lid?'':'display:none'}">${whoOptions((t.who&&t.who.uid)||'',locOf(id).lid)}</select>
       <select id="e-rep"><option value="">🔁 לא חוזרת</option><option value="daily">🔁 כל יום</option><option value="weekly">🔁 כל שבוע</option><option value="monthly">🔁 כל חודש</option></select>
       <textarea id="e-notes" rows="4" placeholder="📝 פרטים נוספים (כתובת, טלפון, מה להביא...)" style="width:100%;padding:8px 10px;border:1px solid #b0b0b0;border-radius:4px;font-size:14px;margin-bottom:10px;font-family:inherit;resize:vertical"></textarea>
@@ -2850,6 +2988,7 @@ function saveEdit(id) {
   const upd = {
     name, pri: document.getElementById('e-pri').value,
     date: document.getElementById('e-date').value,
+    date2: (()=>{ const e=document.getElementById('e-date2'), d=document.getElementById('e-date').value; const v=e?e.value:''; return (v&&d&&v>d)?v:''; })(),
     time: document.getElementById('e-time').value,
     cat: (document.getElementById('e-cat').value==='__new'?'':document.getElementById('e-cat').value),
     notes: document.getElementById('e-notes').value.trim().slice(0,2000),
@@ -2875,7 +3014,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-09a';
+const APP_VERSION='2026-11-18a';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
