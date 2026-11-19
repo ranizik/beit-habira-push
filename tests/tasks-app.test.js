@@ -148,3 +148,38 @@ test('טווח תאריכים בדיבור: "מ... עד ..." נשמר כתארי
   assert.equal(p2.date2, null); assert.equal(p2.time, '10:00');
   assert.equal(parse('לקנות מלפפונים').date2, null, 'מילה שמתחילה ב-מ לא מבלבלת');
 });
+
+test('טווח תאריכים בדיבור: ה"א הידיעה, "תאריך", "בין ... ל..." וימים בלי חודש', () => {
+  const inMonth = (d, day) => { assert.equal(d.getDate(), day); };
+
+  // ה"א הידיעה - כך הכתיב מופיע בפועל בהכתבה בעברית
+  const a = parse('ספירת מלאי מה-20 עד ה-24 בנובמבר');
+  assert.ok(a.date && a.date2, '"מה-20 עד ה-24" לא זוהה');
+  assert.equal(a.cleanText, 'ספירת מלאי');
+  inMonth(a.date, 20); inMonth(a.date2, 24);
+
+  // המילה "תאריך" באמצע
+  const b = parse('ספירת מלאי מתאריך 20 עד תאריך 24 בנובמבר');
+  assert.ok(b.date && b.date2, '"מתאריך ... עד תאריך ..." לא זוהה');
+  assert.equal(b.cleanText, 'ספירת מלאי');
+
+  // "בין ... ל..."
+  const c = parse('ספירת מלאי בין 20 ל-24 בנובמבר');
+  assert.ok(c.date && c.date2, '"בין 20 ל-24" לא זוהה');
+  assert.equal(c.cleanText, 'ספירת מלאי');
+  const d = parse('חופשה בין יום ראשון ליום רביעי');
+  assert.ok(d.date && d.date2 && d.date2 > d.date, '"בין יום ראשון ליום רביעי" לא זוהה');
+  assert.equal(d.cleanText, 'חופשה');
+
+  // ימים בלי חודש, כשצד אחד מסומן כתאריך
+  const e = parse('חוג מ-23 עד ה-27');
+  assert.ok(e.date && e.date2, '"מ-23 עד ה-27" לא זוהה');
+  inMonth(e.date, 23); inMonth(e.date2, 27);
+  assert.equal(e.cleanText, 'חוג');
+  assert.ok(e.date >= new Date(new Date().setHours(0, 0, 0, 0)), 'תאריך עתידי, לא בעבר');
+
+  // בלי סימון תאריך - כמות, לא טווח
+  assert.equal(parse('להזמין מ-6 עד 12 בקבוקים').date2, null, 'כמות לא הופכת לטווח');
+  assert.equal(parse('חוג מ-23 עד 27').date2, null, 'בלי סימון תאריך אין טווח');
+  assert.equal(parse('לעבוד בין הערביים').date2, null, '"בין" לבדה לא יוצרת טווח');
+});
