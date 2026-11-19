@@ -947,13 +947,17 @@ function parseHebrewDateTime(text, noRange) {
         const aRaw=tk.slice(i-al,i).join(' ');
         if (!/^מ[־-]?/.test(aRaw)) continue;
         const aPre=aRaw.replace(/^מ[־-]?\s*/,''), A=bare(aPre);
-        if (!A) continue;
+        // "לנסוע לחו״ל מה עד ה-23" – המיקרופון בלע את תאריך ההתחלה. נשארה רק "מ"/"מה",
+        // והכוונה היא מהיום.
+        const aEmpty=!A || A==='ה';
+        if (aEmpty && al>1) continue;
         for (let bl=Math.min(3,tk.length-i-1); bl>=1 && !rngA; bl--) {
           const bPre=tk.slice(i+1,i+1+bl).join(' ').replace(/^ל[־-]?\s*/,''), B=bare(bPre);
           if (!B) continue;
-          const pa=whole(A), pb=whole(B);
+          const pa=aEmpty?null:whole(A), pb=whole(B);
           let da=pa&&pa.date, db=pb&&pb.date;
-          const nA=num(A), nB=num(B);
+          const nA=aEmpty?null:num(A), nB=num(B);
+          if (aEmpty && db) da=new Date(now.getFullYear(), now.getMonth(), now.getDate());
           if(!da && nA && db && nA>=1 && nA<=31){
             da=new Date(db.getFullYear(), db.getMonth(), nA);
             if(da>db) da=new Date(db.getFullYear(), db.getMonth()-1, nA);
@@ -1015,7 +1019,7 @@ function parseHebrewDateTime(text, noRange) {
       if(!m[4]&&mm<today.getMonth()) yy++;
       let d=new Date(yy,mm,1); if(d<today) d=new Date(today);
       date=d; text=text.replace(m[0],m[1]);
-    } else if((m=text.match(/(^|\s)(?:ב-?)?(\d{1,2})\s+(?:לחודש|בחודש)(\s+הבא)?(?=\s|$|[,.])/))){
+    } else if((m=text.match(/(^|\s)(?:[בה]-?)?(\d{1,2})\s+(?:לחודש|בחודש)(\s+הבא)?(?=\s|$|[,.])/))){
       const dd=+m[2]; let d=new Date(today.getFullYear(),today.getMonth()+(m[3]?1:0),dd); if(d<today) d=new Date(today.getFullYear(),today.getMonth()+1,dd);
       if(dd>=1&&dd<=31){ date=d; text=text.replace(m[0],m[1]); }
     } else if((m=text.match(/(^|\s)בעוד\s+(?:(\d{1,3}|אחד|אחת|שניים|שתיים|שני|שתי|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|תשעה|תשע|עשרה|עשר)\s+)?(יום|יומיים|ימים|שבוע|שבועיים|שבועות|חודש|חודשיים|חודשים)(?=\s|$|[,.])/))){
@@ -1052,6 +1056,8 @@ function parseHebrewDateTime(text, noRange) {
   clean = clean.replace(/\d{1,2}[\/\.]\d{1,2}/g,'');
   if (rngA){ date=rngA; date2=rngB; }   // הטווח גובר על זיהוי של תאריך בודד
   if (rep && !date) date = new Date(now);
+  // "לנסוע לחו״ל עד ה-23" – אחרי שהתאריך יצא, נשארת מילת קישור יתומה בשם
+  if (date) clean = clean.replace(/\s*(?:עד|ועד|מ|מה)\s*$/,'').replace(/(^|\s)(?:עד|ועד)\s+(?=$)/,'$1');
   return {cleanText: clean.trim().replace(/\s+/g,' '), date, date2, time, rep};
 }
 // ── זיהוי תאריך/שעה/חזרתיות/דחיפות/אחראי בשפות נוספות (en/ar/ru/fr/es) – אותה תוצאה כמו המפענח העברי ──
@@ -3331,7 +3337,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-19j';
+const APP_VERSION='2026-11-19k';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
