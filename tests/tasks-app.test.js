@@ -287,3 +287,25 @@ test('מסלול הדיבור: טווח שנאמר בקול מגיע עד המש
   api.applyParsed(api.parseHebrewDateTime('לקנות חלב מחר'));
   assert.equal(api.d2, '', 'משימה בלי טווח מנקה את הסיום');
 });
+
+// "מה-22" נשמע בהכתבה כמו "מאה עשרים ושתיים" וההכתבה כותבת 122. קרה בפועל פעמיים.
+test('הכתבה: "מה-22 לדצמבר" שנשמע כ-122', () => {
+  const a = parse('לנסוע לחול 122 לדצמבר עד ה-30 לדצמבר');
+  assert.ok(a.date && a.date2, '122 לפני שם חודש לא פוענח כ-"מה-22"');
+  assert.equal(a.date.getDate(), 22);
+  assert.equal(a.date.getMonth(), 11);
+  assert.equal(a.date2.getDate(), 30);
+  assert.equal(a.cleanText, 'לנסוע לחול');
+
+  const b = parse('חוג ל-123 עד ה-27');
+  assert.ok(b.date && b.date2, '123 לפני "עד" לא פוענח כ-"מה-23"');
+  assert.equal(b.date.getDate(), 23);
+  assert.equal(b.date2.getDate(), 27);
+  assert.equal(b.cleanText, 'חוג');
+
+  // מספרים תלת-ספרתיים שהם כמות - לא נוגעים בהם
+  assert.equal(parse('להזמין 122 בקבוקים').date, null);
+  assert.equal(parse('להזמין 122 בקבוקים').cleanText, 'להזמין 122 בקבוקים');
+  assert.equal(parse('לשלם 199 שקל').date, null);
+  assert.equal(parse('לספור 150 ארגזים').date, null);
+});
