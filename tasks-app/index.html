@@ -174,9 +174,11 @@ tbody td:last-child{border-right:none;}
 .cal-d.cal-over{background:#FFF1F1}
 .cal-lift{opacity:.3}
 .cal-ghost{font-family:inherit;font-size:12px;border:1.5px solid #C3BDFB;border-radius:10px;background:#fff;padding:5px 8px;max-width:70vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.cal-grip{touch-action:none;cursor:grab;flex:none;color:#9A97C9;font-size:15px;line-height:1;
-  padding:3px 4px;margin-inline-start:-2px;user-select:none;-webkit-user-select:none;align-self:center}
-.cal-grip:active{cursor:grabbing;color:var(--coral)}
+.cal-grip{touch-action:none;cursor:grab;flex:none;align-self:stretch;min-height:22px;width:20px;
+  display:grid;place-items:center;border-radius:6px;background:#EBE8FA;color:#6F6AB0;
+  font-size:13px;line-height:1;user-select:none;-webkit-user-select:none;margin-inline-start:-2px}
+.cal-grip:active{cursor:grabbing;background:var(--coral);color:#fff}
+.cal-drag > .cal-grip{min-height:38px;width:22px;font-size:15px}
 .cal-drag{display:flex;align-items:center;gap:2px}
 .cal-drag > .card{flex:1;min-width:0}
 .cal-r{cursor:default}
@@ -3119,7 +3121,7 @@ function calHtml(list, card, c){
       const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i), s=calKey(d);
       const on=list.filter(t=>calCovers(t,s));
       const rows=on.length?on.map(t=>'<div class="cal-r'+(t.done?' ok':'')+(c.isLate(t)?' bad':'')+'" data-tid="'+t.id+'">'
-          +'<span class="cal-grip" aria-hidden="true">⁙</span>'
+          +'<span class="cal-grip" aria-hidden="true">⠿</span>'
           +'<button type="button" class="cal-box" aria-label="'+(t.done?'סמן כפתוחה':'סמן כבוצעה')+'" onclick="event.stopPropagation();toggle(\''+t.id+'\')">'+(t.done?'✓':'')+'</button>'
           +'<button type="button" class="cal-t" data-notr onclick="event.stopPropagation();rowClick(\''+t.id+'\')">'+escA(t.name||'')+(t.time?' <span class="cal-time">'+escA(t.time)+'</span>':'')+'</button>'
           +((t.date2&&t.date2>t.date&&t.date!==s)?'<span class="cal-cont">המשך</span>':'')
@@ -3134,7 +3136,9 @@ function calHtml(list, card, c){
   }
   const on=list.filter(t=>calCovers(t,calPick));
   h+='<div class="sec">'+(calPick===today?'היום':c.dayTxt({date:calPick}))+'</div>';
-  const wrap=t=>'<div class="cal-drag" data-tid="'+t.id+'"><span class="cal-grip" aria-hidden="true">⁙</span>'+card(t)+'</div>';
+  try{ if(!localStorage.getItem('tk_drag_hint') && list.some(x=>x.date)){ localStorage.setItem('tk_drag_hint','1');
+    setTimeout(()=>{ try{ showToast('\u283f גוררים משימה ליום אחר מהנקודות שבצד'); }catch(e){} },900); } }catch(e){}
+  const wrap=t=>'<div class="cal-drag" data-tid="'+t.id+'"><span class="cal-grip" aria-hidden="true">⠿</span>'+card(t)+'</div>';
   h+= on.length ? on.map(wrap).join('') : '<div class="empty">אין משימות ביום הזה</div>';
   const nod=list.filter(t=>!t.date&&!t.done);
   if(nod.length) h+='<div class="sec">בלי תאריך</div>'+nod.map(wrap).join('');
@@ -3279,7 +3283,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-19f';
+const APP_VERSION='2026-11-19g';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
