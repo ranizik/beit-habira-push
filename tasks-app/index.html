@@ -169,6 +169,13 @@ tbody td:last-child{border-right:none;}
 .cal-time{font-size:9.5px;color:var(--muted)}
 .cal-cont{font-size:9px;color:var(--coral);font-weight:700;flex:none;margin-top:2px}
 .cal-none{font-size:10.5px;color:var(--muted);opacity:.6}
+/* גרירת משימה ליום אחר */
+.cal-over{outline:3px solid var(--coral);outline-offset:-2px;background:#FFF1F1}
+.cal-d.cal-over{background:#FFF1F1}
+.cal-lift{opacity:.3}
+.cal-ghost{font-family:inherit;font-size:12px;border:1.5px solid #C3BDFB;border-radius:10px;background:#fff;padding:5px 8px;max-width:70vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cal-r,.cal-drag{cursor:grab}
+.cal-dragging,.cal-dragging *{cursor:grabbing !important}
 
 body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:var(--ink);}
 .app{max-width:640px;margin:0 auto;padding-bottom:40px;}
@@ -1241,6 +1248,7 @@ const HELP_CONTENT={he:[
   • <b>רשימה</b> – כמו תמיד: באיחור · היום · מחר · בהמשך · בלי תאריך<br>
   • <b>חודש</b> – לוח חודשי. בכל יום נקודה לכל משימה לפי דחיפות (🔴 דחוף · 🟡 בינוני · אדום = באיחור · ירוק = בוצע). פס קורל מתחת ליום = משימה שנמשכת כמה ימים. לחיצה על יום פותחת את המשימות שלו למטה<br>
   • <b>שבוע</b> – שבע משבצות עם שמות המשימות בפנים. סימון <b>בוצע</b> ישירות בתיבה, ולחיצה על שם המשימה פותחת אותה לעריכה. "המשך" מסמן יום באמצע טווח<br>
+  <b>להעביר משימה ליום אחר:</b> לחיצה ארוכה על המשימה (כחצי שנייה) מרימה אותה, גוררים ליום הרצוי ומשחררים. משימה שנמשכת כמה ימים זזה כולה ושומרת על האורך.<br>
   החיפוש והקטגוריות עובדים גם ביומן.</div>`],
   ['📅 חיבור ליומן Google וסמסונג',`<div>לוחצים <b>📅</b> ובוחרים חשבון Google (אם מופיע "לא מאומת": מתקדם ← המשך). מעכשיו כל משימה עם תאריך נכנסת ל-Google Tasks.<br>
   <b>יומן של סמסונג:</b> 📅 ← מסמנים "גם כאירוע ביומן" ← מאשרים. המשימות יופיעו ביומן עם צלצול בשעת המשימה.</div><div style="margin-top:6px">לניתוק: <b>📅</b> ← "נתק".</div>`]]},
@@ -2991,6 +2999,85 @@ function calMove(n){
   render();
 }
 function calDot(t,isLate){ return isLate(t)?'late':t.done?'done':(t.pri==='high'?'high':t.pri==='med'?'med':'low'); }
+// ── גרירת משימה ליום אחר ביומן (נוסף 19-11-2026) ──
+// לחיצה ארוכה מרימה את המשימה, גוררים ומשחררים על יום. עובד גם במגע וגם בעכבר,
+// כי מנגנון הגרירה המובנה של הדפדפן לא נתמך בטלפונים.
+let dgStart=null, dgId=null, dgGhost=null, dgTimer=null, dgOver=null, dgOn=false, dgScroll=0;
+function dgClear(){
+  if(dgTimer){ clearTimeout(dgTimer); dgTimer=null; }
+  if(dgGhost){ dgGhost.remove(); dgGhost=null; }
+  if(dgOver){ dgOver.classList.remove('cal-over'); dgOver=null; }
+  document.querySelectorAll('.cal-lift').forEach(e=>e.classList.remove('cal-lift'));
+  document.body.classList.remove('cal-dragging');
+  document.body.style.touchAction='';
+  if(dgScroll){ cancelAnimationFrame(dgScroll); dgScroll=0; }
+  dgStart=null; dgId=null; dgOn=false;
+}
+function dgLift(x,y){
+  if(!dgStart) return;
+  const src=dgStart.src, r=src.getBoundingClientRect();
+  dgId=dgStart.id; dgOn=true;
+  const g=document.createElement('div');
+  g.className='cal-ghost';
+  g.textContent=(tasks[dgId]&&tasks[dgId].name)||'';
+  g.style.position='fixed'; g.style.left='0'; g.style.top='0'; g.style.pointerEvents='none'; g.style.zIndex='99999';
+  document.body.appendChild(g); dgGhost=g;
+  dgGhost._dx=Math.min(x-r.left, 120); dgGhost._dy=(y-r.top);
+  src.classList.add('cal-lift');
+  document.body.classList.add('cal-dragging');
+  document.body.style.touchAction='none';
+  try{ if(navigator.vibrate) navigator.vibrate(15); }catch(e){}
+  dgTo(x,y);
+}
+function dgTo(x,y){
+  if(!dgGhost) return;
+  dgGhost.style.transform='translate('+(x-dgGhost._dx)+'px,'+(y-dgGhost._dy)+'px)';
+  const el=document.elementFromPoint(x,y);
+  const day=el&&el.closest?el.closest('[data-day]'):null;
+  if(day!==dgOver){ if(dgOver) dgOver.classList.remove('cal-over'); dgOver=day; if(day) day.classList.add('cal-over'); }
+  const top=y<90, bot=y>window.innerHeight-90;
+  if((top||bot)&&!dgScroll){
+    const step=()=>{ if(!dgOn){ dgScroll=0; return; } window.scrollBy(0, top?-12:12); dgScroll=requestAnimationFrame(step); };
+    dgScroll=requestAnimationFrame(step);
+  } else if(!top&&!bot&&dgScroll){ cancelAnimationFrame(dgScroll); dgScroll=0; }
+}
+function calMoveTask(id, toDay){
+  const t=tasks[id]; if(!t||!toDay||t.date===toDay) return;
+  const upd={date:toDay};
+  if(t.date&&t.date2&&t.date2>t.date){
+    const span=Math.round((calParse(t.date2)-calParse(t.date))/864e5);
+    const e=calParse(toDay); e.setDate(e.getDate()+span); upd.date2=calKey(e);
+  }
+  refOf(id).update(upd);
+  try{ syncGtask({...t,...upd}); }catch(e){}
+  calPick=toDay; calCursor=toDay.slice(0,7);
+  const p=toDay.split('-');
+  showToast('הועבר ל-'+p[2].replace(/^0/,'')+'.'+p[1].replace(/^0/,''));
+}
+document.addEventListener('pointerdown',e=>{
+  if(typeof calView==='undefined'||calView==='list') return;
+  if(e.pointerType==='mouse'&&e.button!==0) return;
+  if(e.target.closest('.cal-box,.tick,.cact,.cal-nav')) return;
+  const src=e.target.closest('[data-tid]'); if(!src) return;
+  dgClear();
+  dgStart={x:e.clientX,y:e.clientY,src,id:src.getAttribute('data-tid')};
+  dgTimer=setTimeout(()=>dgLift(e.clientX,e.clientY),400);
+});
+document.addEventListener('pointermove',e=>{
+  if(dgOn){ e.preventDefault(); dgTo(e.clientX,e.clientY); return; }
+  if(dgStart&&(Math.abs(e.clientX-dgStart.x)>10||Math.abs(e.clientY-dgStart.y)>10)){ clearTimeout(dgTimer); dgTimer=null; dgStart=null; }
+},{passive:false});
+document.addEventListener('pointerup',()=>{
+  if(dgOn){
+    const to=dgOver&&dgOver.getAttribute('data-day'), id=dgId;
+    document.addEventListener('click',ev=>{ ev.stopPropagation(); ev.preventDefault(); },{capture:true,once:true});
+    dgClear();
+    if(id&&to) calMoveTask(id,to);
+    return;
+  }
+  dgClear();
+});
+document.addEventListener('pointercancel',dgClear);
 function calHtml(list, card, c){
   const today=c.today;
   if(!calPick) calPick=today;
@@ -3010,7 +3097,7 @@ function calHtml(list, card, c){
     for(let i=0;i<42;i++){
       const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i), s=calKey(d);
       const on=list.filter(t=>calCovers(t,s));
-      h+='<button class="cal-d'+(d.getMonth()!==m?' out':'')+(s===today?' now':'')+(s===calPick?' on':'')+'" onclick="calPickDay(\''+s+'\')">'
+      h+='<button class="cal-d'+(d.getMonth()!==m?' out':'')+(s===today?' now':'')+(s===calPick?' on':'')+'" data-day="'+s+'" onclick="calPickDay(\''+s+'\')">'
         +'<span class="cal-n" data-notr>'+d.getDate()+'</span>'
         +'<span class="cal-dots">'+on.slice(0,4).map(t=>'<i class="cal-dot '+calDot(t,c.isLate)+'"></i>').join('')+'</span>'
         +(on.some(t=>t.date2&&t.date2>t.date)?'<span class="cal-span"></span>':'')+'</button>';
@@ -3023,13 +3110,13 @@ function calHtml(list, card, c){
     for(let i=0;i<7;i++){
       const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i), s=calKey(d);
       const on=list.filter(t=>calCovers(t,s));
-      const rows=on.length?on.map(t=>'<div class="cal-r'+(t.done?' ok':'')+(c.isLate(t)?' bad':'')+'">'
+      const rows=on.length?on.map(t=>'<div class="cal-r'+(t.done?' ok':'')+(c.isLate(t)?' bad':'')+'" data-tid="'+t.id+'">'
           +'<button type="button" class="cal-box" aria-label="'+(t.done?'סמן כפתוחה':'סמן כבוצעה')+'" onclick="event.stopPropagation();toggle(\''+t.id+'\')">'+(t.done?'✓':'')+'</button>'
           +'<button type="button" class="cal-t" data-notr onclick="event.stopPropagation();rowClick(\''+t.id+'\')">'+escA(t.name||'')+(t.time?' <span class="cal-time">'+escA(t.time)+'</span>':'')+'</button>'
           +((t.date2&&t.date2>t.date&&t.date!==s)?'<span class="cal-cont">המשך</span>':'')
           +'</div>').join('')
         :'<div class="cal-none">אין משימות</div>';
-      h+='<div class="cal-c'+(s===today?' now':'')+(s===calPick?' on':'')+'" role="button" tabindex="0" onclick="calPickDay(\''+s+'\')">'
+      h+='<div class="cal-c'+(s===today?' now':'')+(s===calPick?' on':'')+'" data-day="'+s+'" role="button" tabindex="0" onclick="calPickDay(\''+s+'\')">'
         +'<div class="cal-h"><span data-notr>'+d.toLocaleDateString(LOC(),{weekday:'long'})+'</span>'
         +'<span class="cal-num" data-notr>'+d.getDate()+'.'+(d.getMonth()+1)+'</span></div>'
         +'<div class="cal-b">'+rows+'</div></div>';
@@ -3038,9 +3125,10 @@ function calHtml(list, card, c){
   }
   const on=list.filter(t=>calCovers(t,calPick));
   h+='<div class="sec">'+(calPick===today?'היום':c.dayTxt({date:calPick}))+'</div>';
-  h+= on.length ? on.map(t=>card(t)).join('') : '<div class="empty">אין משימות ביום הזה</div>';
+  const wrap=t=>'<div class="cal-drag" data-tid="'+t.id+'">'+card(t)+'</div>';
+  h+= on.length ? on.map(wrap).join('') : '<div class="empty">אין משימות ביום הזה</div>';
   const nod=list.filter(t=>!t.date&&!t.done);
-  if(nod.length) h+='<div class="sec">בלי תאריך</div>'+nod.map(t=>card(t)).join('');
+  if(nod.length) h+='<div class="sec">בלי תאריך</div>'+nod.map(wrap).join('');
   return h;
 }
 function render(){
@@ -3182,7 +3270,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-19d';
+const APP_VERSION='2026-11-19e';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
