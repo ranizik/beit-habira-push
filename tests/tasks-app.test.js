@@ -185,6 +185,31 @@ test('טווח תאריכים בדיבור: ה"א הידיעה, "תאריך", "�
   assert.equal(parse('לעבוד בין הערביים').date2, null, '"בין" לבדה לא יוצרת טווח');
 });
 
+test('"עד ה-23 לחודש": ה"א הידיעה, שם נקי בלי "עד", והתחלה שהמיקרופון בלע', () => {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+
+  // ה"א הידיעה לפני "לחודש" - לא זוהה בכלל עד 19k
+  const a = parse('לשלם ה-23 לחודש');
+  assert.equal(a.date && a.date.getDate(), 23);
+  assert.equal(a.cleanText, 'לשלם');
+
+  // מילת "עד" לא נשארת בשם המשימה
+  assert.equal(parse('לנסוע לחו"ל עד 23 בנובמבר').cleanText, 'לנסוע לחו"ל');
+  assert.equal(parse('להגיש דוח עד מחר').cleanText, 'להגיש דוח');
+  assert.equal(parse('לנסוע לחו"ל עד יום ראשון').cleanText, 'לנסוע לחו"ל');
+
+  // "מה עד ה-23" - ההכתבה בלעה את תאריך ההתחלה, הכוונה מהיום
+  const b = parse('לנסוע לחול מה עד ה-23 לחודש');
+  assert.ok(b.date && b.date2, 'לא זוהה טווח');
+  assert.equal(ymd(b.date), ymd(today), 'ההתחלה היא היום');
+  assert.equal(b.date2.getDate(), 23);
+  assert.equal(b.cleanText, 'לנסוע לחול');
+
+  // "מה" כמילה רגילה לא הופכת לטווח
+  assert.equal(parse('לבדוק מה קרה').date, null);
+  assert.equal(parse('לבדוק מה קרה').cleanText, 'לבדוק מה קרה');
+});
+
 test('תאריכים שנאמרים במילים: "בעשרים בנובמבר", "מחמישה עשר לדצמבר"', () => {
   const day = (r) => r.date && r.date.getDate();
 
