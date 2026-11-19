@@ -904,18 +904,33 @@ function parseHebrewDateTime(text, noRange) {
   if (!noRange) {
     const DOW_ONLY=/^(?:יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)$/;
     const prep=x=>DOW_ONLY.test(x)?('ביום '+x.replace(/^יום\s+/,'')):x;
+    // "מתאריך 20", "מה-20", "ל-ה-24" – מילות קישור שאפשר להתעלם מהן
+    const bare=x=>x.replace(/^תאריך\s+/,'').replace(/^ה[־-]?(?=\d)/,'').trim();
+    const mark=x=>/^ה[־-]?\d/.test(x)||/^תאריך\s/.test(x);
     const whole=x=>{ const r=parseHebrewDateTime(prep(x), true); return (r.date && !r.cleanText.trim()) ? r : null; };
     const num=x=>/^\d{1,2}$/.test(x)?+x:null;
+    // "בין 20 ל-24 בנובמבר" / "בין יום ראשון ליום רביעי" → מנוסח מחדש כ-"מ... עד ..."
+    { const t0=text.split(/\s+/).filter(Boolean), bi=t0.indexOf('בין');
+      if (bi>=0 && bi+2<t0.length) {
+        for (let j=bi+2; j<Math.min(t0.length,bi+5); j++) {
+          const m=t0[j].match(/^ל[־-]?(.+)$/);
+          if (m && /^(?:תאריך$|ה[־-]?\d|\d|יום$|ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)/.test(m[1])) {
+            text=t0.slice(0,bi).concat(['מ-'+t0[bi+1]], t0.slice(bi+2,j), ['עד', m[1]], t0.slice(j+1)).join(' ');
+            break;
+          }
+        }
+      }
+    }
     const tk=text.split(/\s+/).filter(Boolean);
     for (let i=1; i<tk.length-1 && !rngA; i++) {
       if (tk[i]!=='עד' && tk[i]!=='ועד') continue;
       for (let al=Math.min(3,i); al>=1 && !rngA; al--) {
         const aRaw=tk.slice(i-al,i).join(' ');
         if (!/^מ[־-]?/.test(aRaw)) continue;
-        const A=aRaw.replace(/^מ[־-]?\s*/,'');
+        const aPre=aRaw.replace(/^מ[־-]?\s*/,''), A=bare(aPre);
         if (!A) continue;
         for (let bl=Math.min(3,tk.length-i-1); bl>=1 && !rngA; bl--) {
-          const B=tk.slice(i+1,i+1+bl).join(' ').replace(/^ל[־-]?\s*/,'');
+          const bPre=tk.slice(i+1,i+1+bl).join(' ').replace(/^ל[־-]?\s*/,''), B=bare(bPre);
           if (!B) continue;
           const pa=whole(A), pb=whole(B);
           let da=pa&&pa.date, db=pb&&pb.date;
@@ -925,6 +940,15 @@ function parseHebrewDateTime(text, noRange) {
             if(da>db) da=new Date(db.getFullYear(), db.getMonth()-1, nA);
           }
           if(!db && nB && da && nB>=1 && nB<=31){
+            db=new Date(da.getFullYear(), da.getMonth(), nB);
+            if(db<da) db=new Date(da.getFullYear(), da.getMonth()+1, nB);
+          }
+          // "מ-23 עד ה-27" – שני הצדדים מספר יום בלי חודש. רק אם אחד הצדדים
+          // סומן כתאריך ("ה-27" / "תאריך 27"), אחרת "מ-2 עד 5 ארגזים" ייתפס בטעות.
+          if(!da && !db && nA && nB && nA<=31 && nB<=31 && (mark(aPre)||mark(bPre))){
+            const t0=new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            da=new Date(t0.getFullYear(), t0.getMonth(), nA);
+            if(da<t0) da=new Date(t0.getFullYear(), t0.getMonth()+1, nA);
             db=new Date(da.getFullYear(), da.getMonth(), nB);
             if(db<da) db=new Date(da.getFullYear(), da.getMonth()+1, nB);
           }
@@ -1223,7 +1247,7 @@ const HELP_CONTENT={he:[
   ['📲 התקנה במסך הבית',`<div><b>אנדרואיד (Chrome):</b> תפריט ⋮ ← "התקן אפליקציה" / "הוסף למסך הבית".<br><b>אייפון (רק Safari):</b> כפתור השיתוף (ריבוע עם חץ) ← "הוסף למסך הבית".<br>נפתח מתוך וואטסאפ? ⋯ ← "פתח ב-Chrome / Safari".</div>`]]},
  {c:'📝 משימות',items:[
   ['🎙️ יצירת משימה בדיבור',`<div>לוחצים על <b>המיקרופון האדום</b>, אומרים את המשימה ומפסיקים לדבר. אחרי כ-2 שניות היא נוספת לבד.</div>
-  <div class="ex">"לקנות ביצים <b>מחר ב-10</b>" ← מחר 10:00<br>"להתקשר לספק <b>ביום חמישי בשלוש וחצי</b>" ← חמישי 15:30<br>"לשלם חשבון <b>ב-15 בנובמבר</b>" ← 15/11<br>"ספירת מלאי <b>מ-20 עד 24 בנובמבר</b>" ← משימה שנמשכת כמה ימים<br>"לבדוק מלאי <b>בעוד שבוע</b>" · "<b>בעוד 3 ימים</b>" · "<b>שבוע הבא</b>"<br>"לקנות ביצים <b>לבית</b>" ← קטגוריה בית<br>"…<b>דחוף</b>" ← 🔴 דחוף · "…<b>לא דחוף</b>" ← לא דחוף<br>"להשקות עציצים <b>כל יום</b>" ← משימה חוזרת (גם כל שבוע / כל חודש)<br>"לקנות בלונים <b>באחריות נוגה</b>" ← ברשימה משותפת</div>
+  <div class="ex">"לקנות ביצים <b>מחר ב-10</b>" ← מחר 10:00<br>"להתקשר לספק <b>ביום חמישי בשלוש וחצי</b>" ← חמישי 15:30<br>"לשלם חשבון <b>ב-15 בנובמבר</b>" ← 15/11<br>"ספירת מלאי <b>מ-20 עד 24 בנובמבר</b>" ← משימה שנמשכת כמה ימים (גם "מה-20 עד ה-24", "בין 20 ל-24")<br>"לבדוק מלאי <b>בעוד שבוע</b>" · "<b>בעוד 3 ימים</b>" · "<b>שבוע הבא</b>"<br>"לקנות ביצים <b>לבית</b>" ← קטגוריה בית<br>"…<b>דחוף</b>" ← 🔴 דחוף · "…<b>לא דחוף</b>" ← לא דחוף<br>"להשקות עציצים <b>כל יום</b>" ← משימה חוזרת (גם כל שבוע / כל חודש)<br>"לקנות בלונים <b>באחריות נוגה</b>" ← ברשימה משותפת</div>
   <div>אפשר לשלב: "להזמין קולה לעבודה מחר ב-10 דחוף".<br>שעה 1–6 בלי "בבוקר" = אחר הצהריים ("ב-3" = 15:00).<br>אם לא אמרת דחיפות, יופיע חלון קטן <b>"דחוף?"</b>. בלי תשובה תוך 8 שניות המשימה נשארת לא דחופה.</div>`],
   ['⌨️ יצירת משימה בהקלדה',`<div>כותבים בשדה "או כתוב משימה…" ולוחצים <b>"+ הוסף"</b> (או Enter). כל הכללים של הדיבור עובדים גם בכתב.<br>מתחת אפשר לבחור ידנית <b>דחיפות, קטגוריה, תאריך ושעה</b>, ויש כפתורים מהירים: היום · מחר · מחרתיים · בעוד שבוע · ✕.</div>`],
   ['✏️ עריכה, מחיקה וסידור',`<div>המשימות מסודרות לפי: <b>באיחור</b> (באדום) · היום · מחר · בהמשך · בלי תאריך.<br>
@@ -3288,7 +3312,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-19h';
+const APP_VERSION='2026-11-19i';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
