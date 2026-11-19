@@ -2109,10 +2109,13 @@ window.addEventListener('popstate',()=>{
 async function renderAccessAdmin(cached, quick){
   const box=document.getElementById('acc-body'); if(!box) return;
   if(!cached) renderOrgAdmin();
+  // אחרי רענון של הדף accLast ריק. בלי זה לשונית המשתמשים נתקעת על "טוען..."
+  // עד שהשרת עונה - לוקחים את העותק מהמכשיר ומרעננים ברקע.
+  if(!accLast){ const c=admCacheLoad('tk_adm_acc'); if(c){ accLast=c.j; accAt=c.at; } }
   let j;
   if(accLast&&(cached||quick)){ j=accLast;
-    if(quick&&Date.now()-accAt>15000) accessApi('list').then(x=>{ if(x&&x.ok){ accLast=x; accAt=Date.now(); if(document.getElementById('acc-body')) renderAccessAdmin(true); } }); }
-  else { j=await accessApi('list'); if(j&&j.ok){ accLast=j; accAt=Date.now(); } }
+    if(quick&&Date.now()-accAt>15000) accessApi('list').then(x=>{ if(x&&x.ok){ accLast=x; accAt=Date.now(); admCacheSave('tk_adm_acc',x); if(document.getElementById('acc-body')) renderAccessAdmin(true); } }); }
+  else { j=await accessApi('list'); if(j&&j.ok){ accLast=j; accAt=Date.now(); admCacheSave('tk_adm_acc',j); } }
   if(!j||!j.ok){ box.textContent='לא ניתן לטעון משתמשים'+(j&&j.error?': '+j.error:''); return; }
   const C=j.config;
   const badge=u=>{
@@ -3372,7 +3375,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-19o';
+const APP_VERSION='2026-11-19p';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
