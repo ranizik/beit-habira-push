@@ -112,3 +112,39 @@ test('קטגוריה ודחיפות מהמשפט', () => {
   assert.deepEqual(pri('לסדר מחסן בינוני'), ['לסדר מחסן', 'med']);
   assert.deepEqual(pri('לתקן את המדף הנמוך'), ['לתקן את המדף הנמוך', '']);
 });
+
+test('טווח תאריכים בדיבור: "מ... עד ..." נשמר כתאריך התחלה וסיום', () => {
+  const r1 = parse('ספירת מלאי מ-20 עד 24 בנובמבר');
+  assert.ok(r1.date && r1.date2, 'לא זוהה טווח');
+  assert.equal(r1.cleanText, 'ספירת מלאי', 'שם המשימה נשאר נקי');
+  assert.equal(r1.date.getDate(), 20);
+  assert.equal(r1.date2.getDate(), 24);
+  assert.equal(r1.date.getMonth(), 10, 'החודש מושלם מהצד השני');
+  assert.equal(r1.date2.getMonth(), 10);
+
+  const r2 = parse('מהיום עד מחר לסדר את המחסן');
+  assert.equal(ymd(r2.date), plusDays(0));
+  assert.equal(ymd(r2.date2), plusDays(1));
+  assert.equal(r2.cleanText, 'לסדר את המחסן');
+
+  const r3 = parse('חופשה מ-1.12 עד 5.12');
+  assert.equal(r3.date.getDate(), 1);
+  assert.equal(r3.date2.getDate(), 5);
+  assert.equal(r3.cleanText, 'חופשה');
+
+  const r4 = parse('שיפוצים מיום ראשון עד רביעי');
+  assert.ok(r4.date && r4.date2 && r4.date2 > r4.date, 'ימי שבוע: הסוף אחרי ההתחלה');
+  assert.equal(r4.cleanText, 'שיפוצים');
+
+  const r5 = parse('ספירה מ-20 עד 24 בנובמבר בשעה 8');
+  assert.equal(r5.time, '08:00', 'השעה נשמרת גם כשיש טווח');
+  assert.equal(r5.cleanText, 'ספירה');
+
+  // לא טווח: שמות מקומות ומשפטים רגילים לא נפגעים
+  const p1 = parse('לנסוע מתל אביב עד חיפה');
+  assert.equal(p1.date, null); assert.equal(p1.date2, null);
+  assert.equal(p1.cleanText, 'לנסוע מתל אביב עד חיפה');
+  const p2 = parse('להזמין יין מחר ב-10');
+  assert.equal(p2.date2, null); assert.equal(p2.time, '10:00');
+  assert.equal(parse('לקנות מלפפונים').date2, null, 'מילה שמתחילה ב-מ לא מבלבלת');
+});
