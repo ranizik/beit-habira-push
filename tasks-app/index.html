@@ -878,6 +878,11 @@ function normalizeHebrewTime(text) {
     const mn='(?:ינואר|פברואר|מרץ|מרס|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)';
     s = s.replace(new RegExp('(^|\\s)(מה|לה|[במלה])?-?('+kw+')(?=\\s+(?:[בל]?'+mn+'|לחודש|בחודש)(?=\\s|$|[,.]))','g'),
       (all,sp,pre,w)=> sp+(pre?pre+'-':'')+DAY_WORDS[w.replace(/\s+/g,' ')]);
+
+    // "מה-22" נשמע בהכתבה בדיוק כמו "מאה עשרים ושתיים" – ההכתבה כותבת 122.
+    // מספר תלת-ספרתי 1XX לפני שם חודש / "לחודש" / "עד" הוא תמיד "מה-XX".
+    s = s.replace(new RegExp('(^|\\s)(?:מה|[במלה])?-?1(\\d{2})(?!\\d)(?=\\s+(?:[בל]?'+mn+'|לחודש|בחודש|עד|ועד)(?=\\s|$|[,.]))','g'),
+      (all,sp,dd)=> (+dd>=1 && +dd<=31) ? sp+'מ-'+dd : all);
   }
   const words = Object.keys(HEB_NUMS).sort((a,b)=>b.length-a.length).join('|');
   // דקות: "וחצי", "ורבע", "ו-9 דקות", "ותשע", "ועשרים וחמש", "4 09"
@@ -1338,6 +1343,7 @@ function showHelp(){
     +'<input id="help-q" type="search" autocomplete="off" placeholder="'+U.search+'" style="width:100%;box-sizing:border-box;margin:0 0 6px">'
     +'<div id="help-list">'+C.map((g,gi)=>'<div class="help-cat" style="margin-top:10px"><div style="font-size:12px;font-weight:700;color:#5B5B76;letter-spacing:.3px">'+g.c+'</div>'
       +g.items.map((x,i)=>'<details'+(gi===0&&i===0?' open':'')+'><summary>'+x[0]+'</summary><div class="hb">'+x[1]+'</div></details>').join('')+'</div>').join('')+'</div>'
+    +micVoiceLogHtml()
     +'<div id="help-none" style="display:none;color:#5B5B76;font-size:14px;padding:14px 0">'+U.none+'</div>'
     +'<a href="'+waLink(contact,U.supportMsg)+'" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:14px;padding:11px;border-radius:12px;background:#E7F8EF;color:#0F6B3E;font-weight:700;text-decoration:none">'+U.support+'</a>'
     +'<div class="modal-btns" style="margin-top:12px"><button class="btn-save" onclick="document.getElementById(\'edit-modal\').remove()">'+U.ok+'</button></div></div>';
@@ -1448,6 +1454,23 @@ function applyParsed(parsed) {
 // ── Mic ──
 let micGotFinal=false, micLastInterim='', micSilence=null, micMax=null, micErr=false;
 const MIC_SILENCE_MS=2300; // שקט של כ-2 שניות = סיימת לדבר (הפסקה קצרה בין מילים לא עוצרת)
+// שומר את 3 ההכתבות האחרונות כפי שהמיקרופון שמע אותן - מוצג בתחתית מסך העזרה,
+// כדי שאפשר יהיה לראות מה באמת נקלט כשמשימה לא יוצאת כמו שציפית.
+function micSaveRaw(t){
+  try{
+    const a=JSON.parse(localStorage.getItem('tk_voice_log')||'[]');
+    a.push({t:Date.now(), s:String(t||'').slice(0,300)});
+    localStorage.setItem('tk_voice_log', JSON.stringify(a.slice(-3)));
+  }catch(e){}
+}
+function micVoiceLogHtml(){
+  let a=[]; try{ a=JSON.parse(localStorage.getItem('tk_voice_log')||'[]'); }catch(e){}
+  if(!a.length) return '';
+  const hhmm=ms=>{ const d=new Date(ms); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
+  return '<details style="margin-top:14px"><summary style="font-size:12px;color:#5B5B76">מה המיקרופון שמע בפעמים האחרונות</summary>'
+    +'<div class="hb" style="font-size:12px">'+a.slice().reverse().map(x=>'<div style="margin-bottom:4px" data-notr>'+hhmm(x.t)+' · «'+escA(x.s)+'»</div>').join('')
+    +'<div style="color:#5B5B76;margin-top:6px">זה הטקסט המדויק שהגיע מההכתבה, לפני שתכל׳ס הוציא ממנו תאריכים.</div></div></details>';
+}
 function micMerge(a,b){
   const A=(a||'').replace(/\s+/g,' ').trim(), B=(b||'').replace(/\s+/g,' ').trim();
   if(!A) return micDedupe(B); if(!B) return micDedupe(A);
@@ -1510,6 +1533,7 @@ function setupMic() {
   recognition.onend=()=>{
     clearTimeout(micSilence); clearTimeout(micMax);
     // בחלק מהטלפונים (במיוחד אייפון) לא מגיעה תוצאה "סופית" - משתמשים בתוצאה האחרונה
+    if(micLastInterim) micSaveRaw(micLastInterim);
     if(!micGotFinal&&micLastInterim) applyParsed(parseDateTime(micLastInterim));
     const heard=(micGotFinal||micLastInterim)&&!micErr;
     stopMic();
@@ -3344,7 +3368,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-19m';
+const APP_VERSION='2026-11-19n';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
