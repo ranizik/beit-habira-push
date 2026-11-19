@@ -130,6 +130,43 @@ tbody td:last-child{border-right:none;}
 
 /* ══ עיצוב "תכל׳ס" – כחול לילה + קורל ══ */
 :root{--navy:#1E1B4B;--coral:#FF5A5F;--bg:#F4F3FB;--ink:#1A1A2E;--muted:#5B5B76;--line:#E2E1F0;--soft:#C7C5F0;}
+/* ── תצוגת יומן: חודש ושבוע (נוסף 19-11-2026) ── */
+.cal-nav{display:flex;align-items:center;gap:8px;margin:2px 0 10px}
+.cal-nav .cal-m{flex:1;text-align:center;font-weight:700;color:var(--navy);font-size:15px}
+.cal-nav button{height:34px;min-width:34px;padding:0 10px;border-radius:11px;border:1.5px solid var(--line);background:#fff;color:var(--navy);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.cal-dow span{text-align:center;font-size:11px;font-weight:600;color:var(--muted)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-d{position:relative;aspect-ratio:1/1;border:1.5px solid var(--line);border-radius:11px;background:#fff;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;cursor:pointer;font-family:inherit;color:var(--ink);font-size:13px}
+.cal-d.out{opacity:.35}
+.cal-d.now{border-color:var(--coral);border-width:2px}
+.cal-d.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.cal-d .cal-n{font-weight:600;line-height:1}
+.cal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
+.cal-dot{width:6px;height:6px;border-radius:50%}
+.cal-dot.high{background:#DC2626}.cal-dot.med{background:#B45309}.cal-dot.low{background:var(--soft)}
+.cal-dot.late{background:#E5484D}.cal-dot.done{background:#0F6B3E}
+.cal-span{height:4px;border-radius:2px;background:var(--coral);width:100%;margin-top:auto}
+.cal-d.on .cal-span{background:#fff}
+.cal-week{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.cal-c{border:1.5px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;text-align:start;padding:0;cursor:pointer;font-family:inherit;display:block;width:100%}
+.cal-c.now{border-color:var(--coral);border-width:2px}
+.cal-c.on{border-color:var(--navy);border-width:2px;box-shadow:0 2px 10px rgba(30,27,75,.14)}
+.cal-h{background:var(--navy);color:#fff;font-size:11.5px;font-weight:700;padding:5px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.cal-h .cal-num{opacity:.8;font-weight:600}
+.cal-c.now .cal-h{background:var(--coral)}
+.cal-b{padding:5px 7px 7px;display:flex;flex-direction:column;gap:3px;min-height:62px}
+.cal-r{display:flex;align-items:flex-start;gap:5px;font-size:11.5px;line-height:1.3;border-bottom:1px solid #EFEEF8;padding-bottom:3px}
+.cal-r:last-child{border-bottom:0;padding-bottom:0}
+.cal-box{width:13px;height:13px;flex:none;border-radius:4px;border:1.5px solid #C3BDFB;background:#fff;margin-top:1px;display:grid;place-items:center;font-size:9px;color:#0F6B3E;font-weight:800}
+.cal-r.ok .cal-t{text-decoration:line-through;opacity:.5}
+.cal-r.ok .cal-box{background:#E7F8EF;border-color:#A8DCC0}
+.cal-r.bad .cal-t{color:#E5484D;font-weight:600}
+.cal-t{min-width:0;overflow-wrap:anywhere}
+.cal-time{font-size:9.5px;color:var(--muted)}
+.cal-cont{font-size:9px;color:var(--coral);font-weight:700;flex:none;margin-top:2px}
+.cal-none{font-size:10.5px;color:var(--muted);opacity:.6}
+
 body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:var(--ink);}
 .app{max-width:640px;margin:0 auto;padding-bottom:40px;}
 .hero{background:var(--navy);color:#fff;padding:16px 16px 58px;border-radius:0 0 28px 28px;}
@@ -300,6 +337,11 @@ body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:v
 <div class="stats" id="cat-bar"></div>
 <div class="stats"><input id="f-search" type="search" autocomplete="off" placeholder="🔍 חיפוש משימה..." oninput="render()" style="flex:1;min-width:120px;padding:6px 12px"></div>
 <div class="stats" id="bulk-bar"></div>
+<div class="stats" id="view-bar">
+  <button class="cat-chip active" data-view="list" onclick="setCalView('list')">רשימה</button>
+  <button class="cat-chip" data-view="month" onclick="setCalView('month')">חודש</button>
+  <button class="cat-chip" data-view="week" onclick="setCalView('week')">שבוע</button>
+</div>
 <div class="task-list" id="tbl-body"></div>
 <div class="stats" id="stats-bar"></div>
 <footer class="copy">© 2026 רני איציק · כל הזכויות שמורות · <a href="#" onclick="openTerms();return false">תנאי שימוש</a> · <a href="privacy.html" target="_blank" rel="noopener">פרטיות</a></footer>
@@ -2877,6 +2919,74 @@ function renderBulk(){
       +'<button class="bulk-btn" onclick="setSelectMode(false)">ביטול</button>';
   }
 }
+// ── תצוגת יומן: רשימה / חודש / שבוע (נוסף 19-11-2026) ──
+let calView='list', calCursor='', calPick='';
+try{ calView=localStorage.getItem('tk_view')||'list'; }catch(e){}
+function setCalView(v){ calView=v; try{ localStorage.setItem('tk_view',v); }catch(e){} render(); }
+function syncViewBar(){ document.querySelectorAll('#view-bar [data-view]').forEach(b=>b.classList.toggle('active', b.getAttribute('data-view')===calView)); }
+const calKey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const calParse=s=>{ const p=String(s).split('-'); return new Date(+p[0],+p[1]-1,+(p[2]||1)); };
+function calCovers(t,day){ if(!t.date) return false; if(t.date2&&t.date2>t.date) return day>=t.date&&day<=t.date2; return t.date===day; }
+function calPickDay(s){ calPick=s; calCursor=s.slice(0,7); render(); }
+function calToday(){ calPick=''; calCursor=''; render(); }
+function calMove(n){
+  if(calView==='month'){ const d=calParse(calCursor+'-01'); d.setMonth(d.getMonth()+n); calCursor=calKey(d).slice(0,7); }
+  else { const d=calParse(calPick); d.setDate(d.getDate()+n*7); calPick=calKey(d); calCursor=calPick.slice(0,7); }
+  render();
+}
+function calDot(t,isLate){ return isLate(t)?'late':t.done?'done':(t.pri==='high'?'high':t.pri==='med'?'med':'low'); }
+function calHtml(list, card, c){
+  const today=c.today;
+  if(!calPick) calPick=today;
+  if(!calCursor) calCursor=calPick.slice(0,7);
+  const navHtml=(label)=>'<div class="cal-nav"><button onclick="calMove(-1)" aria-label="הקודם">›</button>'
+    +'<div class="cal-m" data-notr>'+label+'</div>'
+    +'<button onclick="calMove(1)" aria-label="הבא">‹</button>'
+    +'<button onclick="calToday()">היום</button></div>';
+  let h='';
+  if(calView==='month'){
+    const cur=calParse(calCursor+'-01'), y=cur.getFullYear(), m=cur.getMonth();
+    const start=new Date(y,m,1-new Date(y,m,1).getDay());
+    h+=navHtml(cur.toLocaleDateString(LOC(),{month:'long',year:'numeric'}));
+    h+='<div class="cal-dow">';
+    for(let i=0;i<7;i++) h+='<span data-notr>'+new Date(start.getFullYear(),start.getMonth(),start.getDate()+i).toLocaleDateString(LOC(),{weekday:'narrow'})+'</span>';
+    h+='</div><div class="cal-grid">';
+    for(let i=0;i<42;i++){
+      const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i), s=calKey(d);
+      const on=list.filter(t=>calCovers(t,s));
+      h+='<button class="cal-d'+(d.getMonth()!==m?' out':'')+(s===today?' now':'')+(s===calPick?' on':'')+'" onclick="calPickDay(\''+s+'\')">'
+        +'<span class="cal-n" data-notr>'+d.getDate()+'</span>'
+        +'<span class="cal-dots">'+on.slice(0,4).map(t=>'<i class="cal-dot '+calDot(t,c.isLate)+'"></i>').join('')+'</span>'
+        +(on.some(t=>t.date2&&t.date2>t.date)?'<span class="cal-span"></span>':'')+'</button>';
+    }
+    h+='</div>';
+  } else {
+    const base=calParse(calPick), start=new Date(base.getFullYear(),base.getMonth(),base.getDate()-base.getDay());
+    h+=navHtml(start.toLocaleDateString(LOC(),{month:'long',year:'numeric'}));
+    h+='<div class="cal-week">';
+    for(let i=0;i<7;i++){
+      const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i), s=calKey(d);
+      const on=list.filter(t=>calCovers(t,s));
+      const rows=on.length?on.map(t=>'<div class="cal-r'+(t.done?' ok':'')+(c.isLate(t)?' bad':'')+'">'
+          +'<span class="cal-box">'+(t.done?'✓':'')+'</span>'
+          +'<span class="cal-t" data-notr>'+escA(t.name||'')+(t.time?' <span class="cal-time">'+escA(t.time)+'</span>':'')+'</span>'
+          +((t.date2&&t.date2>t.date&&t.date!==s)?'<span class="cal-cont">המשך</span>':'')
+          +'</div>').join('')
+        :'<div class="cal-none">אין משימות</div>';
+      h+='<button class="cal-c'+(s===today?' now':'')+(s===calPick?' on':'')+'" onclick="calPickDay(\''+s+'\')">'
+        +'<div class="cal-h"><span data-notr>'+d.toLocaleDateString(LOC(),{weekday:'long'})+'</span>'
+        +'<span class="cal-num" data-notr>'+d.getDate()+'.'+(d.getMonth()+1)+'</span></div>'
+        +'<div class="cal-b">'+rows+'</div></button>';
+    }
+    h+='</div>';
+  }
+  const on=list.filter(t=>calCovers(t,calPick));
+  h+='<div class="sec">'+(calPick===today?'היום':c.dayTxt({date:calPick}))+'</div>';
+  h+= on.length ? on.map(t=>card(t)).join('') : '<div class="empty">אין משימות ביום הזה</div>';
+  const nod=list.filter(t=>!t.date&&!t.done);
+  if(nod.length) h+='<div class="sec">בלי תאריך</div>'+nod.map(t=>card(t)).join('');
+  return h;
+}
 function render(){
   renderCats(); renderBulk();
   const q=((document.getElementById('f-search')||{}).value||'').trim().toLowerCase();
@@ -2922,7 +3032,9 @@ function render(){
     else html+='<button class="more-done" onclick="showDone=true;render()">'+doneL.length+' משימות שבוצעו ←</button>';
   }
   if(!firstDone() && Object.keys(tasks).length){ markFirstDone(); try{ showToast('המשימה הראשונה שלך נרשמה 🎉'); }catch(e){} }
-  document.getElementById('tbl-body').innerHTML = list.length ? html : emptyStateHtml();
+  const tbl=document.getElementById('tbl-body');
+  tbl.innerHTML = (calView!=='list') ? calHtml(list, card, {today,tmr,dayTxt,isLate}) : (list.length ? html : emptyStateHtml());
+  syncViewBar();
   const g=document.getElementById('greet');
   if(g){
     const h=new Date().getHours(), hi=h<5?'לילה טוב':h<12?'בוקר טוב':h<17?'צהריים טובים':h<21?'ערב טוב':'לילה טוב';
@@ -3014,7 +3126,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-18a';
+const APP_VERSION='2026-11-19a';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
