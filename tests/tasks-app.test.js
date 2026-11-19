@@ -252,3 +252,38 @@ test('תאריכים שנאמרים במילים: "בעשרים בנובמבר",
   assert.equal(parse('להתקשר ביום חמישי בשלוש וחצי').time, '15:30');
   assert.equal(parse('לקנות ביצים מחר בעשר').time, '10:00');
 });
+
+// ── מסלול הדיבור עצמו, לא רק המפענח ──
+// applyParsed הוא מה שהמיקרופון מפעיל. אין במסך ההוספה שדה "עד תאריך",
+// ולכן תאריך הסיום חייב לעבור דרך pendingDate2 ל-addTask. בלי זה הטווח נעלם בדיבור
+// גם כשהמפענח זיהה אותו נכון (קרה בפועל ב-19c..19l).
+test('מסלול הדיבור: טווח שנאמר בקול מגיע עד המשימה השמורה', () => {
+  const fake = {};
+  const getEl = (id) => fake[id] || (fake[id] = { value: '', textContent: '', style: {} });
+  ['f-name', 'f-date', 'f-time', 'parsed-hint'].forEach(getEl);
+
+  const src = grab(/const HEB_NUMS[^\n]*\n/, 'HEB_NUMS')
+    + grab(/const DAY_WORDS = \(function\(\)\{[\s\S]*?\n\}\)\(\);\n/, 'DAY_WORDS')
+    + grab(/function normalizeHebrewTime[\s\S]*?\n}\n/, 'normalizeHebrewTime')
+    + grab(/let pendingRep[^\n]*\n/, 'pendingRep')
+    + grab(/function parseHebrewDateTime[\s\S]*?\n}\n/, 'parseHebrewDateTime')
+    + grab(/function applyParsed[\s\S]*?\n}\n/, 'applyParsed');
+  const api = new Function('document', 'LOC',
+    src + ';return {applyParsed, parseHebrewDateTime, get d2(){return pendingDate2}, get d2for(){return pendingDate2For}};'
+  )({ getElementById: getEl }, () => 'he-IL');
+
+  api.applyParsed(api.parseHebrewDateTime('לנסוע לחול מה-19 לחודש עד ה-23 לחודש'));
+  assert.equal(getEl('f-name').value, 'לנסוע לחול', 'שם המשימה נקי');
+  assert.match(getEl('f-date').value, /^\d{4}-\d{2}-19$/, 'תאריך ההתחלה נכנס לשדה');
+  assert.match(api.d2, /^\d{4}-\d{2}-23$/, 'תאריך הסיום נשמר להעברה ל-addTask');
+  assert.equal(api.d2for, getEl('f-date').value, 'הסיום משויך לתאריך ההתחלה הזה');
+  assert.match(getEl('parsed-hint').textContent, /–/, 'הרמז על המסך מציג טווח');
+
+  // addTask חייב לקרוא את pendingDate2, אחרת הסיום נזרק
+  const add = grab(/function addTask\(auto\)\{[\s\S]*?\n\}\n/, 'addTask');
+  assert.match(add, /pendingDate2For===date/, 'addTask לוקח את "עד תאריך" מהדיבור');
+
+  // בלי טווח - לא נשאר זכר מהקודם
+  api.applyParsed(api.parseHebrewDateTime('לקנות חלב מחר'));
+  assert.equal(api.d2, '', 'משימה בלי טווח מנקה את הסיום');
+});
