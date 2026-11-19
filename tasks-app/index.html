@@ -2075,7 +2075,7 @@ async function admPrefetch(){
 }
 // שמירת הנתונים האחרונים במכשיר - הפאנל נפתח מיד ומתעדכן ברקע (17-11-2026)
 function admCacheSave(k,j){ try{ localStorage.setItem(k,JSON.stringify({at:Date.now(),j})); }catch(e){} }
-function admCacheLoad(k){ try{ const c=JSON.parse(localStorage.getItem(k)||'null'); if(c&&c.j&&c.j.ok&&Date.now()-c.at<864e5) return c; }catch(e){} return null; }
+function admCacheLoad(k){ try{ const c=JSON.parse(localStorage.getItem(k)||'null'); if(c&&c.j&&c.j.ok&&Date.now()-c.at<7*864e5) return c; }catch(e){} return null; }  // שבוע: הפאנל תמיד נפתח מיד, והנתון מתרענן ברקע
 async function admSummary(onFresh){
   if(!sumLast){ const c=admCacheLoad('tk_adm_sum'); if(c){ sumLast=c.j; sumAt=c.at; } }
   if(sumLast){ if(Date.now()-sumAt>30000) statsApi('summary').then(j=>{ if(j&&j.ok){ sumLast=j; sumAt=Date.now(); admCacheSave('tk_adm_sum',j); onFresh&&onFresh(); } }); return sumLast; }
@@ -2399,6 +2399,10 @@ async function showStats(tab){
   const j=await admSummary(()=>{ if(admOpen()&&admTab==='stats') showStats('stats'); });
   const body=document.getElementById('st-body'); if(!body) return;
   if(!j||!j.ok){ body.textContent='לא ניתן לטעון נתונים'+(j&&j.error?': '+j.error:''); return; }
+  const asOf=(()=>{ const t=j.cachedAt||sumAt; if(!t) return '';
+    const mins=Math.round((Date.now()-t)/6e4);
+    const txt = mins<2 ? '\u05e2\u05db\u05e9\u05d9\u05d5' : (mins<60 ? ('\u05dc\u05e4\u05e0\u05d9 '+mins+' \u05d3\u05e7\u05d5\u05ea') : new Date(t).toLocaleString('he-IL',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}));
+    return '<div style="font-size:11px;color:#8A88A8;margin-bottom:8px" data-notr>\u05e0\u05db\u05d5\u05df \u05dc' + (mins<2?'':'-') + txt + (mins>=2?' \u00b7 \u05de\u05ea\u05e2\u05d3\u05db\u05df \u05d1\u05e8\u05e7\u05e2':'') + '</div>'; })();
   const card=(label,val,sub)=>'<div style="background:#fff;border:1.5px solid #E2E1F0;border-radius:14px;padding:10px 12px"><div style="font-size:12px;color:#5B5B76;font-weight:600">'+label+'</div><div style="font-size:26px;font-weight:800;color:#1E1B4B;line-height:1.25">'+val+'</div>'+(sub?'<div style="font-size:11px;color:#8A88A8">'+sub+'</div>':'')+'</div>';
   const grid=a=>'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px">'+a.join('')+'</div>';
   // הגרפים מתחילים מהיום הראשון שיש בו נתונים (לפחות 7 ימים), כדי שלא יהיו ריקים ברובם
@@ -2419,7 +2423,7 @@ async function showStats(tab){
   const since=j.trackingSince?j.trackingSince.split('-').reverse().join('/'):'היום';
   const V=j.visits||{total:0,today:0,d7:0,d30:0,todayNew:0,fromHome:0}, td=j.days[j.days.length-1]||{};
   body.innerHTML=
-    admTodoHtml(admAcc)+
+    admTodoHtml(admAcc)+asOf+
     grid([card('פעילים היום',td.active||0), card('פעילים השבוע',U.active7,'ב-30 יום: '+U.active30), card('משתמשים רשומים',U.total,'חדשים השבוע: '+U.new7)])
     +dependHtml(j)
     +activityHtml(j.activity||[])
@@ -3368,7 +3372,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-19n';
+const APP_VERSION='2026-11-19o';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
