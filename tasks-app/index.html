@@ -924,7 +924,8 @@ function parseHebrewDateTime(text, noRange) {
     const DOW_ONLY=/^(?:יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)$/;
     const prep=x=>DOW_ONLY.test(x)?('ביום '+x.replace(/^יום\s+/,'')):x;
     // "מתאריך 20", "מה-20", "ל-ה-24" – מילות קישור שאפשר להתעלם מהן
-    const bare=x=>x.replace(/^תאריך\s+/,'').replace(/^ה[־-]?(?=\d)/,'').trim();
+    // "מתאריך 20", "מה-20", וגם "מה היום" – ההכתבה מפצלת "מהיום" לשתי מילים
+    const bare=x=>x.replace(/^תאריך\s+/,'').replace(/^ה[־-]?(?=\d)/,'').replace(/^ה\s+(?=\S)/,'').trim();
     const mark=x=>/^ה[־-]?\d/.test(x)||/^תאריך\s/.test(x);
     const whole=x=>{ const r=parseHebrewDateTime(prep(x), true); return (r.date && !r.cleanText.trim()) ? r : null; };
     const num=x=>{ if(/^\d{1,2}$/.test(x)) return +x; const k=x.replace(/\s+/g,' ').trim(); return DAY_WORDS[k]||null; };
@@ -3337,7 +3338,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-19k';
+const APP_VERSION='2026-11-19l';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
