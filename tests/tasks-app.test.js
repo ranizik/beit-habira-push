@@ -12,6 +12,7 @@ const grab = (re, name) => { const m = html.match(re); assert.ok(m, 'לא נמצ
 
 // פונקציות הפענוח מתוך הקובץ עצמו (כך שבודקים את הקוד האמיתי)
 const parserSrc = grab(/const HEB_NUMS[^\n]*\n/, 'HEB_NUMS')
+  + grab(/const DAY_WORDS = \(function\(\)\{[\s\S]*?\n\}\)\(\);\n/, 'DAY_WORDS')
   + grab(/function normalizeHebrewTime[\s\S]*?\n}\n/, 'normalizeHebrewTime')
   + grab(/function parseHebrewDateTime[\s\S]*?\n}\n/, 'parseHebrewDateTime');
 const parse = new Function(parserSrc + ';return parseHebrewDateTime;')();
@@ -182,4 +183,38 @@ test('טווח תאריכים בדיבור: ה"א הידיעה, "תאריך", "�
   assert.equal(parse('להזמין מ-6 עד 12 בקבוקים').date2, null, 'כמות לא הופכת לטווח');
   assert.equal(parse('חוג מ-23 עד 27').date2, null, 'בלי סימון תאריך אין טווח');
   assert.equal(parse('לעבוד בין הערביים').date2, null, '"בין" לבדה לא יוצרת טווח');
+});
+
+test('תאריכים שנאמרים במילים: "בעשרים בנובמבר", "מחמישה עשר לדצמבר"', () => {
+  const day = (r) => r.date && r.date.getDate();
+
+  assert.equal(day(parse('ספירת מלאי בעשרים בנובמבר')), 20);
+  assert.equal(parse('ספירת מלאי בעשרים בנובמבר').cleanText, 'ספירת מלאי');
+  assert.equal(day(parse('פגישה בחמישה עשר בדצמבר')), 15);
+  assert.equal(day(parse('פגישה בחמש עשרה בדצמבר')), 15, 'צורת נקבה לא נקלטת כשעה 5:00');
+  assert.equal(parse('פגישה בחמש עשרה בדצמבר').time, null);
+  assert.equal(day(parse('לשלם בשלושים ואחד בדצמבר')), 31);
+  assert.equal(day(parse('לשלם בעשרים ואחד בנובמבר')), 21);
+  assert.equal(day(parse('לשלם בשלושה לחודש')), 3);
+
+  const r = parse('ספירת מלאי מעשרים עד עשרים וארבעה בנובמבר');
+  assert.ok(r.date && r.date2, 'טווח במילים לא זוהה');
+  assert.equal(r.date.getDate(), 20);
+  assert.equal(r.date2.getDate(), 24);
+  assert.equal(r.cleanText, 'ספירת מלאי');
+
+  const r2 = parse('חופשה מעשרים בנובמבר עד שלושה בדצמבר');
+  assert.equal(r2.date.getMonth(), 10);
+  assert.equal(r2.date2.getMonth(), 11);
+  assert.equal(r2.date2.getDate(), 3);
+
+  // מספר במילים בלי חודש = כמות, לא תאריך
+  assert.equal(parse('לקנות שלושה בקבוקים').date, null);
+  assert.equal(parse('לקנות שלושה בקבוקים').cleanText, 'לקנות שלושה בקבוקים');
+  assert.equal(parse('להזמין עשרים ארגזים').date, null);
+
+  // שעות ממשיכות לעבוד כרגיל
+  assert.equal(parse('פגישה בשתים עשרה').time, '12:00');
+  assert.equal(parse('להתקשר ביום חמישי בשלוש וחצי').time, '15:30');
+  assert.equal(parse('לקנות ביצים מחר בעשר').time, '10:00');
 });
