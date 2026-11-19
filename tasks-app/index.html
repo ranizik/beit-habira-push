@@ -903,7 +903,7 @@ function normalizeHebrewTime(text) {
   return s;
 }
 
-let pendingRep='';
+let pendingRep='', pendingDate2='', pendingDate2For='';  // הדיבור מעביר גם ׳עד תאריך׳ להוספת המשימה
 function parseHebrewDateTime(text, noRange) {
   text = normalizeHebrewTime(text);
   let rep='';
@@ -1431,8 +1431,12 @@ function applyParsed(parsed) {
     document.getElementById('f-date').value = y+'-'+mo+'-'+d;
   }
   if (parsed.time) document.getElementById('f-time').value = parsed.time;
+  // טווח תאריכים מהדיבור: אין שדה ׳עד תאריך׳ במסך ההוספה, אז שומרים ומעבירים ל-addTask
+  pendingDate2 = parsed.date2 ? (parsed.date2.getFullYear()+'-'+String(parsed.date2.getMonth()+1).padStart(2,'0')+'-'+String(parsed.date2.getDate()).padStart(2,'0')) : '';
+  pendingDate2For = pendingDate2 ? document.getElementById('f-date').value : '';
   const hints=[];
-  if (parsed.date) hints.push(parsed.date.toLocaleDateString(LOC()));
+  if (parsed.date && parsed.date2) hints.push(parsed.date.toLocaleDateString(LOC())+' – '+parsed.date2.toLocaleDateString(LOC()));
+  else if (parsed.date) hints.push(parsed.date.toLocaleDateString(LOC()));
   if (parsed.time) hints.push(parsed.time);
   pendingRep = parsed.rep || '';
   if (parsed.rep) hints.push({daily:'🔁 כל יום',weekly:'🔁 כל שבוע',monthly:'🔁 כל חודש'}[parsed.rep]);
@@ -1481,7 +1485,7 @@ function setupMic() {
   recognition=new SR();
   recognition.lang=(LANGS[curLang]||LANGS.he).sr; recognition.continuous=true; recognition.interimResults=true; // נעצר רק אחרי שקט ממושך (למטה)
   recognition.onstart=()=>{
-    isRecording=true; micGotFinal=false; micLastInterim=''; micErr=false; pendingRep='';
+    isRecording=true; micGotFinal=false; micLastInterim=''; micErr=false; pendingRep=''; pendingDate2=''; pendingDate2For='';
     clearTimeout(micSilence); clearTimeout(micMax);
     micMax=setTimeout(()=>{ if(isRecording) recognition.stop(); }, 15000); // הגנה: עד 15 שניות הקלטה
     document.getElementById('mic-btn').classList.add('recording');
@@ -2859,6 +2863,8 @@ function addTask(auto){
   const plang=PARSE_LANG_OF(name); // שפת המשפט: עברית או שפת הממשק
   const parsed=parseDateTime(name);
   const repParsed=parsed.rep||pendingRep||''; pendingRep='';
+  if(!date2&&pendingDate2&&pendingDate2For===date) date2=pendingDate2;  // מהדיבור, רק אם זה אותו תאריך התחלה
+  pendingDate2=''; pendingDate2For='';
   if((parsed.date||parsed.time)&&parsed.cleanText){
     name=parsed.cleanText;
     if(!date&&parsed.date){const d=parsed.date;date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -3338,7 +3344,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-19l';
+const APP_VERSION='2026-11-19m';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
