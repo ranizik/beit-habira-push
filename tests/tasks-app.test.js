@@ -205,9 +205,18 @@ test('"עד ה-23 לחודש": ה"א הידיעה, שם נקי בלי "עד", ו
   assert.equal(b.date2.getDate(), 23);
   assert.equal(b.cleanText, 'לנסוע לחול');
 
+  // ההכתבה מפצלת "מהיום" ל-"מה היום"
+  const c = parse('לנסוע לחול מה היום עד ה-23 לחודש');
+  assert.ok(c.date && c.date2, '"מה היום עד ..." לא זוהה כטווח');
+  assert.equal(ymd(c.date), ymd(today));
+  assert.equal(c.date2.getDate(), 23);
+  assert.equal(c.cleanText, 'לנסוע לחול');
+
   // "מה" כמילה רגילה לא הופכת לטווח
   assert.equal(parse('לבדוק מה קרה').date, null);
   assert.equal(parse('לבדוק מה קרה').cleanText, 'לבדוק מה קרה');
+  assert.equal(parse('לשאול מה הלקוח רוצה').date, null);
+  assert.equal(parse('לשאול מה הלקוח רוצה').cleanText, 'לשאול מה הלקוח רוצה');
 });
 
 test('תאריכים שנאמרים במילים: "בעשרים בנובמבר", "מחמישה עשר לדצמבר"', () => {
