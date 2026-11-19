@@ -158,7 +158,10 @@ tbody td:last-child{border-right:none;}
 .cal-b{padding:5px 7px 7px;display:flex;flex-direction:column;gap:3px;min-height:62px}
 .cal-r{display:flex;align-items:flex-start;gap:5px;font-size:11.5px;line-height:1.3;border-bottom:1px solid #EFEEF8;padding-bottom:3px}
 .cal-r:last-child{border-bottom:0;padding-bottom:0}
-.cal-box{width:13px;height:13px;flex:none;border-radius:4px;border:1.5px solid #C3BDFB;background:#fff;margin-top:1px;display:grid;place-items:center;font-size:9px;color:#0F6B3E;font-weight:800}
+.cal-box{width:17px;height:17px;flex:none;border-radius:5px;border:1.5px solid #C3BDFB;background:#fff;margin-top:0;padding:0;display:grid;place-items:center;font-size:11px;color:#0F6B3E;font-weight:800;cursor:pointer;font-family:inherit}
+.cal-box:active{transform:scale(.92)}
+.cal-t{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;text-align:start;cursor:pointer}
+.cal-c:focus-within{outline:2px solid var(--coral);outline-offset:1px}
 .cal-r.ok .cal-t{text-decoration:line-through;opacity:.5}
 .cal-r.ok .cal-box{background:#E7F8EF;border-color:#A8DCC0}
 .cal-r.bad .cal-t{color:#E5484D;font-weight:600}
@@ -2968,15 +2971,15 @@ function calHtml(list, card, c){
       const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i), s=calKey(d);
       const on=list.filter(t=>calCovers(t,s));
       const rows=on.length?on.map(t=>'<div class="cal-r'+(t.done?' ok':'')+(c.isLate(t)?' bad':'')+'">'
-          +'<span class="cal-box">'+(t.done?'✓':'')+'</span>'
-          +'<span class="cal-t" data-notr>'+escA(t.name||'')+(t.time?' <span class="cal-time">'+escA(t.time)+'</span>':'')+'</span>'
+          +'<button type="button" class="cal-box" aria-label="'+(t.done?'סמן כפתוחה':'סמן כבוצעה')+'" onclick="event.stopPropagation();toggle(\''+t.id+'\')">'+(t.done?'✓':'')+'</button>'
+          +'<button type="button" class="cal-t" data-notr onclick="event.stopPropagation();rowClick(\''+t.id+'\')">'+escA(t.name||'')+(t.time?' <span class="cal-time">'+escA(t.time)+'</span>':'')+'</button>'
           +((t.date2&&t.date2>t.date&&t.date!==s)?'<span class="cal-cont">המשך</span>':'')
           +'</div>').join('')
         :'<div class="cal-none">אין משימות</div>';
-      h+='<button class="cal-c'+(s===today?' now':'')+(s===calPick?' on':'')+'" onclick="calPickDay(\''+s+'\')">'
+      h+='<div class="cal-c'+(s===today?' now':'')+(s===calPick?' on':'')+'" role="button" tabindex="0" onclick="calPickDay(\''+s+'\')">'
         +'<div class="cal-h"><span data-notr>'+d.toLocaleDateString(LOC(),{weekday:'long'})+'</span>'
         +'<span class="cal-num" data-notr>'+d.getDate()+'.'+(d.getMonth()+1)+'</span></div>'
-        +'<div class="cal-b">'+rows+'</div></button>';
+        +'<div class="cal-b">'+rows+'</div></div>';
     }
     h+='</div>';
   }
@@ -3126,7 +3129,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-19a';
+const APP_VERSION='2026-11-19b';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
