@@ -174,7 +174,12 @@ tbody td:last-child{border-right:none;}
 .cal-d.cal-over{background:#FFF1F1}
 .cal-lift{opacity:.3}
 .cal-ghost{font-family:inherit;font-size:12px;border:1.5px solid #C3BDFB;border-radius:10px;background:#fff;padding:5px 8px;max-width:70vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.cal-r,.cal-drag{cursor:grab}
+.cal-grip{touch-action:none;cursor:grab;flex:none;color:#9A97C9;font-size:15px;line-height:1;
+  padding:3px 4px;margin-inline-start:-2px;user-select:none;-webkit-user-select:none;align-self:center}
+.cal-grip:active{cursor:grabbing;color:var(--coral)}
+.cal-drag{display:flex;align-items:center;gap:2px}
+.cal-drag > .card{flex:1;min-width:0}
+.cal-r{cursor:default}
 .cal-dragging,.cal-dragging *{cursor:grabbing !important}
 
 body{font-family:'Rubik',system-ui,Arial,sans-serif;background:var(--bg);color:var(--ink);}
@@ -1248,7 +1253,7 @@ const HELP_CONTENT={he:[
   • <b>רשימה</b> – כמו תמיד: באיחור · היום · מחר · בהמשך · בלי תאריך<br>
   • <b>חודש</b> – לוח חודשי. בכל יום נקודה לכל משימה לפי דחיפות (🔴 דחוף · 🟡 בינוני · אדום = באיחור · ירוק = בוצע). פס קורל מתחת ליום = משימה שנמשכת כמה ימים. לחיצה על יום פותחת את המשימות שלו למטה<br>
   • <b>שבוע</b> – שבע משבצות עם שמות המשימות בפנים. סימון <b>בוצע</b> ישירות בתיבה, ולחיצה על שם המשימה פותחת אותה לעריכה. "המשך" מסמן יום באמצע טווח<br>
-  <b>להעביר משימה ליום אחר:</b> לחיצה ארוכה על המשימה (כחצי שנייה) מרימה אותה, גוררים ליום הרצוי ומשחררים. משימה שנמשכת כמה ימים זזה כולה ושומרת על האורך.<br>
+  <b>להעביר משימה ליום אחר:</b> ליד כל משימה יש נקודות אחיזה (⁙). אוחזים בהן, גוררים ליום הרצוי ומשחררים. במחשב אפשר גם לחיצה ארוכה על המשימה. משימה שנמשכת כמה ימים זזה כולה ושומרת על האורך.<br>
   החיפוש והקטגוריות עובדים גם ביומן.</div>`],
   ['📅 חיבור ליומן Google וסמסונג',`<div>לוחצים <b>📅</b> ובוחרים חשבון Google (אם מופיע "לא מאומת": מתקדם ← המשך). מעכשיו כל משימה עם תאריך נכנסת ל-Google Tasks.<br>
   <b>יומן של סמסונג:</b> 📅 ← מסמנים "גם כאירוע ביומן" ← מאשרים. המשימות יופיעו ביומן עם צלצול בשעת המשימה.</div><div style="margin-top:6px">לניתוק: <b>📅</b> ← "נתק".</div>`]]},
@@ -3060,16 +3065,19 @@ document.addEventListener('pointerdown',e=>{
   if(e.target.closest('.cal-box,.tick,.cact,.cal-nav')) return;
   const src=e.target.closest('[data-tid]'); if(!src) return;
   dgClear();
-  dgStart={x:e.clientX,y:e.clientY,src,id:src.getAttribute('data-tid')};
-  dgTimer=setTimeout(()=>dgLift(e.clientX,e.clientY),400);
-});
+  dgStart={x:e.clientX,y:e.clientY,src,id:src.getAttribute('data-tid'),moved:false};
+  // מהידית - מתחילים מיד. בלעדיה הדפדפן בנייד תופס את המגע לגלילה ושום לחיצה ארוכה לא תספיק.
+  if(e.target.closest('.cal-grip')){ e.preventDefault(); dgLift(e.clientX,e.clientY); return; }
+  if(e.pointerType==='mouse') dgTimer=setTimeout(()=>dgLift(e.clientX,e.clientY),350);
+},{passive:false});
 document.addEventListener('pointermove',e=>{
-  if(dgOn){ e.preventDefault(); dgTo(e.clientX,e.clientY); return; }
+  if(dgOn){ e.preventDefault(); if(dgStart&&(Math.abs(e.clientX-dgStart.x)>8||Math.abs(e.clientY-dgStart.y)>8)) dgStart.moved=true; dgTo(e.clientX,e.clientY); return; }
   if(dgStart&&(Math.abs(e.clientX-dgStart.x)>10||Math.abs(e.clientY-dgStart.y)>10)){ clearTimeout(dgTimer); dgTimer=null; dgStart=null; }
 },{passive:false});
 document.addEventListener('pointerup',()=>{
   if(dgOn){
-    const to=dgOver&&dgOver.getAttribute('data-day'), id=dgId;
+    const moved=dgStart&&dgStart.moved;
+    const to=moved?(dgOver&&dgOver.getAttribute('data-day')):null, id=dgId;
     document.addEventListener('click',ev=>{ ev.stopPropagation(); ev.preventDefault(); },{capture:true,once:true});
     dgClear();
     if(id&&to) calMoveTask(id,to);
@@ -3111,6 +3119,7 @@ function calHtml(list, card, c){
       const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i), s=calKey(d);
       const on=list.filter(t=>calCovers(t,s));
       const rows=on.length?on.map(t=>'<div class="cal-r'+(t.done?' ok':'')+(c.isLate(t)?' bad':'')+'" data-tid="'+t.id+'">'
+          +'<span class="cal-grip" aria-hidden="true">⁙</span>'
           +'<button type="button" class="cal-box" aria-label="'+(t.done?'סמן כפתוחה':'סמן כבוצעה')+'" onclick="event.stopPropagation();toggle(\''+t.id+'\')">'+(t.done?'✓':'')+'</button>'
           +'<button type="button" class="cal-t" data-notr onclick="event.stopPropagation();rowClick(\''+t.id+'\')">'+escA(t.name||'')+(t.time?' <span class="cal-time">'+escA(t.time)+'</span>':'')+'</button>'
           +((t.date2&&t.date2>t.date&&t.date!==s)?'<span class="cal-cont">המשך</span>':'')
@@ -3125,7 +3134,7 @@ function calHtml(list, card, c){
   }
   const on=list.filter(t=>calCovers(t,calPick));
   h+='<div class="sec">'+(calPick===today?'היום':c.dayTxt({date:calPick}))+'</div>';
-  const wrap=t=>'<div class="cal-drag" data-tid="'+t.id+'">'+card(t)+'</div>';
+  const wrap=t=>'<div class="cal-drag" data-tid="'+t.id+'"><span class="cal-grip" aria-hidden="true">⁙</span>'+card(t)+'</div>';
   h+= on.length ? on.map(wrap).join('') : '<div class="empty">אין משימות ביום הזה</div>';
   const nod=list.filter(t=>!t.date&&!t.done);
   if(nod.length) h+='<div class="sec">בלי תאריך</div>'+nod.map(wrap).join('');
@@ -3270,7 +3279,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-19e';
+const APP_VERSION='2026-11-19f';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
