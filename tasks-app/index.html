@@ -869,7 +869,7 @@ function normalizeHebrewTime(text) {
 }
 
 let pendingRep='';
-function parseHebrewDateTime(text) {
+function parseHebrewDateTime(text, noRange) {
   text = normalizeHebrewTime(text);
   let rep='';
   if (/כל\s+(?:יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)(?=\s|$|[,.])/.test(text)) { rep='weekly'; text=text.replace(/כל\s+(?:יום\s+)?(?=(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת))/,'ביום '); }
@@ -877,8 +877,52 @@ function parseHebrewDateTime(text) {
   else if (/כל\s+שבוע(?=\s|$|[,.])/.test(text)) { rep='weekly'; text=text.replace(/כל\s+שבוע/,' '); }
   else if (/כל\s+חודש(?=\s|$|[,.])/.test(text)) { rep='monthly'; text=text.replace(/כל\s+חודש/,' '); }
   const now = new Date();
-  let date = null, time = null;
+  let date = null, date2 = null, time = null;
   const days = {ראשון:0,שני:1,שלישי:2,רביעי:3,חמישי:4,שישי:5,שבת:6};
+
+  // ── טווח תאריכים בדיבור (19-11-2026): "מ-20 עד 24 בנובמבר", "מ-1.12 עד 5.12",
+  //    "מהיום עד מחר", "מיום ראשון עד רביעי". עובדים לפי מילים ולא בביטוי אחד,
+  //    אחרת מילה כמו "מלאי" נתפסת בטעות כ-"מ...". כל צד נבדק במפענח עצמו,
+  //    ומתקבל רק אם כולו תאריך (לא נשאר ממנו טקסט) - כך "בשעה 8" לא נבלע.
+  let rngA=null, rngB=null;
+  if (!noRange) {
+    const DOW_ONLY=/^(?:יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)$/;
+    const prep=x=>DOW_ONLY.test(x)?('ביום '+x.replace(/^יום\s+/,'')):x;
+    const whole=x=>{ const r=parseHebrewDateTime(prep(x), true); return (r.date && !r.cleanText.trim()) ? r : null; };
+    const num=x=>/^\d{1,2}$/.test(x)?+x:null;
+    const tk=text.split(/\s+/).filter(Boolean);
+    for (let i=1; i<tk.length-1 && !rngA; i++) {
+      if (tk[i]!=='עד' && tk[i]!=='ועד') continue;
+      for (let al=Math.min(3,i); al>=1 && !rngA; al--) {
+        const aRaw=tk.slice(i-al,i).join(' ');
+        if (!/^מ[־-]?/.test(aRaw)) continue;
+        const A=aRaw.replace(/^מ[־-]?\s*/,'');
+        if (!A) continue;
+        for (let bl=Math.min(3,tk.length-i-1); bl>=1 && !rngA; bl--) {
+          const B=tk.slice(i+1,i+1+bl).join(' ').replace(/^ל[־-]?\s*/,'');
+          if (!B) continue;
+          const pa=whole(A), pb=whole(B);
+          let da=pa&&pa.date, db=pb&&pb.date;
+          const nA=num(A), nB=num(B);
+          if(!da && nA && db && nA>=1 && nA<=31){
+            da=new Date(db.getFullYear(), db.getMonth(), nA);
+            if(da>db) da=new Date(db.getFullYear(), db.getMonth()-1, nA);
+          }
+          if(!db && nB && da && nB>=1 && nB<=31){
+            db=new Date(da.getFullYear(), da.getMonth(), nB);
+            if(db<da) db=new Date(da.getFullYear(), da.getMonth()+1, nB);
+          }
+          if(da && db && DOW_ONLY.test(B)){ while(db<da) db=new Date(db.getFullYear(), db.getMonth(), db.getDate()+7); }
+          if(da && db && db>=da){
+            rngA=da; rngB=db;
+            if(pa&&pa.time) time=pa.time;
+            tk.splice(i-al, al+1+bl);
+            text=tk.join(' ');
+          }
+        }
+      }
+    }
+  }
 
   if (/היום/.test(text)) date = new Date(now);
   if (/מחרתיים/.test(text)) { date=new Date(now); date.setDate(date.getDate()+2); }
@@ -947,8 +991,9 @@ function parseHebrewDateTime(text) {
   clean = clean.replace(/(?:ב-?)?\d{1,2}[\/\.]\d{1,2}(?:[\/\.](?:\d{4}|\d{2}))?/g,''); // תאריך מספרי (ב-15/11) - לפני השעה
   clean = clean.replace(/(?:בשעה|שעה|ב-?)\s*\d{1,2}(?!\d|[\/.]\d)(?::\d{2})?(?:\s*(?:בבוקר|בצהריים|אחה"צ|אחרי הצהריים|בערב|בלילה))?/g,'');
   clean = clean.replace(/\d{1,2}[\/\.]\d{1,2}/g,'');
+  if (rngA){ date=rngA; date2=rngB; }   // הטווח גובר על זיהוי של תאריך בודד
   if (rep && !date) date = new Date(now);
-  return {cleanText: clean.trim().replace(/\s+/g,' '), date, time, rep};
+  return {cleanText: clean.trim().replace(/\s+/g,' '), date, date2, time, rep};
 }
 // ── זיהוי תאריך/שעה/חזרתיות/דחיפות/אחראי בשפות נוספות (en/ar/ru/fr/es) – אותה תוצאה כמו המפענח העברי ──
 // טקסט עם אותיות עבריות תמיד עובר במפענח העברי (גם כשהממשק בשפה אחרת)
@@ -2737,13 +2782,14 @@ function addTask(auto){
   if(!name)return;
   let tl=allView?null:curList; const lp=pickListFromText(name); if(lp){ name=lp.name; tl=lp.list; } // רשימת היעד
   // מזהה תאריך/שעה גם בטקסט שהוקלד או הוכתב דרך המקלדת, ומוציא אותם משם המשימה
-  let date=document.getElementById('f-date').value, time=document.getElementById('f-time').value;
+  let date=document.getElementById('f-date').value, time=document.getElementById('f-time').value, date2='';
   const plang=PARSE_LANG_OF(name); // שפת המשפט: עברית או שפת הממשק
   const parsed=parseDateTime(name);
   const repParsed=parsed.rep||pendingRep||''; pendingRep='';
   if((parsed.date||parsed.time)&&parsed.cleanText){
     name=parsed.cleanText;
     if(!date&&parsed.date){const d=parsed.date;date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+    if(!date2&&parsed.date2){const d=parsed.date2;date2=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
     if(!time&&parsed.time) time=parsed.time;
   }
   if(time&&!date){const d=new Date();date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -2784,6 +2830,7 @@ function addTask(auto){
   name=name.replace(/\s+/g,' ').trim(); if(!name) return;
   const id='task_'+Date.now();
   const task={id,name,pri:document.getElementById('f-pri').value,date,time,done:false,created:Date.now(),tz:LOCAL_TZ};
+  if(date2&&date&&date2>date) task.date2=date2;
   const fc=document.getElementById('f-cat'); if(fc&&fc.value&&fc.value!=='__new') task.cat=fc.value; else if(autoCat) task.cat=autoCat;
   if(tl && curUser) task.byUid=curUser.uid;
   if(tl && curUser) task.by=(myLists[tl]&&myLists[tl].members&&myLists[tl].members[curUser.uid]&&myLists[tl].members[curUser.uid].name)||'';
@@ -3129,7 +3176,7 @@ updateGcalStatus();
 setTimeout(()=>installHint(),2500);
 try{ if(isStandalone()) document.getElementById('inst-btn').style.display='none'; }catch(e){}
 // עדכון אוטומטי: כשחוזרים לאפליקציה (גם מהמסך הבית) ויש גרסה חדשה באתר - נטענת לבד. לא באמצע הקלטה/עריכה/הקלדה
-const APP_VERSION='2026-11-19b';
+const APP_VERSION='2026-11-19c';
 async function checkAppUpdate(beforePanel){
   try{
     const t=await fetch(APP_BASE+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());
